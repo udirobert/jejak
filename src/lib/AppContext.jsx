@@ -43,6 +43,8 @@ export function AppProvider({ children }) {
   const [traces, setTraces] = useState(initialStreak.traces);
   const [workerTotal, setWorkerTotal] = useState(initialStreak.workerTotal);
   const [distanceTotal, setDistanceTotal] = useState(initialStreak.distanceTotal);
+  const [customPrice, setCustomPrice] = useState(null); // optional user-adjusted shelf price
+  const [makerTip, setMakerTip] = useState(0); // optional direct maker boost on current receipt
 
   useEffect(() => {
     try {
@@ -56,12 +58,17 @@ export function AppProvider({ children }) {
   const switchCurrency = useCallback((cur) => {
     setCurrency(cur);
     setMarket(marketForCurrency(cur));
+    setCustomPrice(null);
   }, []);
 
   const addTrace = useCallback((labourAmount, distanceKm = 0) => {
     setTraces((n) => n + 1);
     setWorkerTotal((t) => t + (labourAmount || 0));
     setDistanceTotal((d) => d + (distanceKm || 0));
+  }, []);
+
+  const addToWorkerFund = useCallback((amount = 0) => {
+    setWorkerTotal((t) => t + (amount || 0));
   }, []);
 
   const reset = useCallback(() => {
@@ -73,6 +80,8 @@ export function AppProvider({ children }) {
     setDetailCategory(null);
     setShowHowTo(false);
     setLowConfidence(false);
+    setCustomPrice(null);
+    setMakerTip(0);
   }, []);
 
   const value = {
@@ -95,7 +104,12 @@ export function AppProvider({ children }) {
     traces,
     workerTotal,
     distanceTotal,
+    customPrice,
+    setCustomPrice,
+    makerTip,
+    setMakerTip,
     addTrace,
+    addToWorkerFund,
     setCurrency: switchCurrency,
     setMarket,
     setProduct,

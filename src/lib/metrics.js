@@ -29,8 +29,8 @@ const TAX = {
   GB: { rate: 0.2, name: "VAT", source: "gov.uk" },
   SG: { rate: 0.09, name: "GST", source: "IRAS" },
 };
-export function taxAmount(product, market) {
-  const price = product.markets[market].price;
+export function taxAmount(product, market, overridePrice = null) {
+  const price = overridePrice != null && overridePrice > 0 ? overridePrice : product.markets[market].price;
   const t = TAX[market];
   return { amount: (price * t.rate) / (1 + t.rate), rate: t.rate, name: t.name, source: t.source };
 }
@@ -38,8 +38,8 @@ export function taxAmount(product, market) {
 // 3. Card / payment fees. UK interchange capped under PSD2 (~1.5% all-in);
 // Singapore is uncapped (~2%). Shown as an estimate.
 const PAYMENT_FEE = { GB: 0.015, SG: 0.02 };
-export function paymentFee(product, market) {
-  const price = product.markets[market].price;
+export function paymentFee(product, market, overridePrice = null) {
+  const price = overridePrice != null && overridePrice > 0 ? overridePrice : product.markets[market].price;
   return { amount: price * PAYMENT_FEE[market], rate: PAYMENT_FEE[market], source: "PSD2 interchange cap" };
 }
 
@@ -49,8 +49,8 @@ export function paymentFee(product, market) {
 // via a fixed USD cross-rate so no live conversion runs at view time.
 const WAGE_USD = { mid: 0.55, low: 0.65, high: 0.45 }; // high wage → fewer hours
 const USD_TO = { GBP: 1 / 1.27, SGD: 1 / 0.74 };
-export function hoursToEarn(product, market, currency) {
-  const price = product.markets[market].price;
+export function hoursToEarn(product, market, currency, overridePrice = null) {
+  const price = overridePrice != null && overridePrice > 0 ? overridePrice : product.markets[market].price;
   const x = USD_TO[currency] || USD_TO.GBP;
   const hours = Math.round(price / (WAGE_USD.mid * x));
   const low = Math.round(price / (WAGE_USD.low * x));
@@ -58,11 +58,11 @@ export function hoursToEarn(product, market, currency) {
   return { hours, low, high, source: "Bangladesh min wage, Dec 2023" };
 }
 
-export function buildMetrics(product, market, currency) {
+export function buildMetrics(product, market, currency, overridePrice = null) {
   const dist = routeDistance(product, market);
-  const tax = taxAmount(product, market);
-  const fee = paymentFee(product, market);
-  const hrs = hoursToEarn(product, market, currency);
+  const tax = taxAmount(product, market, overridePrice);
+  const fee = paymentFee(product, market, overridePrice);
+  const hrs = hoursToEarn(product, market, currency, overridePrice);
   const weeks = Math.max(1, Math.round(hrs.hours / 40));
   return [
     {

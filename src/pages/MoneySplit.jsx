@@ -11,18 +11,38 @@ import ConfidenceBadge from "@/components/ConfidenceBadge";
 import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
 import TodaySnapPulse from "@/components/TodaySnapPulse";
+import MakerBridgeCard from "@/components/MakerBridgeCard";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
-import { ArrowLeft, Info, Camera } from "lucide-react";
+import { ArrowLeft, Info, Camera, Sliders } from "lucide-react";
 
 export default function MoneySplit() {
-  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace, photoFile, shareMode, setShareMode, reset } = useApp();
+  const {
+    product,
+    market,
+    currency,
+    setScreen,
+    compareMode,
+    setCompareMode,
+    setDetailCategory,
+    addTrace,
+    photoFile,
+    shareMode,
+    setShareMode,
+    customPrice,
+    setCustomPrice,
+    reset,
+  } = useApp();
+  const [editingPrice, setEditingPrice] = React.useState(false);
   const reduce = useReducedMotion();
-  const price = product.markets[market].price;
-  const split = computeSplit(product, market, compareMode ? "transparent" : "split");
+  const basePrice = product.markets[market].price;
+  const price = customPrice != null && customPrice > 0 ? customPrice : basePrice;
+  const minPrice = Math.max(1, Math.round(basePrice * 0.3));
+  const maxPrice = Math.round(basePrice * 3);
+  const split = computeSplit(product, market, compareMode ? "transparent" : "split", price);
   const labour = split.find((s) => s.key === "labour");
-  const metrics = buildMetrics(product, market, currency);
+  const metrics = buildMetrics(product, market, currency, price);
   const perUnit = labourPerUnit(
     compareMode ? product.transparentAlternative.split : product.split,
     currency
@@ -30,9 +50,9 @@ export default function MoneySplit() {
   const routeLen = (product.route?.length || 0) + 1;
 
   // Personal impact line — emotional, not just a chart.
-  const stdLabourAmt = computeSplit(product, market, "split").find((s) => s.key === "labour").amount;
+  const transparentLabourAmt = computeSplit(product, market, "transparent", price).find((s) => s.key === "labour").amount;
   const impactLine = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
-  const stdImpact = `A transparent brand would send about ${formatMoney(stdLabourAmt, currency)} their way.`;
+  const stdImpact = `A transparent brand would send about ${formatMoney(transparentLabourAmt, currency)} their way.`;
 
   // Celebrate the first trace of this product.
   const celebrated = useRef(false);
@@ -99,8 +119,57 @@ export default function MoneySplit() {
 
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-3">
           <p className="text-sm font-semibold text-jejak-navy/60">{product.name} · {product.markets[market].retailer}</p>
-          <p className="text-4xl font-extrabold text-jejak-navy">{formatMoney(price, currency)}</p>
+          <div className="flex items-baseline justify-between gap-2">
+            <p className="text-4xl font-extrabold text-jejak-navy">{formatMoney(price, currency)}</p>
+            <button
+              type="button"
+              onClick={() => { vibrate(6); setEditingPrice((v) => !v); }}
+              className="inline-flex items-center gap-1 rounded-full frosted border border-white/70 px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy no-tap"
+            >
+              <Sliders size={11} /> {editingPrice ? "Done" : "Adjust price"}
+            </button>
+          </div>
           <p className="text-xs text-jejak-navy/50">Estimated · shown as a range · 100 coins = 100% of the price</p>
+
+          <AnimatePresence>
+            {editingPrice && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-hidden"
+              >
+                <div className="mt-2.5 rounded-2xl frosted p-3">
+                  <div className="flex items-center justify-between text-xs font-bold text-jejak-navy">
+                    <span>What did you pay?</span>
+                    {customPrice != null && (
+                      <button
+                        type="button"
+                        onClick={() => setCustomPrice(null)}
+                        className="text-[11px] font-bold text-jejak-navy/55 underline no-tap"
+                      >
+                        Reset to {formatMoney(basePrice, currency)}
+                      </button>
+                    )}
+                  </div>
+                  <input
+                    type="range"
+                    min={minPrice}
+                    max={maxPrice}
+                    step={basePrice < 10 ? 0.25 : 1}
+                    value={price}
+                    onChange={(e) => setCustomPrice( parseFloat(e.target.value) )}
+                    className="mt-2 w-full accent-jejak-navy cursor-pointer"
+                  />
+                  <div className="mt-1 flex justify-between text-[10px] font-semibold text-jejak-navy/50">
+                    <span>{formatMoney(minPrice, currency)}</span>
+                    <span>Slide to recalculate live</span>
+                    <span>{formatMoney(maxPrice, currency)}</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         <div className="mt-3">
@@ -181,6 +250,15 @@ export default function MoneySplit() {
             Fair pay is one of the strongest reasons consumers say they'll pay more. <span className="text-jejak-navy/40">Source: McKinsey</span>
           </p>
         </motion.div>
+
+        {/* Hackathon Track 01: Where money gets stuck + Bridge the maker gap */}
+        <MakerBridgeCard
+          price={price}
+          currency={currency}
+          labourPct={labour.pct.mid}
+          labourAmount={labour.amount}
+          transparentLabourAmount={transparentLabourAmt}
+        />
 
         {/* Impact metrics carousel */}
         <div className="mt-5">

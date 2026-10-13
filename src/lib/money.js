@@ -8,9 +8,9 @@ export function getRoute(product, market) {
 }
 
 // Per-category computed amounts for a product + market, using mid percentages.
-export function computeSplit(product, market, scenario = "split") {
+export function computeSplit(product, market, scenario = "split", overridePrice = null) {
   const m = product.markets[market];
-  const price = m.price;
+  const price = overridePrice != null && overridePrice > 0 ? overridePrice : m.price;
   const split = scenario === "transparent" ? product.transparentAlternative.split : product.split;
   return CATEGORIES.map((cat) => {
     const entry = split[cat.key];

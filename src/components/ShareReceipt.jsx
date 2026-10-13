@@ -12,16 +12,17 @@ import { Share2, FileDown, Loader2, Users } from "lucide-react";
 // can't capture backdrop-filter), then shares it via the Web Share API or
 // falls back to a download. The receipt carries the impact line + branding.
 export default function ShareReceipt() {
-  const { product, market, currency, compareMode } = useApp();
+  const { product, market, currency, compareMode, customPrice } = useApp();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const APP_URL = "https://jejak-trace-flow.base44.app";
 
-  const price = product.markets[market].price;
-  const split = computeSplit(product, market, compareMode ? "transparent" : "split");
+  const basePrice = product.markets[market].price;
+  const price = customPrice != null && customPrice > 0 ? customPrice : basePrice;
+  const split = computeSplit(product, market, compareMode ? "transparent" : "split", price);
   const route = getRoute(product, market);
   const labour = split.find((s) => s.key === "labour");
-  const stdSplit = computeSplit(product, market, "split");
+  const stdSplit = computeSplit(product, market, "transparent", price);
   const stdLabour = stdSplit.find((s) => s.key === "labour").amount;
   const curSymbol = currency === "SGD" ? "S$" : "£";
   const impact = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
