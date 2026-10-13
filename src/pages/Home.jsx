@@ -8,7 +8,6 @@ import ProductPicker from "@/components/ProductPicker";
 import StreakPill from "@/components/StreakPill";
 import ViewfinderStage from "@/components/ViewfinderStage";
 import DemoProductGrid from "@/components/DemoProductGrid";
-import GlobalCorridorTicker from "@/components/GlobalCorridorTicker";
 import { vibrate } from "@/lib/haptics";
 
 export default function Home() {
@@ -103,22 +102,18 @@ export default function Home() {
       />
 
       <div className="flex flex-1 flex-col px-5 pb-28">
-        <div className="mt-1 space-y-2">
+        <div className="mt-1">
           <StreakPill />
-          <GlobalCorridorTicker />
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 12 }}
+          initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 24 }}
-          className="mt-4"
+          className="mt-3"
         >
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/25 backdrop-blur-md border border-white/40 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-white">
-            Supply-Chain Receipt · Track 01
-          </span>
-          <h1 className="mt-2 text-[28px] font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-sm">
-            Scan any product.<br />See where your money really goes.
+          <h1 className="text-[26px] font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-sm">
+            Scan any product.<br />See where your money goes.
           </h1>
         </motion.div>
 

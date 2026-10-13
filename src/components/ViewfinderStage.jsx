@@ -53,13 +53,10 @@ export default function ViewfinderStage({ onPickCamera, onPickLibrary }) {
       </div>
 
       {/* Center shutter button */}
-      <div className="my-5 flex flex-col items-center justify-center">
+      <div className="my-4 flex flex-col items-center justify-center">
         <ShutterButton onPick={onPickCamera} />
-        <p className="mt-3 flex items-center gap-1.5 text-xs font-extrabold text-jejak-navy">
-          <Camera size={14} className="text-jejak-coral" /> Tap shutter to scan any item
-        </p>
-        <p className="text-[11px] font-semibold text-jejak-navy/55">
-          AI vision maps origin route & 5-way cost split in seconds
+        <p className="mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-jejak-navy">
+          <Camera size={14} className="text-jejak-coral" /> Tap to scan · AI maps route & 5-way split
         </p>
       </div>
 
