@@ -3,11 +3,13 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { base44 } from "@/api/base44Client";
 import { computeSplit, formatMoney, labourPerUnit, getRoute } from "@/lib/money";
+import { buildMetrics } from "@/lib/metrics";
 import ScreenShell from "@/components/ScreenShell";
 import CoinDrop from "@/components/CoinDrop";
 import StackedBar from "@/components/StackedBar";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import ShareReceipt from "@/components/ShareReceipt";
+import MetricsCarousel from "@/components/MetricsCarousel";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { ArrowLeft, Info } from "lucide-react";
@@ -18,6 +20,7 @@ export default function MoneySplit() {
   const price = product.markets[market].price;
   const split = computeSplit(product, market, compareMode ? "transparent" : "split");
   const labour = split.find((s) => s.key === "labour");
+  const metrics = buildMetrics(product, market, currency);
   const perUnit = labourPerUnit(
     compareMode ? product.transparentAlternative.split : product.split,
     currency
@@ -166,6 +169,12 @@ export default function MoneySplit() {
             Fair pay is one of the strongest reasons consumers say they'll pay more. <span className="text-jejak-navy/40">Source: McKinsey</span>
           </p>
         </motion.div>
+
+        {/* Impact metrics carousel */}
+        <div className="mt-5">
+          <p className="mb-2 text-xs font-bold uppercase tracking-wide text-jejak-navy/50">More to this receipt</p>
+          <MetricsCarousel metrics={metrics} />
+        </div>
 
         {/* Compare summary */}
         <AnimatePresence>

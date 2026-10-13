@@ -74,7 +74,7 @@ export default function Journey() {
         >
           <div className="text-left pr-3">
             <p className="text-sm font-extrabold text-jejak-navy">Share to community feed</p>
-            <p className="text-[11px] text-jejak-navy/55">Others in the room see what you snapped. Turn off to keep it private.</p>
+            <p className="text-[11px] text-jejak-navy/55">Off by default. Turn on so others in the room see what you snapped.</p>
           </div>
           <span
             className="relative h-6 w-11 shrink-0 rounded-full transition-colors"

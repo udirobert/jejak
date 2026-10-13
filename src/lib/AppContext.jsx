@@ -16,7 +16,7 @@ export function AppProvider({ children }) {
   const [detailCategory, setDetailCategory] = useState(null); // category key
   const [showHowTo, setShowHowTo] = useState(false);
   const [lowConfidence, setLowConfidence] = useState(false);
-  const [shareToFeed, setShareToFeed] = useState(true); // opt-in community feed
+  const [shareToFeed, setShareToFeed] = useState(false); // opt-in community feed (off by default)
   const [traces, setTraces] = useState(0);
   const [workerTotal, setWorkerTotal] = useState(0);
 

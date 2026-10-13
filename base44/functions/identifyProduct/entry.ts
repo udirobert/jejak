@@ -30,7 +30,8 @@ export default async function(req) {
         "Return the matching id, a short human label (max 3 words), your confidence, and the " +
         "visual attributes you can detect from the photo: the dominant colour, the likely material, " +
         "the product category, and the likely region of origin. Keep each attribute to 1-3 words. " +
-        "If the photo is unclear or matches none of these, return product_id \"unknown\" with confidence \"low\".",
+        "If the photo is unclear, matches none of these, or contains any explicit, sexual, violent, " +
+        "or otherwise unsafe content, return product_id \"unknown\" with confidence \"low\".",
       file_urls: [fileUrl],
       response_json_schema: {
         type: "object",

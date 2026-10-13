@@ -18,11 +18,14 @@ Currency-agnostic: each product carries its own price and split per market — *
 - The rotating orthographic globe (d3-geo + world-atlas/topojson, no API keys), route arcs, travelling coin.
 - The 100-coin money split, stacked bar, compare-mode reflow, and all motion.
 - The embedded banking-feed **concept** screen (clearly labelled as a concept).
+- **Live AI vision recognition** — a backend function (`identifyProduct`) calls a vision LLM to classify the photo into one of four demo products and return detected attributes (colour, material, category, likely origin). Non-matches (and any unsafe content) return `unknown` and fall back to the product picker, so only the curated product set ever reaches the feed.
+- **Community feed** (Explore tab) — a live, filterable feed of shared traces (origin, labour share, price), updated in realtime via entity subscriptions.
+- **Impact metrics carousel** — on the receipt: distance travelled (from route), hours to earn it (cited wage), where the tax went (VAT/GST), and what the payment cost (interchange). Each is one huge number, an everyday comparison, a confidence badge and a cited source.
 - Trust/labelling: every figure is "Estimated", shown as a range, with a confidence badge and a basis label.
 
 **Mocked (illustrative, not fact):**
 - **Supply-chain data** — all percentages, routes, countries and context notes are curated estimates for the demo. They are labelled "Estimated" and carry confidence badges. They are **not** sourced from specific factories or suppliers.
-- **Product matching** — the camera/file path currently routes to the chosen demo product (photo → hoodie unless another chip is picked). Optional AI recognition is stubbed behind a flag (see below).
+- **Product matching** — the camera path uses live AI vision recognition (vision LLM via a backend function) to classify the photo into one of four demo products, returning detected attributes. Anything that doesn't match — or is flagged unsafe — falls back to the product picker, so only the curated product set ever reaches the feed.
 - The banking feed is a generic mock with no real bank logos or integration.
 
 ## How to run locally
@@ -82,8 +85,9 @@ All **mid** values sum to exactly 100 for every product and scenario (verified b
 ---
 
 ## Assumptions & what's not finished
-- **AI recognition** is not wired (optional, behind a flag in the spec). The camera path routes to the chosen demo product; any failure falls back to the product picker with a low-confidence badge, matching the spec's graceful-fallback requirement.
+- **AI recognition** is live: a backend function (`identifyProduct`) calls a vision LLM to classify the photo and return detected attributes. It only ever matches the curated demo set; non-matches or unsafe content fall back to the product picker with a low-confidence badge.
 - **No persistence / no localStorage** — state lives in React context, as specified.
+- **Community feed & photo sharing** — completed traces can be shared to the live community feed (Explore tab). Photo sharing is strictly **opt-in and off by default**; a toggle on the route screen must be turned on before a photo is stored. When off, nothing is shared. Photos shared to the feed are stored publicly (anyone with the link can open them), matching the explicit opt-in. The vision call also returns `unknown` for unsafe content, so it never reaches the feed.
 - **Tests**: a runnable validation script (`scripts/validate-data.mjs`) covers split sums and currency formatting. A full vitest suite was not added to avoid adding a dependency; the script gives the same guarantees.
 - The globe uses the 110m world atlas for performance; on very low-end devices it still renders (reduced-motion disables the spin).
 - Designed mobile-first at 390px; desktop shows the app in a phone-width column centred on a lilac-to-peach backdrop.
