@@ -1,13 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Flame, Route, Coins, Radio, ArrowUpRight } from "lucide-react";
+import { Flame, Coins, Radio, ArrowUpRight, Stamp } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/lib/AppContext";
 import { base44 } from "@/api/base44Client";
 import { formatMoney } from "@/lib/money";
 import { vibrate } from "@/lib/haptics";
 
-// Tiny rAF count-up so the streak feels rewarding each time it grows.
+const ORIGIN_FLAGS = {
+  India: "🇮🇳",
+  Bangladesh: "🇧🇩",
+  Vietnam: "🇻🇳",
+  Thailand: "🇹🇭",
+  Colombia: "🇨🇴",
+  China: "🇨🇳",
+};
+
 function CountUp({ value, duration = 750 }) {
   const [n, setN] = useState(0);
   const prev = useRef(0);
@@ -28,10 +36,9 @@ function CountUp({ value, duration = 750 }) {
   return n;
 }
 
-// Session-long impact streak — or a live Community Pulse ticker when the user
-// hasn't traced their first item yet, so the top of Home is always alive.
+// Session-long impact streak + Origin Stamp Passport ring.
 export default function StreakPill() {
-  const { traces, distanceTotal, workerTotal, currency } = useApp();
+  const { traces, workerTotal, origins = [], currency } = useApp();
   const [communityCount, setCommunityCount] = useState(null);
   const navigate = useNavigate();
 
@@ -67,7 +74,7 @@ export default function StreakPill() {
           <span className="tabular-nums">
             {communityCount != null && communityCount > 0
               ? `${communityCount} community traces mapped`
-              : "Live supply-chain feed"}
+              : "Collect 4 origin stamps"}
           </span>
         </span>
         <span className="flex items-center gap-0.5 text-[11px] font-bold text-jejak-navy/60">
@@ -78,11 +85,16 @@ export default function StreakPill() {
   }
 
   return (
-    <motion.div
+    <motion.button
+      type="button"
+      onClick={() => {
+        vibrate(6);
+        navigate("/impact");
+      }}
       initial={{ opacity: 0, y: -8, scale: 0.96 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 300, damping: 22 }}
-      className="flex items-center justify-between gap-2 rounded-2xl frosted border border-white/80 px-3.5 py-2 tabular-nums"
+      className="flex w-full items-center justify-between gap-2 rounded-2xl frosted border border-white/80 px-3.5 py-2 tabular-nums no-tap"
     >
       <span className="flex items-center gap-1 text-xs font-extrabold text-jejak-navy">
         <Flame size={14} className="text-jejak-coral" />
@@ -90,14 +102,23 @@ export default function StreakPill() {
       </span>
       <span className="h-3.5 w-px bg-jejak-navy/15" />
       <span className="flex items-center gap-1 text-xs font-extrabold text-jejak-navy">
-        <Route size={14} className="text-jejak-freight" />
-        <CountUp value={distanceTotal} /> km
+        <Stamp size={13} className="text-jejak-freight" />
+        <span className="flex items-center gap-0.5">
+          {origins.slice(0, 4).map((o) => (
+            <span key={o} title={o} className="text-xs">
+              {ORIGIN_FLAGS[o] || "🌍"}
+            </span>
+          ))}
+        </span>
+        <span className="text-[10px] font-bold text-jejak-navy/55">
+          {origins.length}/4
+        </span>
       </span>
       <span className="h-3.5 w-px bg-jejak-navy/15" />
       <span className="flex items-center gap-1 text-xs font-extrabold text-jejak-navy">
         <Coins size={14} className="text-jejak-labour" />
-        {formatMoney(workerTotal, currency)} to makers
+        {formatMoney(workerTotal, currency)}
       </span>
-    </motion.div>
+    </motion.button>
   );
 }

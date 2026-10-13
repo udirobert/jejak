@@ -26,7 +26,18 @@ const ATTR_LABELS = {
 };
 
 export default function Identifying() {
-  const { photo, photoUrl, product, setProduct, setScreen, setLowConfidence, lowConfidence, reset } = useApp();
+  const {
+    photo,
+    photoUrl,
+    product,
+    setProduct,
+    setScreen,
+    setLowConfidence,
+    lowConfidence,
+    guessedLabourPct,
+    setGuessedLabourPct,
+    reset,
+  } = useApp();
   const reduce = useReducedMotion();
   const [scanDone, setScanDone] = useState(false);
   const [msgIdx, setMsgIdx] = useState(0);
@@ -233,6 +244,35 @@ export default function Identifying() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Interactive "Guess the Maker Share" micro-hook while vision runs */}
+          <div className="mt-auto w-full max-w-[300px] pt-4">
+            <div className="rounded-2xl frosted border border-white/80 p-3">
+              <div className="flex items-center justify-between text-xs font-extrabold text-jejak-navy">
+                <span>Quick guess: maker share?</span>
+                <span className="rounded-full bg-jejak-labour/20 px-2 py-0.5 text-jejak-labour tabular-nums">
+                  {guessedLabourPct ?? 15}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={40}
+                step={1}
+                value={guessedLabourPct ?? 15}
+                onChange={(e) => {
+                  vibrate(4);
+                  setGuessedLabourPct(Number(e.target.value));
+                }}
+                className="mt-1.5 w-full accent-jejak-navy cursor-pointer"
+              />
+              <div className="flex justify-between text-[10px] font-semibold text-jejak-navy/55">
+                <span>1%</span>
+                <span>Slide to lock your guess before reveal</span>
+                <span>40%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

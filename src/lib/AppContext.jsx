@@ -8,15 +8,16 @@ const STREAK_STORAGE_KEY = "jejak_streak_v1";
 function loadSavedStreak() {
   try {
     const raw = localStorage.getItem(STREAK_STORAGE_KEY);
-    if (!raw) return { traces: 0, workerTotal: 0, distanceTotal: 0 };
+    if (!raw) return { traces: 0, workerTotal: 0, distanceTotal: 0, origins: [] };
     const parsed = JSON.parse(raw);
     return {
       traces: Number(parsed.traces) || 0,
       workerTotal: Number(parsed.workerTotal) || 0,
       distanceTotal: Number(parsed.distanceTotal) || 0,
+      origins: Array.isArray(parsed.origins) ? parsed.origins : [],
     };
   } catch {
-    return { traces: 0, workerTotal: 0, distanceTotal: 0 };
+    return { traces: 0, workerTotal: 0, distanceTotal: 0, origins: [] };
   }
 }
 
@@ -43,17 +44,19 @@ export function AppProvider({ children }) {
   const [traces, setTraces] = useState(initialStreak.traces);
   const [workerTotal, setWorkerTotal] = useState(initialStreak.workerTotal);
   const [distanceTotal, setDistanceTotal] = useState(initialStreak.distanceTotal);
+  const [origins, setOrigins] = useState(initialStreak.origins);
   const [customPrice, setCustomPrice] = useState(null); // optional user-adjusted shelf price
   const [makerTip, setMakerTip] = useState(0); // optional direct maker boost on current receipt
+  const [guessedLabourPct, setGuessedLabourPct] = useState(null); // pre-reveal user guess
 
   useEffect(() => {
     try {
       localStorage.setItem(
         STREAK_STORAGE_KEY,
-        JSON.stringify({ traces, workerTotal, distanceTotal })
+        JSON.stringify({ traces, workerTotal, distanceTotal, origins })
       );
     } catch {}
-  }, [traces, workerTotal, distanceTotal]);
+  }, [traces, workerTotal, distanceTotal, origins]);
 
   const switchCurrency = useCallback((cur) => {
     setCurrency(cur);
@@ -61,10 +64,13 @@ export function AppProvider({ children }) {
     setCustomPrice(null);
   }, []);
 
-  const addTrace = useCallback((labourAmount, distanceKm = 0) => {
+  const addTrace = useCallback((labourAmount, distanceKm = 0, originCountry = null) => {
     setTraces((n) => n + 1);
     setWorkerTotal((t) => t + (labourAmount || 0));
     setDistanceTotal((d) => d + (distanceKm || 0));
+    if (originCountry) {
+      setOrigins((prev) => (prev.includes(originCountry) ? prev : [...prev, originCountry]));
+    }
   }, []);
 
   const addToWorkerFund = useCallback((amount = 0) => {
@@ -82,6 +88,7 @@ export function AppProvider({ children }) {
     setLowConfidence(false);
     setCustomPrice(null);
     setMakerTip(0);
+    setGuessedLabourPct(null);
   }, []);
 
   const value = {
@@ -104,10 +111,13 @@ export function AppProvider({ children }) {
     traces,
     workerTotal,
     distanceTotal,
+    origins,
     customPrice,
     setCustomPrice,
     makerTip,
     setMakerTip,
+    guessedLabourPct,
+    setGuessedLabourPct,
     addTrace,
     addToWorkerFund,
     setCurrency: switchCurrency,
