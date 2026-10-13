@@ -3,7 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { geoNaturalEarth1, geoPath, geoGraticule10 } from "d3-geo";
 import { feature } from "topojson-client";
 import worldTopo from "world-atlas/countries-110m.json";
-import { Info, RotateCcw, Globe2, Map as MapIcon, Camera, X } from "lucide-react";
+import {
+  Info,
+  RotateCcw,
+  Globe2,
+  Map as MapIcon,
+  Camera,
+  X,
+  Plus,
+  Minus,
+} from "lucide-react";
 import { ORIGIN_COORDS } from "./exploreUtils";
 import { UNTRACED_CANDIDATE_ORIGINS } from "./exploreSeaRoutes";
 import { MapSvgFlag } from "./OriginFlagChip";
@@ -21,7 +30,9 @@ const croppedFeatures = worldGeo.features.filter(
 
 const W = 420;
 const H = 780;
-const CLUSTER_RADIUS_PX = 34;
+const BASE_CLUSTER_RADIUS_PX = 36;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 8;
 
 const CATEGORY_ACCENTS = [
   "#FFC24B", // gold
@@ -47,12 +58,14 @@ export default function ExploreFullBleedMap({
   const [hoveredOrigin, setHoveredOrigin] = useState(null);
   const [untracedPromptOrigin, setUntracedPromptOrigin] = useState(null);
 
-  // Pan & pinch/wheel zoom state (constrained within sensible bounds so edges never show)
+  // Pan & zoom transform state: scaleExtent [1, 8], translateExtent clamped
   const [viewTransform, setViewTransform] = useState({
     scale: 1,
     x: 0,
     y: 0,
   });
+
+  const svgRef = useRef(null);
   const gestureRef = useRef({
     dragging: false,
     moved: false,
@@ -61,17 +74,62 @@ export default function ExploreFullBleedMap({
     origX: 0,
     origY: 0,
     pinchDist: null,
+    pinchMidX: W / 2,
+    pinchMidY: H / 2,
     origScale: 1,
+    lastTapMs: 0,
   });
 
-  const clampPan = (x, y, scale) => {
-    const maxShiftX = ((scale - 1) * W) / 2;
-    const maxShiftY = ((scale - 1) * H) / 2;
+  // Inverse scale so flags, dots, and labels remain readable at any zoom (1x to 8x)
+  const invScale = useMemo(
+    () => 1 / Math.pow(Math.max(1, viewTransform.scale), 0.78),
+    [viewTransform.scale]
+  );
+
+  // Clamp pan within translateExtent so the map can pan freely even at 1x without exposing blank margins
+  const clampTransform = (x, y, scale) => {
+    const s = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, scale));
+    // Extra world pan slack at 1x (since projection extends beyond the 420px viewport) + full zoom extent up to 8x
+    const maxShiftX = 85 * s + ((s - 1) * W) / 2;
+    const maxShiftY = 45 * s + ((s - 1) * H) / 2;
     return {
-      scale,
+      scale: s,
       x: Math.max(-maxShiftX, Math.min(maxShiftX, x)),
       y: Math.max(-maxShiftY, Math.min(maxShiftY, y)),
     };
+  };
+
+  // Convert client screen coordinates to SVG viewBox (0..W, 0..H) coordinates
+  const clientToSvgPoint = (clientX, clientY) => {
+    const el = svgRef.current;
+    if (!el) return { sx: W / 2, sy: H / 2 };
+    const rect = el.getBoundingClientRect();
+    if (!rect.width || !rect.height) return { sx: W / 2, sy: H / 2 };
+    // account for preserveAspectRatio="xMidYMid slice"
+    const scaleX = rect.width / W;
+    const scaleY = rect.height / H;
+    const sliceScale = Math.max(scaleX, scaleY);
+    const renderedW = W * sliceScale;
+    const renderedH = H * sliceScale;
+    const offsetX = (rect.width - renderedW) / 2;
+    const offsetY = (rect.height - renderedH) / 2;
+    return {
+      sx: (clientX - rect.left - offsetX) / sliceScale,
+      sy: (clientY - rect.top - offsetY) / sliceScale,
+    };
+  };
+
+  // Zoom around a specific SVG focal point (sx, sy)
+  const zoomAroundPoint = (targetScale, sx = W / 2, sy = H / 2) => {
+    setViewTransform((prev) => {
+      const nextScale = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, targetScale));
+      const ratio = nextScale / prev.scale;
+      const dxFromCenter = sx - W / 2;
+      const dyFromCenter = sy - H / 2;
+      const nextX = dxFromCenter - ratio * (dxFromCenter - prev.x);
+      const nextY = dyFromCenter - ratio * (dyFromCenter - prev.y);
+      return clampTransform(nextX, nextY, nextScale);
+    });
   };
 
   const tracedSet = useMemo(
@@ -79,7 +137,6 @@ export default function ExploreFullBleedMap({
     [originChips]
   );
 
-  // Total live (non-sample) traces across all origins
   const liveCount = useMemo(
     () => originChips.reduce((sum, c) => sum + (c.real || 0), 0),
     [originChips]
@@ -115,13 +172,11 @@ export default function ExploreFullBleedMap({
     [pathGen, tracedSet, originFilter]
   );
 
-  // Combined land path for the subtle coastal shelf ocean depth glow (lighter near coasts, darker in open water)
   const allLandPath = useMemo(
     () => countries.map((c) => c.d).filter(Boolean).join(" "),
     [countries]
   );
 
-  // Raw projected pins for each traced origin country
   const rawPins = useMemo(
     () =>
       originChips
@@ -157,8 +212,10 @@ export default function ExploreFullBleedMap({
     [tracedSet, projection]
   );
 
-  // Group nearby dots within CLUSTER_RADIUS_PX into clusters
+  // Re-compute clusters dynamically on zoom so clusters split into individual origins as you zoom in
   const clusters = useMemo(() => {
+    const effectiveRadius =
+      BASE_CLUSTER_RADIUS_PX / Math.pow(Math.max(1, viewTransform.scale), 0.9);
     const groups = [];
     const visited = new Set();
 
@@ -172,7 +229,7 @@ export default function ExploreFullBleedMap({
         if (visited.has(j)) continue;
         const cand = rawPins[j];
         const dist = Math.hypot(cand.x - seed.x, cand.y - seed.y);
-        if (dist <= CLUSTER_RADIUS_PX) {
+        if (dist <= effectiveRadius) {
           members.push(cand);
           visited.add(j);
         }
@@ -187,10 +244,11 @@ export default function ExploreFullBleedMap({
       groups.push({ id, cx, cy, members });
     }
     return groups;
-  }, [rawPins]);
+  }, [rawPins, viewTransform.scale]);
 
-  // Pan & pinch/wheel zoom handlers
+  // Pointer & touch gesture handlers (pan at all zoom levels + pinch zoom + double-tap zoom + wheel zoom)
   const handlePointerDown = (e) => {
+    if (e.pointerType === "touch" && gestureRef.current.pinchDist) return;
     gestureRef.current.dragging = true;
     gestureRef.current.moved = false;
     gestureRef.current.startX = e.clientX;
@@ -200,21 +258,19 @@ export default function ExploreFullBleedMap({
   };
 
   const handlePointerMove = (e) => {
-    if (!gestureRef.current.dragging) return;
+    if (!gestureRef.current.dragging || gestureRef.current.pinchDist) return;
     const dx = e.clientX - gestureRef.current.startX;
     const dy = e.clientY - gestureRef.current.startY;
-    if (Math.hypot(dx, dy) > 5) {
+    if (Math.hypot(dx, dy) > 4) {
       gestureRef.current.moved = true;
     }
-    if (viewTransform.scale > 1.01) {
-      setViewTransform((prev) =>
-        clampPan(
-          gestureRef.current.origX + dx,
-          gestureRef.current.origY + dy,
-          prev.scale
-        )
-      );
-    }
+    setViewTransform((prev) =>
+      clampTransform(
+        gestureRef.current.origX + dx,
+        gestureRef.current.origY + dy,
+        prev.scale
+      )
+    );
   };
 
   const handlePointerUp = () => {
@@ -223,29 +279,33 @@ export default function ExploreFullBleedMap({
 
   const handleTouchStart = (e) => {
     if (e.touches.length === 2) {
-      const d = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
+      gestureRef.current.dragging = false;
+      gestureRef.current.moved = true;
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const d = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      const midClientX = (t0.clientX + t1.clientX) / 2;
+      const midClientY = (t0.clientY + t1.clientY) / 2;
+      const { sx, sy } = clientToSvgPoint(midClientX, midClientY);
       gestureRef.current.pinchDist = d;
+      gestureRef.current.pinchMidX = sx;
+      gestureRef.current.pinchMidY = sy;
       gestureRef.current.origScale = viewTransform.scale;
     }
   };
 
   const handleTouchMove = (e) => {
     if (e.touches.length === 2 && gestureRef.current.pinchDist) {
-      const d = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
+      const t0 = e.touches[0];
+      const t1 = e.touches[1];
+      const d = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      const nextScale =
+        gestureRef.current.origScale * (d / gestureRef.current.pinchDist);
+      zoomAroundPoint(
+        nextScale,
+        gestureRef.current.pinchMidX,
+        gestureRef.current.pinchMidY
       );
-      const nextScale = Math.max(
-        1,
-        Math.min(
-          2.6,
-          gestureRef.current.origScale * (d / gestureRef.current.pinchDist)
-        )
-      );
-      setViewTransform((prev) => clampPan(prev.x, prev.y, nextScale));
     }
   };
 
@@ -255,23 +315,41 @@ export default function ExploreFullBleedMap({
 
   const handleWheel = (e) => {
     e.preventDefault();
-    const factor = e.deltaY < 0 ? 1.12 : 0.9;
-    const nextScale = Math.max(
-      1,
-      Math.min(2.6, +(viewTransform.scale * factor).toFixed(2))
-    );
-    setViewTransform((prev) => clampPan(prev.x, prev.y, nextScale));
+    const { sx, sy } = clientToSvgPoint(e.clientX, e.clientY);
+    const factor = e.deltaY < 0 ? 1.18 : 0.85;
+    zoomAroundPoint(viewTransform.scale * factor, sx, sy);
   };
 
-  const handleBackgroundClick = () => {
+  const handleBackgroundClick = (e) => {
     if (gestureRef.current.moved) return;
+
+    // Double-tap / double-click zoom support
+    const now = Date.now();
+    if (now - gestureRef.current.lastTapMs < 280) {
+      gestureRef.current.lastTapMs = 0;
+      vibrate(5);
+      const { sx, sy } = clientToSvgPoint(e.clientX, e.clientY);
+      const nextScale =
+        viewTransform.scale >= 4 ? 1 : Math.min(MAX_ZOOM, viewTransform.scale * 2);
+      if (nextScale === 1) {
+        setViewTransform({ scale: 1, x: 0, y: 0 });
+      } else {
+        zoomAroundPoint(nextScale, sx, sy);
+      }
+      return;
+    }
+    gestureRef.current.lastTapMs = now;
+
     if (expandedClusterId) setExpandedClusterId(null);
     if (untracedPromptOrigin) setUntracedPromptOrigin(null);
     if (onEmptyMapTap) onEmptyMapTap();
   };
 
   return (
-    <div className="absolute inset-0 h-full w-full overflow-hidden select-none bg-[#0E2847]">
+    <div
+      className="absolute inset-0 h-full w-full overflow-hidden select-none bg-[#0E2847] touch-none"
+      style={{ touchAction: "none" }}
+    >
       <AnimatePresence mode="wait">
         {viewMode === "map" ? (
           <motion.div
@@ -280,12 +358,15 @@ export default function ExploreFullBleedMap({
             animate={{ opacity: 1, scale: 1 }}
             exit={reduce ? undefined : { opacity: 0, scale: 1.04 }}
             transition={{ duration: 0.28, ease: "easeOut" }}
-            className="h-full w-full"
+            className="h-full w-full touch-none"
+            style={{ touchAction: "none" }}
           >
             <svg
+              ref={svgRef}
               viewBox={`0 0 ${W} ${H}`}
               preserveAspectRatio="xMidYMid slice"
-              className="h-full w-full block touch-none"
+              className="h-full w-full block cursor-grab active:cursor-grabbing touch-none"
+              style={{ touchAction: "none" }}
               aria-label="Interactive world map of product origins"
               onPointerDown={handlePointerDown}
               onPointerMove={handlePointerMove}
@@ -298,14 +379,12 @@ export default function ExploreFullBleedMap({
               onClick={handleBackgroundClick}
             >
               <defs>
-                {/* Deep open-water ocean gradient */}
                 <radialGradient id="deepOpenOceanBg" cx="48%" cy="46%" r="75%">
                   <stop offset="0%" stopColor="#174472" />
                   <stop offset="55%" stopColor="#113257" />
                   <stop offset="100%" stopColor="#0C223D" />
                 </radialGradient>
 
-                {/* Coastal shelf glow filter (lighter near coasts, darker in open water) */}
                 <filter
                   id="coastalShelfBlur"
                   x="-15%"
@@ -316,7 +395,6 @@ export default function ExploreFullBleedMap({
                   <feGaussianBlur stdDeviation="8" />
                 </filter>
 
-                {/* Day/night terminator shadow blur */}
                 <filter
                   id="nightShadowBlur"
                   x="-20%"
@@ -327,7 +405,6 @@ export default function ExploreFullBleedMap({
                   <feGaussianBlur stdDeviation="16" />
                 </filter>
 
-                {/* Warm sunrise glow for traced origin land */}
                 <linearGradient
                   id="tracedLandFill"
                   x1="0%"
@@ -340,7 +417,6 @@ export default function ExploreFullBleedMap({
                   <stop offset="100%" stopColor="#FF5E7E" />
                 </linearGradient>
 
-                {/* Selected origin land highlight */}
                 <linearGradient
                   id="selectedLandFill"
                   x1="0%"
@@ -352,7 +428,6 @@ export default function ExploreFullBleedMap({
                   <stop offset="100%" stopColor="#2FBF71" />
                 </linearGradient>
 
-                {/* Soft glow filter for origin dots and routes */}
                 <filter
                   id="originGlow"
                   x="-50%"
@@ -401,7 +476,7 @@ export default function ExploreFullBleedMap({
                   d={graticulePath}
                   fill="none"
                   stroke="#6395CC"
-                  strokeWidth="0.5"
+                  strokeWidth={0.5 * invScale}
                   strokeDasharray="4 6"
                   opacity="0.24"
                 />
@@ -429,7 +504,7 @@ export default function ExploreFullBleedMap({
                         : "#4982B8"
                     }
                     strokeWidth={
-                      c.isSelected ? 1.2 : c.isTraced ? 0.85 : 0.48
+                      (c.isSelected ? 1.25 : c.isTraced ? 0.9 : 0.5) * invScale
                     }
                     onClick={(e) => {
                       if (gestureRef.current.moved || !c.isTraced) return;
@@ -442,22 +517,30 @@ export default function ExploreFullBleedMap({
                   />
                 ))}
 
-                {/* Ambient Sea Life: Day/Night Shadow, Wave Shimmers, 8 Cargo Ships, Rare Whale/Fin, Active Route & Sailing Ship */}
+                {/* Ambient Mixed Transport (Ships, Planes, Trains, Lorries), Day/Night Shadow, Wave Shimmer, Whale/Fin, Multi-Leg Route Sequence */}
                 <ExploreAmbientSea
                   projection={projection}
                   W={W}
                   H={H}
+                  zoom={viewTransform.scale}
                   activeRoute={activeRoute}
                   reduce={reduce}
                 />
 
-                {/* Untraced Candidate Origins: subtle pulsing "?" dots */}
-                {untracedPins.map((uPin) => {
+                {/* Untraced Candidate Origins: subtle pulsing "?" dots, labeled "No traces from here yet" on first view or tap */}
+                {untracedPins.map((uPin, uIdx) => {
                   const isPromptOpen = untracedPromptOrigin === uPin.origin;
+                  const showFirstViewHint =
+                    uIdx === 0 &&
+                    !untracedPromptOrigin &&
+                    originFilter === "All";
+
                   return (
                     <g
                       key={`untraced-${uPin.origin}`}
-                      transform={`translate(${uPin.x}, ${uPin.y})`}
+                      transform={`translate(${uPin.x}, ${
+                        uPin.y
+                      }) scale(${invScale.toFixed(3)})`}
                       onClick={(e) => {
                         if (gestureRef.current.moved) return;
                         e.stopPropagation();
@@ -469,11 +552,7 @@ export default function ExploreFullBleedMap({
                       style={{ cursor: "pointer" }}
                     >
                       {!reduce && (
-                        <circle
-                          r="11"
-                          fill="#BAE6FD"
-                          opacity="0.22"
-                        >
+                        <circle r="11" fill="#BAE6FD" opacity="0.22">
                           <animate
                             attributeName="r"
                             values="7;13;7"
@@ -505,11 +584,38 @@ export default function ExploreFullBleedMap({
                       >
                         ?
                       </text>
+
+                      {/* First-view or tapped label: "No traces from here yet" */}
+                      {(showFirstViewHint || isPromptOpen) && (
+                        <g transform="translate(0, 14)">
+                          <rect
+                            x="-52"
+                            y="-6.5"
+                            width="104"
+                            height="13.5"
+                            rx="6.75"
+                            fill="rgba(15, 36, 64, 0.92)"
+                            stroke="#BAE6FD"
+                            strokeWidth="0.75"
+                          />
+                          <text
+                            x="0"
+                            y="2.4"
+                            textAnchor="middle"
+                            fill="#E0F2FE"
+                            fontSize="6.7"
+                            fontWeight="800"
+                            fontFamily="Plus Jakarta Sans, sans-serif"
+                          >
+                            No traces from here yet
+                          </text>
+                        </g>
+                      )}
                     </g>
                   );
                 })}
 
-                {/* Traced Origin Dots and Expandable Clusters */}
+                {/* Traced Origin Dots and Zoom-Responsive Clusters (inverse-scaled so sizes stay readable) */}
                 {clusters.map((cluster) => {
                   const isSingle = cluster.members.length === 1;
                   const isExpanded =
@@ -521,7 +627,9 @@ export default function ExploreFullBleedMap({
                     return (
                       <g
                         key={cluster.id}
-                        transform={`translate(${cluster.cx}, ${cluster.cy})`}
+                        transform={`translate(${cluster.cx}, ${
+                          cluster.cy
+                        }) scale(${invScale.toFixed(3)})`}
                         onClick={(e) => {
                           if (gestureRef.current.moved) return;
                           e.stopPropagation();
@@ -575,7 +683,7 @@ export default function ExploreFullBleedMap({
                           count > 1
                             ? -Math.PI / 2 + (idx * 2 * Math.PI) / count
                             : 0;
-                        const fanRadius = count > 1 ? 30 : 0;
+                        const fanRadius = count > 1 ? 28 * invScale : 0;
                         const px =
                           count > 1
                             ? cluster.cx + Math.cos(angle) * fanRadius
@@ -586,17 +694,14 @@ export default function ExploreFullBleedMap({
                             : pin.y;
 
                         const showFullLabel =
-                          pin.active || hoveredOrigin === pin.origin;
+                          pin.active ||
+                          hoveredOrigin === pin.origin ||
+                          viewTransform.scale >= 2.2;
                         const pillW = Math.max(
                           76,
                           pin.origin.length * 6.4 + 34
                         );
                         const halfW = pillW / 2;
-                        const clampedX = Math.max(
-                          halfW + 10,
-                          Math.min(W - halfW - 10, px)
-                        );
-                        const labelShiftX = clampedX - px;
 
                         return (
                           <g key={pin.origin}>
@@ -607,13 +712,17 @@ export default function ExploreFullBleedMap({
                                 x2={px}
                                 y2={py}
                                 stroke="#FFC24B"
-                                strokeWidth="1.2"
-                                strokeDasharray="2 2"
+                                strokeWidth={1.2 * invScale}
+                                strokeDasharray={`${2 * invScale} ${
+                                  2 * invScale
+                                }`}
                                 opacity="0.8"
                               />
                             )}
                             <g
-                              transform={`translate(${px}, ${py})`}
+                              transform={`translate(${px}, ${py}) scale(${invScale.toFixed(
+                                3
+                              )})`}
                               onMouseEnter={() => setHoveredOrigin(pin.origin)}
                               onMouseLeave={() => setHoveredOrigin(null)}
                               onClick={(e) => {
@@ -657,7 +766,7 @@ export default function ExploreFullBleedMap({
                               />
 
                               {showFullLabel ? (
-                                <g transform={`translate(${labelShiftX}, -16)`}>
+                                <g transform="translate(0, -16)">
                                   <rect
                                     x={-halfW}
                                     y="-9"
@@ -748,13 +857,14 @@ export default function ExploreFullBleedMap({
             initial={reduce ? false : { opacity: 0, y: 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? undefined : { opacity: 0, y: 6, scale: 0.95 }}
-            className="absolute left-4 right-4 top-28 z-30 flex items-center justify-between gap-2.5 rounded-2xl bg-[#102A49]/95 backdrop-blur-md border border-white/25 px-3.5 py-2.5 text-white shadow-xl"
+            onPointerDown={(e) => e.stopPropagation()}
+            className="pointer-events-auto absolute left-4 right-4 top-28 z-30 flex items-center justify-between gap-2.5 rounded-2xl bg-[#102A49]/95 backdrop-blur-md border border-white/25 px-3.5 py-2.5 text-white shadow-xl"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <OriginFlagChip country={untracedPromptOrigin} size="xs" />
               <div className="min-w-0">
                 <p className="text-xs font-extrabold text-white truncate">
-                  {untracedPromptOrigin}
+                  {untracedPromptOrigin} · No traces from here yet
                 </p>
                 <p className="text-[11px] font-semibold text-sky-200/90">
                   Be the first to trace something from here
@@ -786,12 +896,65 @@ export default function ExploreFullBleedMap({
         )}
       </AnimatePresence>
 
+      {/* Compact Zoom In / Out / Reset Control (only captures pointer events on its own buttons) */}
+      {viewMode === "map" && (
+        <div
+          onPointerDown={(e) => e.stopPropagation()}
+          className="pointer-events-auto absolute right-4 top-32 z-20 flex flex-col items-center gap-1 rounded-2xl bg-[#122D4F]/85 backdrop-blur-md border border-white/25 p-1 shadow-lg"
+        >
+          <button
+            type="button"
+            aria-label="Zoom in"
+            onClick={() => {
+              vibrate(4);
+              zoomAroundPoint(viewTransform.scale * 1.45);
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-xl text-white hover:bg-white/15 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Plus size={14} strokeWidth={2.5} />
+          </button>
+          <button
+            type="button"
+            aria-label="Zoom out"
+            onClick={() => {
+              vibrate(4);
+              const next = viewTransform.scale / 1.45;
+              if (next <= 1.05) {
+                setViewTransform({ scale: 1, x: 0, y: 0 });
+              } else {
+                zoomAroundPoint(next);
+              }
+            }}
+            className="flex h-7 w-7 items-center justify-center rounded-xl text-white hover:bg-white/15 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Minus size={14} strokeWidth={2.5} />
+          </button>
+          {(viewTransform.scale > 1.02 ||
+            Math.hypot(viewTransform.x, viewTransform.y) > 4) && (
+            <button
+              type="button"
+              aria-label="Reset map view"
+              onClick={() => {
+                vibrate(4);
+                setViewTransform({ scale: 1, x: 0, y: 0 });
+              }}
+              className="flex h-6 w-7 items-center justify-center rounded-lg bg-jejak-gold/90 text-[9px] font-extrabold text-jejak-navy no-tap"
+            >
+              1x
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Top Overlay Bar: Origin status + Map/Globe toggle + Honesty info chip */}
       <div className="pointer-events-none absolute inset-x-0 top-16 z-20 px-4 space-y-1.5">
         <div className="flex items-center justify-between gap-1.5">
           {/* Left: Origin count + Reset */}
           <div className="flex items-center gap-1.5 min-w-0">
-            <div className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-[#122D4F]/85 backdrop-blur-md border border-white/25 px-2.5 py-1 shadow-md">
+            <div
+              onPointerDown={(e) => e.stopPropagation()}
+              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-[#122D4F]/85 backdrop-blur-md border border-white/25 px-2.5 py-1 shadow-md"
+            >
               <span
                 className={`h-2 w-2 shrink-0 rounded-full bg-jejak-materials ${
                   reduce ? "" : "animate-pulse"
@@ -812,6 +975,7 @@ export default function ExploreFullBleedMap({
             {originFilter !== "All" && (
               <button
                 type="button"
+                onPointerDown={(e) => e.stopPropagation()}
                 onClick={() => {
                   vibrate(5);
                   onSelectOrigin("All");
@@ -821,23 +985,13 @@ export default function ExploreFullBleedMap({
                 <RotateCcw size={10} /> All
               </button>
             )}
-
-            {viewTransform.scale > 1.05 && viewMode === "map" && (
-              <button
-                type="button"
-                onClick={() => {
-                  vibrate(4);
-                  setViewTransform({ scale: 1, x: 0, y: 0 });
-                }}
-                className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-white/15 backdrop-blur-md px-2 py-1 text-[10px] font-extrabold text-white border border-white/25 no-tap"
-              >
-                1x
-              </button>
-            )}
           </div>
 
           {/* Right: Map / Globe Morph Toggle */}
-          <div className="pointer-events-auto inline-flex items-center rounded-full bg-[#122D4F]/85 backdrop-blur-md border border-white/25 p-0.5 shadow-md">
+          <div
+            onPointerDown={(e) => e.stopPropagation()}
+            className="pointer-events-auto inline-flex items-center rounded-full bg-[#122D4F]/85 backdrop-blur-md border border-white/25 p-0.5 shadow-md"
+          >
             <button
               type="button"
               onClick={() => {
@@ -871,10 +1025,11 @@ export default function ExploreFullBleedMap({
           </div>
         </div>
 
-        {/* Honesty Info Chip: includes "Illustrative routes, not live vessel tracking" */}
+        {/* Honesty Info Chip: "Illustrative routes, not live tracking" */}
         <div className="flex justify-start">
           <button
             type="button"
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => {
               vibrate(5);
               onOpenInfo();
@@ -883,7 +1038,7 @@ export default function ExploreFullBleedMap({
             className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-[#122D4F]/80 backdrop-blur-md border border-white/20 px-2.5 py-1 text-[10px] font-bold text-sky-100/95 shadow-sm hover:bg-[#122D4F] no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <Info size={11} className="text-amber-300 shrink-0" />
-            <span>Illustrative routes, not live vessel tracking</span>
+            <span>Illustrative routes, not live tracking</span>
           </button>
         </div>
       </div>

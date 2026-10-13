@@ -178,7 +178,8 @@ export default function ExploreBottomSheet({
         background:
           "linear-gradient(170deg, rgba(255,255,255,0.96) 0%, rgba(255,238,226,0.95) 55%, rgba(237,231,255,0.96) 100%)",
       }}
-      className="absolute left-0 right-0 z-30 w-full rounded-t-3xl frosted-strong border-t border-white/85 shadow-[0_-10px_32px_rgba(18,45,79,0.34)] flex flex-col overflow-hidden"
+      onPointerDown={(e) => e.stopPropagation()}
+      className="pointer-events-auto absolute left-0 right-0 z-30 w-full rounded-t-3xl frosted-strong border-t border-white/85 shadow-[0_-10px_32px_rgba(18,45,79,0.34)] flex flex-col overflow-hidden"
     >
       {/* Sheet Drag Handle + One-Line Peek / Header */}
       <div
