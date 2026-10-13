@@ -9,8 +9,8 @@ const FLAGS = {
   China: "🇨🇳",
 };
 
-// Live Stellar Testnet Demo Co-op Wallets component: fetches real testnet balances and
-// recent JEJAK/EST memo transactions from Horizon, with honest labels.
+// Live Stellar Testnet Demo Cause Wallets component: fetches real testnet balances and
+// recent provenance/cause memo transactions from Horizon, with honest labels.
 export default function StellarHorizonVaults() {
   const [vaults, setVaults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -43,7 +43,7 @@ export default function StellarHorizonVaults() {
             <Sparkles size={10} /> Live Stellar Horizon Testnet
           </span>
           <h2 className="mt-1 text-sm font-extrabold text-white">
-            Demo Co-op Wallets (Testnet)
+            Demo Cause Wallets (Testnet)
           </h2>
         </div>
         <button
@@ -58,7 +58,7 @@ export default function StellarHorizonVaults() {
       </div>
 
       <p className="mt-1 text-[11px] font-semibold text-white/65">
-        Boosts and shared scan estimate records are broadcast to these Stellar Testnet demo wallets. Local anchor off-ramps are a future integration.
+        Provenance hashes and optional demo cause donations are broadcast to these Stellar Testnet wallets. Demo testnet donation — no real-world disbursement.
       </p>
 
       <div className="mt-2.5 grid grid-cols-2 gap-2">
@@ -77,10 +77,10 @@ export default function StellarHorizonVaults() {
               <ExternalLink size={11} className="text-amber-300 opacity-75 group-hover:opacity-100" />
             </div>
             <p className="mt-0.5 text-[10px] font-bold text-white/80 truncate">
-              {v.coopLabel}
+              {v.causeName || v.label || "Demo cause (testnet)"}
             </p>
             <p className="mt-0.5 text-[9px] font-semibold text-white/55 truncate">
-              {v.futureAnchorNote}
+              {v.description || "Demo testnet donation. No real-world disbursement."}
             </p>
             <div className="mt-1.5 flex items-center justify-between border-t border-white/10 pt-1 text-[9px] font-mono text-amber-200">
               <span>{v.xlmBalance} XLM</span>

@@ -12,11 +12,9 @@ import {
   Clock,
 } from "lucide-react";
 
-// Honest, verifiable Stellar Testnet settlement badge:
-// - Clearly labels destination as "Demo co-op wallet (testnet)"
-// - Describes local anchor off-ramp as a future integration
-// - Cites World Bank Remittance Prices Worldwide (~6.4% avg) vs typically much lower Stellar fees
-// - Gracefully displays a cached verified testnet transaction if Testnet/Horizon is slow
+// Verifiable Stellar Testnet cause donation badge:
+// - Clearly labels destination as "Demo cause (testnet)" and "Demo testnet donation. No real-world disbursement."
+// - Never claims money reaches workers or communities, and makes no claims about anchors, local currency, or off-ramps.
 export default function StellarSettlementBadge({
   tx,
   loading,
@@ -36,7 +34,7 @@ export default function StellarSettlementBadge({
         >
           <span className="flex items-center gap-2 text-[11px] font-bold">
             <Loader2 size={13} className="animate-spin text-amber-300" />
-            Broadcasting to demo co-op wallet on Stellar Testnet…
+            Broadcasting to demo cause wallet on Stellar Testnet…
           </span>
           <span className="text-[10px] font-semibold text-white/60">~3–5s</span>
         </motion.div>
@@ -65,8 +63,8 @@ export default function StellarSettlementBadge({
             <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-jejak-materials">
               {tx.mode === "escrow" ? <Lock size={12} /> : <CheckCircle2 size={13} />}
               {tx.mode === "escrow"
-                ? "Claimable Balance Created (Testnet)"
-                : "Sent to Demo Co-op Wallet (Testnet)"}
+                ? "Claimable Balance Created · Demo Cause (Testnet)"
+                : "Sent to Demo Cause Wallet (Testnet)"}
             </span>
             <div className="flex items-center gap-1">
               <button
@@ -87,15 +85,15 @@ export default function StellarSettlementBadge({
             </div>
           </div>
 
-          {/* Honest Testnet Flow + Future Anchor Off-Ramp */}
+          {/* Demo Testnet Donation Flow */}
           <div className="mt-2 rounded-xl bg-white/8 border border-white/12 px-2.5 py-2">
             <p className="text-[9px] font-extrabold uppercase tracking-wider text-amber-300/90">
-              Live Testnet Transfer · Future Local Anchor Off-Ramp
+              {tx.disclaimer || "Demo testnet donation · No real-world disbursement"}
             </p>
             <div className="mt-1 flex items-center justify-between gap-1 text-[10px] font-extrabold">
               <span className="rounded-lg bg-white/12 px-2 py-1 tabular-nums">
                 {tx.fiatCurrency === "SGD" ? "S$" : "£"}
-                {Number(tx.fiatAmount).toFixed(2)} boost
+                {Number(tx.fiatAmount).toFixed(2)} intent
               </span>
               <ArrowRight size={11} className="text-white/45 shrink-0" />
               <span className="rounded-lg bg-jejak-freight/30 border border-jejak-freight/50 px-2 py-1 text-amber-200 tabular-nums">
@@ -103,20 +101,19 @@ export default function StellarSettlementBadge({
               </span>
               <ArrowRight size={11} className="text-white/45 shrink-0" />
               <span className="rounded-lg bg-jejak-materials/25 border border-jejak-materials/50 px-2 py-1 text-jejak-materials truncate">
-                Demo co-op wallet
+                {tx.causeLabel || "Demo cause (testnet)"}
               </span>
             </div>
             <p className="mt-1 text-[9px] font-semibold text-white/65">
-              {tx.futureAnchorNote ||
-                "Future integration: SEP-24 local mobile-money anchor off-ramp to workers"}
+              Sends a testnet payment to a demo cause wallet. In production, donations would go to a vetted organisation.
             </p>
           </div>
 
-          {/* Honest qualitative fee comparison */}
+          {/* Qualitative fee note */}
           {!compact && (
             <div className="mt-2 rounded-xl bg-white/6 border border-white/10 px-2.5 py-2 text-[10px] text-white/80">
               <p className="font-semibold leading-snug">
-                Small cross-border payments are costly on card and bank rails; Stellar network fees are a fraction of a cent (<span className="font-mono text-amber-200">{tx.feeXlm} XLM</span> base fee sent to a demo co-op wallet).
+                Small cross-border payments are costly on card and bank rails; Stellar network fees are a fraction of a cent (<span className="font-mono text-amber-200">{tx.feeXlm} XLM</span> base fee on Testnet).
               </p>
             </div>
           )}
@@ -143,7 +140,7 @@ export default function StellarSettlementBadge({
                       Verify on Stellar.Expert
                     </p>
                     <p className="mt-0.5 text-xs font-extrabold leading-snug">
-                      Inspect this testnet transaction & memo on the public explorer
+                      Inspect this demo cause testnet transaction & memo on the public explorer
                     </p>
                     <p className="mt-1 truncate font-mono text-[9px] text-jejak-navy/60">
                       {tx.hash}
@@ -174,7 +171,9 @@ export default function StellarSettlementBadge({
             >
               <ShieldCheck size={11} className="text-amber-300 shrink-0" />
               <span className="truncate">
-                <strong className="text-white underline">{tx.coopLabel}</strong>
+                <strong className="text-white underline">
+                  {tx.causeName || tx.causeLabel || "Demo cause (testnet)"}
+                </strong>
               </span>
             </a>
             <span className="flex items-center gap-0.5 text-amber-300 font-bold shrink-0">

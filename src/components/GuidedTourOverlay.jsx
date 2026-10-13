@@ -19,7 +19,7 @@ const TOUR_STEPS = [
   },
   {
     title: "Step 3 of 4 · Follow the Money (Layer 2)",
-    body: "See the estimated 5-way cost split, or send a secondary Testnet payment to a demo co-op wallet.",
+    body: "See the estimated 5-way cost split, or optionally send a demo testnet donation to a demo cause wallet.",
     cta: "Next: Embedded Concept",
   },
   {

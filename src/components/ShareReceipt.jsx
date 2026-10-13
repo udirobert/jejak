@@ -59,7 +59,7 @@ export default function ShareReceipt() {
       ${
         lastStellarTx
           ? `<div style="margin-top:10px;padding:9px 12px;border-radius:10px;background:#2FBF7125;border:1px solid #2FBF71;font-size:10px;font-weight:700;color:#1B1B3A;">
-              ⚡ Stellar Testnet Demo Boost: ${lastStellarTx.xlmSettled} XLM sent to ${lastStellarTx.coopLabel} · TX ${lastStellarTx.hash.slice(0, 10)}…
+              ⚡ Demo testnet donation: ${lastStellarTx.xlmSettled} XLM sent to ${lastStellarTx.causeLabel || "Demo cause (testnet)"} · TX ${lastStellarTx.hash.slice(0, 10)}…
              </div>`
           : ""
       }

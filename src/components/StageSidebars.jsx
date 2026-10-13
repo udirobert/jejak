@@ -42,12 +42,11 @@ export default function StageSidebars() {
             Stellar · Find Your Way
           </span>
           <h2 className="mt-2 text-base font-extrabold leading-snug text-jejak-navy">
-            Start where money gets stuck.
+            Know the story behind what you buy.
           </h2>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-jejak-navy/65">
-            Your bank receipt stops at the checkout terminal. Jejak estimates where
-            92.5% of your payment goes—and broadcasts micro-boosts & estimate records
-            to demo co-op wallets on Stellar Testnet.
+            Jejak traces likely origins, reads care labels, and anchors a SHA-256
+            provenance record on Stellar Testnet — with an optional testnet donation to a demo cause wallet.
           </p>
         </div>
 

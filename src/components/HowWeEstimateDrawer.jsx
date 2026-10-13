@@ -57,7 +57,7 @@ export default function HowWeEstimateDrawer() {
                   <strong>Real:</strong> AI vision product recognition (via short-lived private signed URLs), live Stellar Testnet transactions (<code className="font-mono">payment</code>, <code className="font-mono">createClaimableBalance</code>, and <code className="font-mono">MEMO_TEXT</code> estimate records verifiable on Stellar.Expert), and the live Explore database feed.
                 </p>
                 <p>
-                  <strong>Mocked / Future:</strong> Destination wallets are <strong>Demo co-op wallets (testnet)</strong>, not real partner cooperatives. Local mobile-money anchor off-ramps (SEP-24) and the Embedded Bank feed are illustrative previews of future integrations.
+                  <strong>Mocked / Future:</strong> “Give to a cause” sends a testnet payment to a <strong>Demo cause (testnet)</strong> wallet (demo testnet donation; no real-world disbursement). In production, donations would go to a vetted organisation. The Embedded Bank screen is an illustrative concept preview.
                 </p>
               </div>
               <p className="text-jejak-navy/60 italic">

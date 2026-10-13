@@ -57,12 +57,18 @@ export function AppProvider({ children }) {
   const [provenanceRecord, setProvenanceRecord] = useState(null); // anchored SHA-256 provenance record
 
   const settleStellarPayout = useCallback(
-    async ({ amount, productObj, currencyOverride, mode = "direct" }) => {
+    async ({
+      amount,
+      productObj,
+      currencyOverride,
+      mode = "direct",
+      causeObj = null,
+    }) => {
       const targetProd = productObj || product;
       const cur = currencyOverride || currency;
       const mkt = marketForCurrency(cur);
       const route = getRoute(targetProd, mkt);
-      const origin = route[0]?.country || "Bangladesh";
+      const origin = causeObj?.region || route[0]?.country || "Bangladesh";
 
       setStellarLoading(true);
       setStellarError(null);
@@ -71,6 +77,10 @@ export function AppProvider({ children }) {
           action: "settle",
           productId: targetProd?.id || "hoodie",
           origin,
+          region: origin,
+          causeId: causeObj?.id,
+          causeName: causeObj?.name,
+          walletAddress: causeObj?.walletAddress,
           amount,
           currency: cur,
           mode,
@@ -81,7 +91,6 @@ export function AppProvider({ children }) {
         }
         throw new Error(res?.data?.error || "Relay error");
       } catch {
-        // Graceful fallback to last successful or verified cached Testnet transaction
         const fallback = lastStellarTx || {
           ok: true,
           cachedFallback: true,
@@ -91,9 +100,10 @@ export function AppProvider({ children }) {
           mode,
           hash: "d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43",
           ledger: 5180408,
-          memo: `JEJAK:${(targetProd?.id || "HOODIE").toUpperCase().slice(0, 7)}:${origin.slice(0, 5).toUpperCase()}:${amount}${cur}`,
-          coopLabel: `Demo co-op wallet · ${origin} (testnet)`,
-          futureAnchorNote: "Future integration: local SEP-24 mobile-money off-ramp",
+          memo: `CAUSE:${(targetProd?.id || "HOODIE").toUpperCase().slice(0, 8)}:${origin.toUpperCase().slice(0, 11)}`,
+          causeName: causeObj?.name || `Demo cause · ${origin} (testnet)`,
+          causeLabel: "Demo cause (testnet)",
+          disclaimer: "Demo testnet donation. No real-world disbursement.",
           fiatAmount: amount,
           fiatCurrency: cur,
           xlmSettled: +(Number(amount) * 2).toFixed(2),
@@ -101,7 +111,7 @@ export function AppProvider({ children }) {
           explorerUrl:
             "https://stellar.expert/explorer/testnet/tx/d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43",
           accountExplorerUrl:
-            "https://stellar.expert/explorer/testnet/account/GCHJR2K3HXX55NYA7ZYWZH6NZ3TOBTIQFUVZWPUZESAQJ2QFGX5PKVDC",
+            `https://stellar.expert/explorer/testnet/account/${causeObj?.walletAddress || "GCHJR2K3HXX55NYA7ZYWZH6NZ3TOBTIQFUVZWPUZESAQJ2QFGX5PKVDC"}`,
         };
         setLastStellarTx({ ...fallback, cachedFallback: true });
         return fallback;

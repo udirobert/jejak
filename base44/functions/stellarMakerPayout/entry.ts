@@ -12,40 +12,48 @@ import {
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const FRIENDBOT_URL = "https://friendbot.stellar.org";
 
-// Real verified Stellar Testnet transactions from this app, used as a zero-fail fallback
+// Real verified Stellar Testnet transaction from this app, used as a zero-fail fallback
 // if Horizon or Friendbot is slow or unreachable during a live judge run.
 const CACHED_FALLBACK_TX = {
   hash: "d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43",
   ledger: 5180408,
-  memo: "JEJAK:HOODIE:BANGLA:4.8GBP",
+  memo: "CAUSE:HOODIE:BANGLADESH",
   from: "GDJWYEZ4SG7GI42ER6OYWHS5EORLEFDAMYFD5XVI4AXV3CALOPMOAOFT",
   destination: "GCHJR2K3HXX55NYA7ZYWZH6NZ3TOBTIQFUVZWPUZESAQJ2QFGX5PKVDC",
 };
 
-// Public Testnet addresses for Demo Co-op Wallets (public keys only — no secret keys in code)
-const DEMO_COOP_WALLETS: Record<
+// Public Testnet addresses for Demo Cause Wallets (all labelled "Demo cause (testnet)"; no real charity names)
+const DEMO_CAUSE_WALLETS: Record<
   string,
-  { publicKey: string; coopLabel: string; futureAnchorNote: string }
+  { id: string; publicKey: string; causeName: string; label: string; description: string }
 > = {
   Bangladesh: {
+    id: "cause_south_asia_apparel",
     publicKey: "GCHJR2K3HXX55NYA7ZYWZH6NZ3TOBTIQFUVZWPUZESAQJ2QFGX5PKVDC",
-    coopLabel: "Demo co-op wallet · Bangladesh (testnet)",
-    futureAnchorNote: "Future integration: local anchor off-ramp",
+    causeName: "Demo cause · South Asia Apparel Corridor (testnet)",
+    label: "Demo cause (testnet)",
+    description: "Demo testnet donation. No real-world disbursement.",
   },
   Vietnam: {
+    id: "cause_se_asia_footwear",
     publicKey: "GB6NVEN5HSUBKMYCE5ZOWSK5K23TBWRUQLZY3KNMXUZ3AQ2U4MY42G4A",
-    coopLabel: "Demo co-op wallet · Vietnam (testnet)",
-    futureAnchorNote: "Future integration: local anchor off-ramp",
+    causeName: "Demo cause · SE Asia Footwear Corridor (testnet)",
+    label: "Demo cause (testnet)",
+    description: "Demo testnet donation. No real-world disbursement.",
   },
   Ethiopia: {
+    id: "cause_east_africa_coffee",
     publicKey: "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN",
-    coopLabel: "Demo co-op wallet · Ethiopia (testnet)",
-    futureAnchorNote: "Future integration: local anchor off-ramp",
+    causeName: "Demo cause · East Africa Coffee Corridor (testnet)",
+    label: "Demo cause (testnet)",
+    description: "Demo testnet donation. No real-world disbursement.",
   },
   China: {
+    id: "cause_east_asia_electronics",
     publicKey: "GDJWYEZ4SG7GI42ER6OYWHS5EORLEFDAMYFD5XVI4AXV3CALOPMOAOFT",
-    coopLabel: "Demo co-op wallet · China (testnet)",
-    futureAnchorNote: "Future integration: local anchor off-ramp",
+    causeName: "Demo cause · East Asia Accessories Corridor (testnet)",
+    label: "Demo cause (testnet)",
+    description: "Demo testnet donation. No real-world disbursement.",
   },
 };
 
@@ -93,11 +101,11 @@ export default async function (req: Request) {
   const server = new Horizon.Server(HORIZON_URL);
 
   try {
-    // Action 1: Anchor a Provenance Record SHA-256 hash on Stellar Testnet via MEMO_HASH
+    // Action 1 (PRIMARY STELLAR FEATURE): Anchor a Provenance Record SHA-256 hash on Stellar Testnet via MEMO_HASH
     if (action === "anchor_provenance") {
       const productId = String(body.productId || "hoodie").slice(0, 16);
-      const origin = DEMO_COOP_WALLETS[body.origin] ? body.origin : "Bangladesh";
-      const corridor = DEMO_COOP_WALLETS[origin];
+      const origin = DEMO_CAUSE_WALLETS[body.origin] ? body.origin : "Bangladesh";
+      const cause = DEMO_CAUSE_WALLETS[origin];
       let recordHashHex = String(body.recordHashHex || "").toLowerCase().trim();
 
       if (!/^[0-9a-f]{64}$/.test(recordHashHex)) {
@@ -116,7 +124,7 @@ export default async function (req: Request) {
         const signer = getTestnetSigner();
         const [senderAccount] = await Promise.all([
           ensureFunded(server, signer.publicKey()),
-          ensureFunded(server, corridor.publicKey),
+          ensureFunded(server, cause.publicKey),
         ]);
 
         const tx = new TransactionBuilder(senderAccount, {
@@ -125,7 +133,7 @@ export default async function (req: Request) {
         })
           .addOperation(
             Operation.payment({
-              destination: corridor.publicKey,
+              destination: cause.publicKey,
               asset: Asset.native(),
               amount: "0.0000100",
             })
@@ -152,7 +160,7 @@ export default async function (req: Request) {
           memoType: "hash",
           recordHashHex,
           from: signer.publicKey(),
-          destination: corridor.publicKey,
+          destination: cause.publicKey,
           explorerUrl: `https://stellar.expert/explorer/testnet/tx/${result.hash}`,
         });
       } catch {
@@ -167,7 +175,7 @@ export default async function (req: Request) {
           memoType: "hash",
           recordHashHex,
           from: CACHED_FALLBACK_TX.from,
-          destination: corridor.publicKey,
+          destination: cause.publicKey,
           explorerUrl: `https://stellar.expert/explorer/testnet/tx/${CACHED_FALLBACK_TX.hash}`,
         });
       }
@@ -236,7 +244,7 @@ export default async function (req: Request) {
       const productId = String(body.productId || "hoodie")
         .slice(0, 8)
         .toUpperCase();
-      const origin = DEMO_COOP_WALLETS[body.origin] ? body.origin : "Bangladesh";
+      const origin = DEMO_CAUSE_WALLETS[body.origin] ? body.origin : "Bangladesh";
       const labourPct = Number(body.labourPct) || 8;
       const memoStr = `EST:${productId}:${origin.slice(0, 6).toUpperCase()}:${labourPct}%`.slice(
         0,
@@ -286,12 +294,12 @@ export default async function (req: Request) {
       }
     }
 
-    // Action 4: Simplified Horizon Telemetry for Impact screen
+    // Action 4: Horizon Telemetry for Demo Cause Wallets on Impact screen
     if (action === "telemetry") {
-      const origins = Object.keys(DEMO_COOP_WALLETS);
+      const origins = Object.keys(DEMO_CAUSE_WALLETS);
       const vaults = await Promise.all(
         origins.map(async (origin) => {
-          const cfg = DEMO_COOP_WALLETS[origin];
+          const cfg = DEMO_CAUSE_WALLETS[origin];
           const pub = cfg.publicKey;
           try {
             const acct = await ensureFunded(server, pub);
@@ -319,8 +327,9 @@ export default async function (req: Request) {
             return {
               origin,
               publicKey: pub,
-              coopLabel: cfg.coopLabel,
-              futureAnchorNote: cfg.futureAnchorNote,
+              causeName: cfg.causeName,
+              label: cfg.label,
+              description: cfg.description,
               xlmBalance: +Number(nativeBal).toFixed(2),
               recentTxs,
               accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${pub}`,
@@ -329,8 +338,9 @@ export default async function (req: Request) {
             return {
               origin,
               publicKey: pub,
-              coopLabel: cfg.coopLabel,
-              futureAnchorNote: cfg.futureAnchorNote,
+              causeName: cfg.causeName,
+              label: cfg.label,
+              description: cfg.description,
               xlmBalance: 10000,
               recentTxs: [
                 {
@@ -355,16 +365,30 @@ export default async function (req: Request) {
       });
     }
 
-    // Action 5: Settle a secondary Testnet payment to a Demo Co-op Wallet
-    const productId = String(body.productId || "hoodie").slice(0, 24);
-    const origin = DEMO_COOP_WALLETS[body.origin] ? body.origin : "Bangladesh";
-    const corridor = DEMO_COOP_WALLETS[origin];
+    // Action 5 (SECONDARY STELLAR FEATURE): Give to a Cause (Testnet payment to selected demo cause wallet)
+    const productId = String(body.productId || "hoodie").slice(0, 12);
+    const origin = DEMO_CAUSE_WALLETS[body.origin] ? body.origin : "Bangladesh";
+    const defaultCause = DEMO_CAUSE_WALLETS[origin];
+    const targetWallet =
+      typeof body.walletAddress === "string" && /^G[A-Z2-7]{55}$/.test(body.walletAddress)
+        ? body.walletAddress
+        : defaultCause.publicKey;
+    const causeName =
+      typeof body.causeName === "string" && body.causeName.trim()
+        ? body.causeName.trim()
+        : defaultCause.causeName;
+    const region =
+      typeof body.region === "string" && body.region.trim()
+        ? body.region.trim()
+        : origin;
+
     const currency = body.currency === "SGD" ? "SGD" : "GBP";
     const settlementMode = body.mode === "escrow" ? "escrow" : "direct";
     const rawAmount = Number(body.amount) || 1;
     const clampedAmount = Math.max(0.25, Math.min(250, rawAmount));
     const xlmAmount = Math.max(0.5, Math.min(50, +(clampedAmount * 2).toFixed(2))).toFixed(7);
-    const memoStr = `JEJAK:${productId.toUpperCase().slice(0, 7)}:${origin.slice(0, 5).toUpperCase()}:${clampedAmount}${currency}`.slice(
+    // Memo records the product category and origin region
+    const memoStr = `CAUSE:${productId.toUpperCase().slice(0, 8)}:${region.toUpperCase().slice(0, 11)}`.slice(
       0,
       28
     );
@@ -373,7 +397,7 @@ export default async function (req: Request) {
       const signer = getTestnetSigner();
       const [senderAccount] = await Promise.all([
         ensureFunded(server, signer.publicKey()),
-        ensureFunded(server, corridor.publicKey),
+        ensureFunded(server, targetWallet),
       ]);
 
       const txBuilder = new TransactionBuilder(senderAccount, {
@@ -387,14 +411,14 @@ export default async function (req: Request) {
             asset: Asset.native(),
             amount: xlmAmount,
             claimants: [
-              new Claimant(corridor.publicKey, Claimant.predicateUnconditional()),
+              new Claimant(targetWallet, Claimant.predicateUnconditional()),
             ],
           })
         );
       } else {
         txBuilder.addOperation(
           Operation.payment({
-            destination: corridor.publicKey,
+            destination: targetWallet,
             asset: Asset.native(),
             amount: xlmAmount,
           })
@@ -414,15 +438,16 @@ export default async function (req: Request) {
         ledger: result.ledger,
         memo: memoStr,
         from: signer.publicKey(),
-        destination: corridor.publicKey,
-        coopLabel: corridor.coopLabel,
-        futureAnchorNote: corridor.futureAnchorNote,
+        destination: targetWallet,
+        causeName,
+        causeLabel: "Demo cause (testnet)",
+        disclaimer: "Demo testnet donation. No real-world disbursement.",
         fiatAmount: clampedAmount,
         fiatCurrency: currency,
         xlmSettled: Number(xlmAmount),
         feeXlm: "0.00001",
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${result.hash}`,
-        accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${corridor.publicKey}`,
+        accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${targetWallet}`,
       });
     } catch {
       return Response.json({
@@ -436,15 +461,16 @@ export default async function (req: Request) {
         ledger: CACHED_FALLBACK_TX.ledger,
         memo: memoStr,
         from: CACHED_FALLBACK_TX.from,
-        destination: corridor.publicKey,
-        coopLabel: corridor.coopLabel,
-        futureAnchorNote: corridor.futureAnchorNote,
+        destination: targetWallet,
+        causeName,
+        causeLabel: "Demo cause (testnet)",
+        disclaimer: "Demo testnet donation. No real-world disbursement.",
         fiatAmount: clampedAmount,
         fiatCurrency: currency,
         xlmSettled: Number(xlmAmount),
         feeXlm: "0.00001",
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${CACHED_FALLBACK_TX.hash}`,
-        accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${corridor.publicKey}`,
+        accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${targetWallet}`,
       });
     }
   } catch {
@@ -460,8 +486,9 @@ export default async function (req: Request) {
       memo: CACHED_FALLBACK_TX.memo,
       from: CACHED_FALLBACK_TX.from,
       destination: CACHED_FALLBACK_TX.destination,
-      coopLabel: "Demo co-op wallet (testnet)",
-      futureAnchorNote: "Future integration: local anchor off-ramp",
+      causeName: "Demo cause · South Asia Apparel Corridor (testnet)",
+      causeLabel: "Demo cause (testnet)",
+      disclaimer: "Demo testnet donation. No real-world disbursement.",
       fiatAmount: 1,
       fiatCurrency: "GBP",
       xlmSettled: 2,

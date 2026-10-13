@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
+import causes from "@/data/causes.json";
 import { computeSplit, getRoute } from "@/lib/money";
 import SupplyFlowPipe from "@/components/SupplyFlowPipe";
 import StellarSettlementBadge from "@/components/StellarSettlementBadge";
@@ -10,9 +11,8 @@ import {
   ArrowUpRight,
   ChevronLeft,
   ChevronDown,
-  Sparkles,
+  HeartHandshake,
   ExternalLink,
-  Check,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { vibrate, coinClink } from "@/lib/haptics";
@@ -28,13 +28,13 @@ const FEED = [
 ];
 
 export default function Embedded() {
-  const { setProduct, setScreen, setCustomPrice, setMakerTip, addToWorkerFund, settleStellarPayout } = useApp();
+  const { setProduct, setScreen, setCustomPrice, setMakerTip, settleStellarPayout } = useApp();
   const navigate = useNavigate();
-  const [expandedId, setExpandedId] = useState(2); // Default Everyday Hoodie open for immediate visual punch
-  const [fundByTx, setFundByTx] = useState({});
+  const [expandedId, setExpandedId] = useState(2);
+  const [giveByTx, setGiveByTx] = useState({});
   const [stellarByTx, setStellarByTx] = useState({});
   const [loadingTxId, setLoadingTxId] = useState(null);
-  const [autoRoundup, setAutoRoundup] = useState(false);
+  const [giveEnabled, setGiveEnabled] = useState(false); // Default OFF
 
   const traceableTxs = FEED.filter((t) => t.productId);
   const totalSpent = traceableTxs.reduce((s, t) => s + Math.abs(t.amount), 0);
@@ -44,41 +44,31 @@ export default function Embedded() {
     return s + (Math.abs(t.amount) * pct) / 100;
   }, 0);
 
-  const roundupTotal = autoRoundup ? traceableTxs.length * 1.0 : 0;
-  const manualBoostTotal = Object.values(fundByTx).reduce((s, v) => s + v, 0);
-  const totalBoosted = roundupTotal + manualBoostTotal;
-  const effectiveMakers = baseToMakers + totalBoosted;
-  const makerSharePct = Math.min(100, +((effectiveMakers / totalSpent) * 100).toFixed(1));
+  const manualCauseTotal = Object.values(giveByTx).reduce((s, v) => s + v, 0);
+  const makerSharePct = Math.min(100, +((baseToMakers / totalSpent) * 100).toFixed(1));
 
   // SVG Ring Gauge geometry
   const ringR = 28;
   const ringCircumference = 2 * Math.PI * ringR;
   const makerArc = (makerSharePct / 100) * ringCircumference;
 
-  const toggleAutoRoundup = () => {
-    vibrate([0, 8, 20, 8]);
-    coinClink();
-    setAutoRoundup((prev) => {
-      const next = !prev;
-      if (next) celebrate();
-      return next;
-    });
-  };
-
-  const addFundForTx = async (tx, amount = 1) => {
+  const giveToCauseForTx = async (tx, amount = 1) => {
     const txId = tx.id;
     vibrate([0, 10, 20, 10]);
     coinClink();
-    setFundByTx((prev) => ({ ...prev, [txId]: +((prev[txId] || 0) + amount).toFixed(2) }));
-    addToWorkerFund(amount);
+    setGiveByTx((prev) => ({ ...prev, [txId]: +((prev[txId] || 0) + amount).toFixed(2) }));
     celebrate();
     const prod = getProduct(tx.productId);
     if (prod) {
+      const route = getRoute(prod, "GB");
+      const origin = route[0]?.country || "Bangladesh";
+      const causeObj = causes.find((c) => c.region === origin) || causes[0];
       setLoadingTxId(txId);
       const res = await settleStellarPayout({
         amount,
         productObj: prod,
         currencyOverride: "GBP",
+        causeObj,
       });
       setLoadingTxId(null);
       if (res) {
@@ -93,8 +83,8 @@ export default function Embedded() {
     if (prod) {
       setProduct(prod);
       setCustomPrice(Math.abs(tx.amount));
-      setMakerTip((fundByTx[tx.id] || 0) + (autoRoundup ? 1 : 0));
-      setScreen("split");
+      setMakerTip(giveByTx[tx.id] || 0);
+      setScreen("journey");
       navigate("/");
     }
   };
@@ -112,15 +102,15 @@ export default function Embedded() {
             <ChevronLeft size={16} /> Scanner
           </Link>
           <span className="rounded-full bg-amber-300/15 border border-amber-300/35 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
-            Embedded Bank Preview
+            Embedded Bank Concept
           </span>
         </header>
 
         <p className="px-5 pb-2 text-[11px] font-semibold text-white/65">
-          See how Jejak plugs into a banking app: tap any purchase to see its cost split or round up £1 to the makers.
+          Concept preview: inspect estimated provenance and cost splits inside a bank feed, or optionally send a demo testnet donation to a demo cause wallet.
         </p>
 
-        {/* Unified Visual Bank Card: Balance + Animated Ring Gauge + 1-Tap Auto-Roundup */}
+        {/* Unified Visual Bank Card */}
         <div className="px-5 pt-1">
           <div
             className="rounded-3xl p-4 border border-white/15 shadow-xl"
@@ -132,22 +122,24 @@ export default function Embedded() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[10px] font-extrabold uppercase tracking-widest text-white/50">
-                  Current Account
+                  Current Account (Illustrative)
                 </p>
                 <p className="mt-0.5 text-3xl font-extrabold tracking-tight tabular-nums">
-                  £{(2144.51 - totalBoosted).toFixed(2)}
+                  £2,144.51
                 </p>
-                <div className="mt-2 flex items-center gap-2 text-xs font-bold">
-                  <span className="rounded-lg bg-jejak-materials/20 border border-jejak-materials/40 px-2 py-0.5 text-jejak-materials tabular-nums">
-                    £{effectiveMakers.toFixed(2)} to makers
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs font-bold">
+                  <span className="rounded-lg bg-jejak-labour/20 border border-jejak-labour/40 px-2 py-0.5 text-amber-300 tabular-nums">
+                    ~£{baseToMakers.toFixed(2)} est. maker share
                   </span>
-                  <span className="text-white/50 tabular-nums">
-                    of £{totalSpent.toFixed(0)} spent
-                  </span>
+                  {manualCauseTotal > 0 && (
+                    <span className="rounded-lg bg-jejak-materials/20 border border-jejak-materials/40 px-2 py-0.5 text-jejak-materials tabular-nums">
+                      £{manualCauseTotal.toFixed(2)} demo cause (testnet)
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Animated SVG Fairness Ring Gauge */}
+              {/* Animated SVG Estimated Maker Share Ring Gauge */}
               <div className="relative flex h-20 w-20 shrink-0 items-center justify-center">
                 <svg viewBox="0 0 72 72" className="h-20 w-20 -rotate-90">
                   <circle
@@ -163,7 +155,7 @@ export default function Embedded() {
                     cy="36"
                     r={ringR}
                     fill="none"
-                    stroke="#2FBF71"
+                    stroke="#FF7A1A"
                     strokeWidth="7"
                     strokeLinecap="round"
                     strokeDasharray={ringCircumference}
@@ -176,37 +168,38 @@ export default function Embedded() {
                     {makerSharePct}%
                   </span>
                   <span className="text-[8px] font-bold uppercase tracking-wider text-white/55">
-                    Maker
+                    Est. Maker
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Interactive 1-Tap Auto-Roundup Toggle */}
+            {/* Optional Give to a Cause Toggle (Default OFF) */}
             <div className="mt-3 flex items-center justify-between rounded-2xl bg-white/10 px-3 py-2 border border-white/10">
-              <div className="flex items-center gap-2">
-                <Sparkles size={14} className="text-amber-300 shrink-0" />
-                <div>
+              <div className="flex items-center gap-2 min-w-0">
+                <HeartHandshake size={14} className="text-amber-300 shrink-0" />
+                <div className="min-w-0">
                   <p className="text-xs font-extrabold text-white">
-                    Auto-roundup +£1 to makers
+                    Give to a cause (optional, default off)
                   </p>
                   <p className="text-[10px] font-semibold text-white/60">
-                    {autoRoundup
-                      ? "Active on 4 retail purchases (+£4.00)"
-                      : "Boost every purchase automatically"}
+                    Demo testnet donation. No real-world disbursement.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={toggleAutoRoundup}
-                aria-pressed={autoRoundup}
+                onClick={() => {
+                  vibrate(6);
+                  setGiveEnabled((v) => !v);
+                }}
+                aria-pressed={giveEnabled}
                 className="relative h-6 w-11 shrink-0 rounded-full transition-colors no-tap"
-                style={{ background: autoRoundup ? "#2FBF71" : "rgba(255,255,255,0.22)" }}
+                style={{ background: giveEnabled ? "#2FBF71" : "rgba(255,255,255,0.22)" }}
               >
                 <motion.span
                   className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
-                  animate={{ left: autoRoundup ? 22 : 2 }}
+                  animate={{ left: giveEnabled ? 22 : 2 }}
                   transition={{ type: "spring", stiffness: 500, damping: 32 }}
                 />
               </button>
@@ -218,10 +211,10 @@ export default function Embedded() {
         <div className="mt-4 flex-1 rounded-t-3xl bg-[#F4F2FB] px-4 pt-4 pb-28 text-jejak-navy">
           <div className="mb-2.5 flex items-center justify-between px-1">
             <p className="text-xs font-extrabold uppercase tracking-wider text-jejak-navy/55">
-              Activity · Tap to inspect flow
+              Activity · Tap to inspect estimate
             </p>
             <span className="text-[10px] font-bold text-jejak-navy/45">
-              5-color bar = cost split
+              5-color bar = estimated split
             </span>
           </div>
 
@@ -230,17 +223,11 @@ export default function Embedded() {
               const prod = tx.productId ? getProduct(tx.productId) : null;
               const price = Math.abs(tx.amount);
               const split = prod ? computeSplit(prod, "GB", "split", price) : null;
-              const transparentSplit = prod
-                ? computeSplit(prod, "GB", "transparent", price)
-                : null;
               const labour = split?.find((s) => s.key === "labour");
-              const transparentLabour = transparentSplit?.find((s) => s.key === "labour");
-              const gap =
-                labour && transparentLabour
-                  ? Math.max(0.5, +(transparentLabour.amount - labour.amount).toFixed(2))
-                  : 1;
               const route = prod ? getRoute(prod, "GB") : [];
-              const txBoost = (fundByTx[tx.id] || 0) + (prod && autoRoundup ? 1 : 0);
+              const origin = route[0]?.country || "Bangladesh";
+              const causeObj = causes.find((c) => c.region === origin) || causes[0];
+              const txGiven = giveByTx[tx.id] || 0;
               const isOpen = expandedId === tx.id;
 
               return (
@@ -287,7 +274,6 @@ export default function Embedded() {
                         </p>
                       </div>
 
-                      {/* Micro 5-color split bar + compact origin pill instead of verbose text lines */}
                       {split ? (
                         <div className="mt-1.5 flex items-center gap-2">
                           <div className="flex h-1.5 flex-1 overflow-hidden rounded-full bg-jejak-navy/10">
@@ -300,9 +286,9 @@ export default function Embedded() {
                             ))}
                           </div>
                           <span className="shrink-0 text-[10px] font-extrabold text-jejak-labour tabular-nums">
-                            {txBoost > 0
-                              ? `£${(labour.amount + txBoost).toFixed(2)} boosted`
-                              : `${labour.pct.mid}% maker`}
+                            {txGiven > 0
+                              ? `£${txGiven.toFixed(2)} demo cause`
+                              : `~${labour.pct.mid}% est. maker`}
                           </span>
                           <ChevronDown
                             size={14}
@@ -319,7 +305,7 @@ export default function Embedded() {
                     </div>
                   </button>
 
-                  {/* Inline progressive-disclosure drawer with visual SupplyFlowPipe */}
+                  {/* Inline progressive-disclosure drawer */}
                   <AnimatePresence initial={false}>
                     {prod && isOpen && (
                       <motion.div
@@ -334,35 +320,39 @@ export default function Embedded() {
                           currency="GBP"
                           labourPct={labour.pct.mid}
                           labourAmount={labour.amount}
-                          makerTip={txBoost}
+                          makerTip={0}
                         />
 
+                        {giveEnabled && (
+                          <div className="mt-2 rounded-xl bg-jejak-navy/5 border border-jejak-navy/10 p-2">
+                            <p className="text-[10px] font-extrabold text-jejak-navy">
+                              {causeObj.name}
+                            </p>
+                            <p className="text-[9px] font-semibold text-jejak-navy/65">
+                              Sends a testnet payment to a demo cause wallet. In production, donations would go to a vetted organisation.
+                            </p>
+                          </div>
+                        )}
+
                         <div className="mt-2 flex items-center gap-1.5">
-                          <motion.button
-                            type="button"
-                            whileTap={TAP}
-                            onClick={() => addFundForTx(tx, 1)}
-                            className="flex-1 rounded-xl bg-white border border-jejak-navy/15 py-2 text-xs font-extrabold text-jejak-navy shadow-sm no-tap"
-                          >
-                            +£1 Stellar round-up
-                          </motion.button>
-                          <motion.button
-                            type="button"
-                            whileTap={TAP}
-                            onClick={() => addFundForTx(tx, gap)}
-                            className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-jejak-materials py-2 text-xs font-extrabold text-white shadow-sm no-tap"
-                          >
-                            {txBoost >= gap && <Check size={12} />}
-                            Bridge £{gap.toFixed(2)}
-                          </motion.button>
+                          {giveEnabled && (
+                            <motion.button
+                              type="button"
+                              whileTap={TAP}
+                              onClick={() => giveToCauseForTx(tx, 1)}
+                              className="flex-1 rounded-xl bg-white border border-jejak-navy/15 py-2 px-2.5 text-xs font-extrabold text-jejak-navy shadow-sm no-tap"
+                            >
+                              Give £1 to demo cause (testnet)
+                            </motion.button>
+                          )}
                           <motion.button
                             type="button"
                             whileTap={TAP}
                             onClick={() => openFullTrace(tx)}
-                            aria-label="Open full receipt"
-                            className="flex items-center gap-1 rounded-xl bg-jejak-navy px-3 py-2 text-xs font-extrabold text-amber-300 no-tap"
+                            aria-label="Open provenance trace"
+                            className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-jejak-navy px-3 py-2 text-xs font-extrabold text-amber-300 no-tap"
                           >
-                            {route[0]?.country} <ExternalLink size={12} />
+                            Trace {origin} provenance <ExternalLink size={12} />
                           </motion.button>
                         </div>
 

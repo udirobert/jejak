@@ -19,7 +19,7 @@ import { ArrowLeft, Camera, Sliders, Coins, GitBranch, Sparkles, HelpCircle } fr
 
 const LENS_TABS = [
   { id: "coins", label: "Coin Drop", icon: Coins },
-  { id: "flow", label: "Flow & Boost", icon: GitBranch },
+  { id: "flow", label: "Flow & Cause", icon: GitBranch },
   { id: "context", label: "Equivalents", icon: Sparkles },
 ];
 
@@ -252,8 +252,8 @@ export default function MoneySplit() {
 
         <CoachmarkPill
           id="split_receipt"
-          stepBadge="Step 3 of 3"
-          text="Tap any colour block below to see who keeps what — or tap 'Flow & Boost' to tip the makers."
+          stepBadge="Layer 2 · Cost Split"
+          text="Tap any colour block below to inspect its basis — or open 'Flow & Cause' to send an optional demo testnet donation."
         />
 
         {/* Interactive Scrubbable 5-Category Bar (always visible anchor) */}
