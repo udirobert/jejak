@@ -5,6 +5,7 @@ import ScreenShell from "@/components/ScreenShell";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/lib/AppContext";
 import { PRODUCTS, getProduct } from "@/data";
+import { getRoute } from "@/lib/money";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
 import { Camera, X, Sparkles } from "lucide-react";
@@ -13,7 +14,7 @@ import ExploreBottomSheet, {
   SNAP_HEIGHTS,
 } from "@/components/explore/ExploreBottomSheet";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
-import { isSampleScan } from "@/components/explore/exploreUtils";
+import { isSampleScan, ORIGIN_COORDS } from "@/components/explore/exploreUtils";
 
 export default function Explore() {
   const [scans, setScans] = useState([]);
@@ -23,13 +24,19 @@ export default function Explore() {
   // Default state is collapsed peek: handle + one line ("N traced products"). Never auto-expand on load.
   const [snap, setSnap] = useState("peek");
   const [newlyArrivedId, setNewlyArrivedId] = useState(null);
-  const [arcOrigin, setArcOrigin] = useState(null);
+  const [activeRoute, setActiveRoute] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const reduce = useReducedMotion();
   const navigate = useNavigate();
-  const { setProduct, setScreen, setCompareMode, setLowConfidence, reset } =
-    useApp();
+  const {
+    market,
+    setProduct,
+    setScreen,
+    setCompareMode,
+    setLowConfidence,
+    reset,
+  } = useApp();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -50,32 +57,38 @@ export default function Explore() {
     load();
   }, [load]);
 
-  // Clear arrival arc after animation finishes
+  // Keep activeRoute's destination synced with the currency switch (UK or Singapore; never device location)
   useEffect(() => {
-    if (!arcOrigin) return;
-    const t = setTimeout(() => setArcOrigin(null), 2400);
-    return () => clearTimeout(t);
-  }, [arcOrigin]);
+    setActiveRoute((prev) => (prev ? { ...prev, market } : null));
+  }, [market]);
 
-  // Live subscription: when a new real trace arrives, pulse the peek line and animate an arc from its origin dot (never auto-expand)
+  // Live subscription: when a new real trace arrives, launch a ship from its origin dot along its route and pulse the peek line.
+  // Seeded/sample traces do not trigger this, and the sheet never auto-expands.
   useEffect(() => {
     const unsub = base44.entities.Scan.subscribe((event) => {
       if (event.type !== "create") return;
       const s = event.data;
-      setNewlyArrivedId(s.id);
-      if (s.origin && !isSampleScan(s)) {
-        setArcOrigin(s.origin);
-      }
       setScans((prev) =>
         prev.some((p) => p.id === s.id) ? prev : [s, ...prev]
       );
+      if (!isSampleScan(s)) {
+        setNewlyArrivedId(s.id);
+        const origin = s.origin || "Bangladesh";
+        setActiveRoute({
+          key: `live-${s.id}-${Date.now()}`,
+          origin,
+          market,
+          productId: s.product_id || "hoodie",
+          productName: s.product_name || "Traced item",
+        });
+      }
     });
     return unsub;
-  }, []);
+  }, [market]);
 
   useEffect(() => {
     if (!newlyArrivedId) return;
-    const t = setTimeout(() => setNewlyArrivedId(null), 3200);
+    const t = setTimeout(() => setNewlyArrivedId(null), 3600);
     return () => clearTimeout(t);
   }, [newlyArrivedId]);
 
@@ -120,14 +133,43 @@ export default function Explore() {
     return PRODUCTS.filter((p) => !tracedIds.has(p.id));
   }, [scans, originFilter]);
 
-  // Tapping a dot opens the sheet to half height, filtered to that origin.
+  // Build route for the 3D Globe view when toggled
+  const globeRoute = useMemo(() => {
+    const targetOrigin =
+      originFilter !== "All"
+        ? originFilter
+        : activeRoute?.origin || scans[0]?.origin || "Bangladesh";
+    const matchingScan = scans.find((s) => s.origin === targetOrigin);
+    const prod = getProduct(matchingScan?.product_id || "hoodie") || getProduct("hoodie");
+    const base = getRoute(prod, market);
+    const coords = ORIGIN_COORDS[targetOrigin];
+    if (coords && base.length > 0) {
+      return [
+        { ...base[0], country: targetOrigin, lng: coords[0], lat: coords[1] },
+        ...base.slice(1),
+      ];
+    }
+    return base;
+  }, [originFilter, activeRoute, scans, market]);
+
+  // Tapping an origin dot draws the route to the user's market (UK or Singapore based on currency switch),
+  // sails a ship carrying that product, and opens the bottom sheet to half height filtered to that origin.
   const handleSelectOrigin = (origin) => {
     if (origin === "All") {
       setOriginFilter("All");
+      setActiveRoute(null);
       return;
     }
+    const leadScan = scans.find((s) => s.origin === origin);
+    const prod = getProduct(leadScan?.product_id || "hoodie") || getProduct("hoodie");
     setOriginFilter(origin);
-    setArcOrigin(origin);
+    setActiveRoute({
+      key: `${origin}-${market}-${Date.now()}`,
+      origin,
+      market,
+      productId: prod.id,
+      productName: leadScan?.product_name || prod.name,
+    });
     setSnap("half");
   };
 
@@ -161,14 +203,16 @@ export default function Explore() {
   return (
     <ScreenShell variant="map">
       <div className="relative flex-1 h-full w-full overflow-hidden">
-        {/* Full-bleed Rich Indigo/Teal Interactive Map Background */}
+        {/* Full-bleed Living Map with Ambient Ships, Day/Night Shadow, Pan/Zoom & Globe Toggle */}
         <ExploreFullBleedMap
           originChips={originChips}
           originFilter={originFilter}
           onSelectOrigin={handleSelectOrigin}
           onEmptyMapTap={handleEmptyMapTap}
           onOpenInfo={() => setShowInfoSheet(true)}
-          arcOrigin={arcOrigin}
+          onTraceUntracedOrigin={handleTraceYours}
+          activeRoute={activeRoute}
+          globeRoute={globeRoute}
           reduce={reduce}
         />
 
@@ -203,7 +247,10 @@ export default function Explore() {
           productGroups={productGroups}
           untracedProducts={untracedProducts}
           originFilter={originFilter}
-          onClearOrigin={() => setOriginFilter("All")}
+          onClearOrigin={() => {
+            setOriginFilter("All");
+            setActiveRoute(null);
+          }}
           newlyArrivedId={newlyArrivedId}
           onSelectScan={(s) => setSelectedScan(s)}
           onTraceProduct={handleTraceProduct}
@@ -219,7 +266,7 @@ export default function Explore() {
           reduce={reduce}
         />
 
-        {/* Single-sentence Privacy Sheet */}
+        {/* Honesty & Privacy Info Sheet */}
         <AnimatePresence>
           {showInfoSheet && (
             <motion.div
@@ -242,7 +289,7 @@ export default function Explore() {
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-jejak-navy">
                     <Sparkles size={13} className="text-jejak-coral" />{" "}
-                    Community privacy
+                    Community map & privacy
                   </span>
                   <button
                     type="button"
@@ -253,9 +300,10 @@ export default function Explore() {
                   </button>
                 </div>
                 <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  Every trace is private by default and only appears here when a
-                  user explicitly opts in; seeded demo entries are covered by
-                  the single “Sample data” banner and excluded from live counts.
+                  Illustrative routes, not live vessel tracking. Every trace is
+                  private by default and only appears here when a user
+                  explicitly opts in; seeded demo entries are covered by the
+                  single “Sample data” banner and excluded from live counts.
                 </p>
               </motion.div>
             </motion.div>
