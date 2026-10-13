@@ -45,9 +45,9 @@ export default function StageSidebars() {
             Start where money gets stuck.
           </h2>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-jejak-navy/65">
-            Your bank receipt stops at the checkout terminal. Jejak reveals where
-            92.5% of your payment gets stuck—and settles micro-boosts directly to
-            maker co-ops on Stellar in ~5s for 0.00001 XLM.
+            Your bank receipt stops at the checkout terminal. Jejak estimates where
+            92.5% of your payment goes—and broadcasts micro-boosts & estimate records
+            to demo co-op wallets on Stellar Testnet.
           </p>
         </div>
 

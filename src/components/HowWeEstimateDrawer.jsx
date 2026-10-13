@@ -49,6 +49,17 @@ export default function HowWeEstimateDrawer() {
                 <strong>Your photo isn't stored on your profile.</strong> It's uploaded privately and used only for the
                 one-time recognition call, then discarded — we never keep it.
               </p>
+              <div className="rounded-2xl bg-jejak-navy/6 border border-jejak-navy/15 p-3.5 text-xs space-y-1.5">
+                <p className="font-extrabold text-jejak-navy uppercase tracking-wide text-[11px]">
+                  What’s real vs. mocked in this prototype
+                </p>
+                <p>
+                  <strong>Real:</strong> AI vision product recognition (via short-lived private signed URLs), live Stellar Testnet transactions (<code className="font-mono">payment</code>, <code className="font-mono">createClaimableBalance</code>, and <code className="font-mono">MEMO_TEXT</code> estimate records verifiable on Stellar.Expert), and the live Explore database feed.
+                </p>
+                <p>
+                  <strong>Mocked / Future:</strong> Destination wallets are <strong>Demo co-op wallets (testnet)</strong>, not real partner cooperatives. Local mobile-money anchor off-ramps (SEP-24) and the Embedded Bank feed are illustrative previews of future integrations.
+                </p>
+              </div>
               <p className="text-jejak-navy/60 italic">
                 We're not telling you what to buy — we're making the payment visible.
               </p>

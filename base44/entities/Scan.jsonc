@@ -31,6 +31,12 @@
     },
     "confidence": {
       "type": "string"
+    },
+    "stellar_tx_hash": {
+      "type": "string"
+    },
+    "stellar_memo": {
+      "type": "string"
     }
   },
   "required": [

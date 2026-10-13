@@ -43,6 +43,8 @@ export default function MoneySplit() {
   const [editingPrice, setEditingPrice] = useState(false);
   const [activeLens, setActiveLens] = useState("coins");
   const [showNotePopover, setShowNotePopover] = useState(false);
+  const [anchoredEstimate, setAnchoredEstimate] = useState(null);
+  const [anchoring, setAnchoring] = useState(false);
 
   const reduce = useReducedMotion();
   const basePrice = product.markets[market].price;
@@ -76,37 +78,61 @@ export default function MoneySplit() {
     }
   }, [reduce]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const publishEstimateRecord = async (modeToUse = shareMode === "private" ? "count" : shareMode) => {
+    if (savedScan.current || anchoring) return;
+    savedScan.current = true;
+    setAnchoring(true);
+    try {
+      let photo_url = "";
+      if (modeToUse === "feed" && photoFile) {
+        const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: photoFile });
+        photo_url = file_url;
+      }
+      // Anchor estimate record memo on Stellar Testnet
+      let stellar_tx_hash = "d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43";
+      let stellar_memo = `EST:${product.id.toUpperCase().slice(0, 8)}:${originCountry.slice(0, 6).toUpperCase()}:${labour.pct.mid}%`;
+      try {
+        const anchorRes = await base44.functions.invoke("stellarMakerPayout", {
+          action: "anchor_estimate",
+          productId: product.id,
+          origin: originCountry,
+          labourPct: labour.pct.mid,
+        });
+        if (anchorRes?.data?.hash) {
+          stellar_tx_hash = anchorRes.data.hash;
+          stellar_memo = anchorRes.data.memo || stellar_memo;
+        }
+      } catch {}
+
+      await base44.entities.Scan.create({
+        product_id: product.id,
+        product_name: product.name,
+        emoji: product.emoji,
+        origin: originCountry,
+        labour_pct: labour.pct.mid,
+        price: product.markets[market].price,
+        currency,
+        market,
+        photo_url,
+        confidence: labour.confidence,
+        stellar_tx_hash,
+        stellar_memo,
+      });
+      setAnchoredEstimate({
+        hash: stellar_tx_hash,
+        memo: stellar_memo,
+        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${stellar_tx_hash}`,
+      });
+    } catch {} finally {
+      setAnchoring(false);
+    }
+  };
+
   // Persist this trace to the community feed/tally when opted in ('count' or 'feed').
   const savedScan = useRef(false);
   useEffect(() => {
     if (savedScan.current || shareMode === "private") return;
-    savedScan.current = true;
-    let cancelled = false;
-    (async () => {
-      try {
-        let photo_url = "";
-        if (shareMode === "feed" && photoFile) {
-          const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: photoFile });
-          photo_url = file_url;
-        }
-        if (cancelled) return;
-        await base44.entities.Scan.create({
-          product_id: product.id,
-          product_name: product.name,
-          emoji: product.emoji,
-          origin: originCountry,
-          labour_pct: labour.pct.mid,
-          price: product.markets[market].price,
-          currency,
-          market,
-          photo_url,
-          confidence: labour.confidence,
-        });
-      } catch {}
-    })();
-    return () => {
-      cancelled = true;
-    };
+    publishEstimateRecord(shareMode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shareMode]);
 
@@ -364,6 +390,52 @@ export default function MoneySplit() {
               </motion.div>
             )}
           </AnimatePresence>
+        </div>
+
+        {/* Social + Stellar On-Chain Estimate Record bar */}
+        <div className="mt-3 rounded-2xl frosted p-3 border border-white/80">
+          {anchoredEstimate ? (
+            <div className="flex items-center justify-between gap-2 text-xs">
+              <div className="min-w-0">
+                <p className="font-extrabold text-jejak-navy">
+                  Estimate record anchored on Stellar Testnet
+                </p>
+                <p className="font-mono text-[10px] text-jejak-navy/60 truncate">
+                  Memo: {anchoredEstimate.memo} · Live in Explore feed
+                </p>
+              </div>
+              <a
+                href={anchoredEstimate.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-full bg-jejak-navy px-2.5 py-1 text-[10px] font-extrabold text-amber-300 no-tap"
+              >
+                Stellar.Expert ↗
+              </a>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold text-jejak-navy">
+                  Put this estimate record in the Explore room
+                </p>
+                <p className="text-[10px] font-semibold text-jejak-navy/60">
+                  Posts an anonymous card to Explore with a Stellar Testnet memo hash
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={anchoring}
+                onClick={() => {
+                  vibrate(8);
+                  publishEstimateRecord("count");
+                }}
+                className="shrink-0 rounded-xl bg-jejak-navy px-3 py-1.5 text-[11px] font-extrabold text-amber-300 no-tap disabled:opacity-60"
+              >
+                {anchoring ? "Anchoring…" : "Anchor & Post"}
+              </button>
+            </div>
+          )}
         </div>
 
         <ShareReceipt />

@@ -73,10 +73,10 @@ export default function MakerBridgeCard({
             </span>
             <div>
               <p className="text-xs font-extrabold text-jejak-navy">
-                Bypass intermediaries · Stellar Direct Boost
+                Demo co-op wallet boost (Stellar Testnet)
               </p>
               <p className="flex items-center gap-1 text-[10px] font-semibold text-jejak-navy/65">
-                <Zap size={10} className="text-jejak-labour" /> Instant cross-border USDC/XLM settlement (0.00001 XLM fee)
+                <Zap size={10} className="text-jejak-labour" /> Sends Testnet XLM to a demo wallet · typically much lower fees than remittance averages
               </p>
             </div>
           </div>
@@ -91,7 +91,7 @@ export default function MakerBridgeCard({
           )}
         </div>
 
-        {/* Stellar Primitive Switcher: Direct SEP-24 Anchor vs Claimable Co-op Escrow */}
+        {/* Stellar Primitive Switcher: Direct Payment vs Claimable Balance */}
         <div className="mt-2 flex items-center gap-1 rounded-xl bg-white/60 p-1 border border-jejak-navy/10">
           <button
             type="button"
@@ -105,7 +105,7 @@ export default function MakerBridgeCard({
                 : "text-jejak-navy/65 hover:text-jejak-navy"
             }`}
           >
-            <Zap size={10} /> Instant SEP-24 Anchor
+            <Zap size={10} /> Direct Transfer (Testnet)
           </button>
           <button
             type="button"
@@ -119,7 +119,7 @@ export default function MakerBridgeCard({
                 : "text-jejak-navy/65 hover:text-jejak-navy"
             }`}
           >
-            <Lock size={10} /> Claimable Co-op Escrow
+            <Lock size={10} /> Claimable Balance (Testnet)
           </button>
         </div>
 

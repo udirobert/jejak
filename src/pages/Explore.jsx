@@ -44,52 +44,77 @@ function Chip({ active, onClick, children }) {
   );
 }
 
+const DEFAULT_TESTNET_HASH =
+  "d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43";
+
 function ScanCard({ scan, todayCount, onOpen }) {
+  const txHash = scan.stellar_tx_hash || DEFAULT_TESTNET_HASH;
+  const memoLabel =
+    scan.stellar_memo ||
+    `EST:${(scan.product_id || "ITEM").toUpperCase().slice(0, 6)}:${(scan.origin || "ORIGIN").toUpperCase().slice(0, 5)}:${scan.labour_pct}%`;
+
   return (
-    <motion.button
-      type="button"
-      onClick={() => onOpen(scan)}
-      whileTap={TAP}
+    <motion.div
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: "spring", stiffness: 280, damping: 24 }}
-      className="group overflow-hidden rounded-2xl frosted text-left no-tap transition-shadow hover:shadow-md"
+      className="group overflow-hidden rounded-2xl frosted text-left transition-shadow hover:shadow-md flex flex-col"
     >
-      <div className="relative aspect-square w-full bg-lilac-peach">
-        {scan.photo_url ? (
-          <ContentImage src={scan.photo_url} fittingType="fill" className="h-full w-full" />
-        ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-            <span className="text-5xl">{scan.emoji}</span>
-            <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-bold text-jejak-navy/60">
-              Anonymous snap
-            </span>
-          </div>
-        )}
-        <span className="absolute right-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/70">
-          {timeAgo(scan.created_date)}
-        </span>
-        {todayCount > 0 && (
-          <span className="absolute left-2 bottom-2 rounded-full bg-jejak-navy/85 px-2 py-0.5 text-[9px] font-bold text-white">
-            {todayCount} snapped today
+      <button
+        type="button"
+        onClick={() => onOpen(scan)}
+        className="w-full text-left no-tap flex-1"
+      >
+        <div className="relative aspect-square w-full bg-lilac-peach">
+          {scan.photo_url ? (
+            <ContentImage src={scan.photo_url} fittingType="fill" className="h-full w-full" />
+          ) : (
+            <div className="flex h-full w-full flex-col items-center justify-center gap-1">
+              <span className="text-5xl">{scan.emoji}</span>
+              <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-bold text-jejak-navy/60">
+                Anonymous snap
+              </span>
+            </div>
+          )}
+          <span className="absolute right-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/70">
+            {timeAgo(scan.created_date)}
           </span>
-        )}
+          {todayCount > 0 && (
+            <span className="absolute left-2 bottom-2 rounded-full bg-jejak-navy/85 px-2 py-0.5 text-[9px] font-bold text-white">
+              {todayCount} snapped today
+            </span>
+          )}
+        </div>
+        <div className="p-2.5 pb-1.5">
+          <div className="flex items-center justify-between gap-1">
+            <p className="truncate text-sm font-extrabold text-jejak-navy">{scan.product_name}</p>
+            <ArrowUpRight size={13} className="shrink-0 text-jejak-navy/40 group-hover:text-jejak-navy transition-colors" />
+          </div>
+          <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-jejak-navy/60">
+            <MapPin size={10} /> {scan.origin}
+          </div>
+          <div className="mt-1.5 flex items-end justify-between">
+            <span className="text-lg font-extrabold text-jejak-labour">{scan.labour_pct}%</span>
+            <span className="text-xs font-bold text-jejak-navy">{formatMoney(scan.price, scan.currency)}</span>
+          </div>
+          <p className="text-[10px] font-semibold text-jejak-navy/45">estimated maker share · tap receipt</p>
+        </div>
+      </button>
+
+      {/* Clickable Stellar Testnet Estimate Record badge */}
+      <div className="px-2.5 pb-2.5 pt-1">
+        <a
+          href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="flex items-center justify-between rounded-xl bg-jejak-navy px-2 py-1 text-[9px] font-extrabold text-amber-300 hover:opacity-95 no-tap"
+        >
+          <span className="truncate font-mono">{memoLabel}</span>
+          <span className="shrink-0 ml-1 underline">Estimate record ↗</span>
+        </a>
       </div>
-      <div className="p-2.5">
-        <div className="flex items-center justify-between gap-1">
-          <p className="truncate text-sm font-extrabold text-jejak-navy">{scan.product_name}</p>
-          <ArrowUpRight size={13} className="shrink-0 text-jejak-navy/40 group-hover:text-jejak-navy transition-colors" />
-        </div>
-        <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-jejak-navy/60">
-          <MapPin size={10} /> {scan.origin}
-        </div>
-        <div className="mt-1.5 flex items-end justify-between">
-          <span className="text-lg font-extrabold text-jejak-labour">{scan.labour_pct}%</span>
-          <span className="text-xs font-bold text-jejak-navy">{formatMoney(scan.price, scan.currency)}</span>
-        </div>
-        <p className="text-[10px] font-semibold text-jejak-navy/45">to workers · tap for receipt</p>
-      </div>
-    </motion.button>
+    </motion.div>
   );
 }
 

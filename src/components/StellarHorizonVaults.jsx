@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { ExternalLink, RefreshCw, ShieldCheck, Sparkles, Lock } from "lucide-react";
+import { ExternalLink, RefreshCw, ShieldCheck, Sparkles } from "lucide-react";
 
 const FLAGS = {
   Bangladesh: "🇧🇩",
@@ -9,8 +9,8 @@ const FLAGS = {
   China: "🇨🇳",
 };
 
-// Live Stellar Testnet Co-op Vaults component: fetches real account balances and
-// recent JEJAK memo transactions from Horizon via stellarMakerPayout(action="telemetry").
+// Live Stellar Testnet Demo Co-op Wallets component: fetches real testnet balances and
+// recent JEJAK/EST memo transactions from Horizon, with honest labels.
 export default function StellarHorizonVaults() {
   const [vaults, setVaults] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +25,7 @@ export default function StellarHorizonVaults() {
         setVaults(res.data.vaults);
       }
     } catch {
-      // fallback silent
+      // silent fallback
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export default function StellarHorizonVaults() {
             <Sparkles size={10} /> Live Stellar Horizon Testnet
           </span>
           <h2 className="mt-1 text-sm font-extrabold text-white">
-            Regional Maker Co-op Anchors & Vaults
+            Demo Co-op Wallets (Testnet)
           </h2>
         </div>
         <button
@@ -58,7 +58,7 @@ export default function StellarHorizonVaults() {
       </div>
 
       <p className="mt-1 text-[11px] font-semibold text-white/65">
-        Every micro-boost routes through Stellar to a regional SEP-24 mobile-money anchor with verifiable on-chain <code className="font-mono text-amber-200">JEJAK</code> memos.
+        Boosts and shared scan estimate records are broadcast to these Stellar Testnet demo wallets. Local anchor off-ramps are a future integration.
       </p>
 
       <div className="mt-2.5 grid grid-cols-2 gap-2">
@@ -76,25 +76,24 @@ export default function StellarHorizonVaults() {
               </span>
               <ExternalLink size={11} className="text-amber-300 opacity-75 group-hover:opacity-100" />
             </div>
-            <p className="mt-0.5 text-[10px] font-bold text-white/75 truncate">
+            <p className="mt-0.5 text-[10px] font-bold text-white/80 truncate">
               {v.coopLabel}
             </p>
-            <p className="mt-0.5 text-[9px] font-semibold text-jejak-materials truncate">
-              {v.localAnchor}
+            <p className="mt-0.5 text-[9px] font-semibold text-white/55 truncate">
+              {v.futureAnchorNote}
             </p>
             <div className="mt-1.5 flex items-center justify-between border-t border-white/10 pt-1 text-[9px] font-mono text-amber-200">
-              <span>{v.workersCount} makers</span>
+              <span>{v.xlmBalance} XLM</span>
               <span>{v.recentTxs?.length || 0} recent TXs</span>
             </div>
           </a>
         ))}
       </div>
 
-      {/* Recent on-chain transactions stream */}
       {vaults.some((v) => v.recentTxs?.length > 0) && (
         <div className="mt-2.5 rounded-2xl bg-white/6 border border-white/10 p-2.5">
           <p className="flex items-center gap-1 text-[9px] font-extrabold uppercase tracking-wider text-white/60">
-            <ShieldCheck size={11} className="text-jejak-materials" /> Latest On-Chain Ledger Proofs
+            <ShieldCheck size={11} className="text-jejak-materials" /> Recent Testnet Transactions (Memos)
           </p>
           <div className="mt-1.5 space-y-1">
             {vaults
