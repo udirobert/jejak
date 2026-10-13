@@ -15,6 +15,7 @@ export default function StageSidebars() {
     traces,
     workerTotal,
     shareMode,
+    lastStellarTx,
     setProduct,
     setScreen,
     setCustomPrice,
@@ -38,15 +39,15 @@ export default function StageSidebars() {
       <aside className="hidden xl:flex fixed left-6 top-1/2 -translate-y-1/2 z-20 w-64 flex-col gap-3">
         <div className="rounded-3xl frosted-strong p-4 border border-white/70">
           <span className="inline-flex items-center gap-1 rounded-full bg-jejak-navy px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
-            Track 01 · Move Money
+            Stellar · Find Your Way
           </span>
           <h2 className="mt-2 text-base font-extrabold leading-snug text-jejak-navy">
             Start where money gets stuck.
           </h2>
           <p className="mt-1 text-xs font-semibold leading-relaxed text-jejak-navy/65">
-            Your bank receipt stops at the checkout terminal. Jejak shows where
-             the other 92.5% of your payment goes—and lets you move money
-            directly to makers.
+            Your bank receipt stops at the checkout terminal. Jejak reveals where
+            92.5% of your payment gets stuck—and settles micro-boosts directly to
+            maker co-ops on Stellar in ~5s for 0.00001 XLM.
           </p>
         </div>
 
@@ -150,6 +151,17 @@ export default function StageSidebars() {
               </p>
             </div>
           </div>
+          {lastStellarTx && (
+            <a
+              href={lastStellarTx.explorerUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 flex items-center justify-between rounded-xl bg-jejak-navy px-3 py-2 text-[10px] font-extrabold text-amber-300 hover:opacity-95"
+            >
+              <span>Stellar TX #{lastStellarTx.ledger}</span>
+              <span className="underline">Stellar.Expert ↗</span>
+            </a>
+          )}
         </div>
       </aside>
     </>

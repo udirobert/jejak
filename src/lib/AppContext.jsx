@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { hoodie } from "@/data/hoodie";
-import { marketForCurrency } from "./money";
+import { marketForCurrency, getRoute } from "./money";
+import { base44 } from "@/api/base44Client";
 
 const AppContext = createContext(null);
 const STREAK_STORAGE_KEY = "jejak_streak_v1";
@@ -49,6 +50,41 @@ export function AppProvider({ children }) {
   const [makerTip, setMakerTip] = useState(0); // optional direct maker boost on current receipt
   const [guessedLabourPct, setGuessedLabourPct] = useState(null); // pre-reveal user guess
   const [tourStep, setTourStep] = useState(null); // null | 0..3 interactive guided tour
+  const [lastStellarTx, setLastStellarTx] = useState(null);
+  const [stellarLoading, setStellarLoading] = useState(false);
+  const [stellarError, setStellarError] = useState(null);
+
+  const settleStellarPayout = useCallback(
+    async ({ amount, productObj, currencyOverride }) => {
+      const targetProd = productObj || product;
+      const cur = currencyOverride || currency;
+      const mkt = marketForCurrency(cur);
+      const route = getRoute(targetProd, mkt);
+      const origin = route[0]?.country || "Bangladesh";
+
+      setStellarLoading(true);
+      setStellarError(null);
+      try {
+        const res = await base44.functions.invoke("stellarMakerPayout", {
+          productId: targetProd?.id || "hoodie",
+          origin,
+          amount,
+          currency: cur,
+        });
+        if (res?.data?.ok) {
+          setLastStellarTx(res.data);
+          return res.data;
+        }
+        throw new Error(res?.data?.error || "Relay error");
+      } catch (err) {
+        setStellarError(err?.message || "Testnet timeout");
+        return null;
+      } finally {
+        setStellarLoading(false);
+      }
+    },
+    [product, currency]
+  );
 
   const startGuidedTour = useCallback(() => {
     setScreen("home");
@@ -100,6 +136,8 @@ export function AppProvider({ children }) {
     setCustomPrice(null);
     setMakerTip(0);
     setGuessedLabourPct(null);
+    setLastStellarTx(null);
+    setStellarError(null);
   }, []);
 
   const value = {
@@ -133,6 +171,11 @@ export function AppProvider({ children }) {
     setTourStep,
     startGuidedTour,
     endGuidedTour,
+    lastStellarTx,
+    setLastStellarTx,
+    stellarLoading,
+    stellarError,
+    settleStellarPayout,
     addTrace,
     addToWorkerFund,
     setCurrency: switchCurrency,

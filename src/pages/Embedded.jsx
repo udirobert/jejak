@@ -4,6 +4,7 @@ import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
 import { computeSplit, getRoute } from "@/lib/money";
 import SupplyFlowPipe from "@/components/SupplyFlowPipe";
+import StellarSettlementBadge from "@/components/StellarSettlementBadge";
 import StageSidebars from "@/components/StageSidebars";
 import {
   ArrowUpRight,
@@ -27,10 +28,12 @@ const FEED = [
 ];
 
 export default function Embedded() {
-  const { setProduct, setScreen, setCustomPrice, setMakerTip, addToWorkerFund } = useApp();
+  const { setProduct, setScreen, setCustomPrice, setMakerTip, addToWorkerFund, settleStellarPayout } = useApp();
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(2); // Default Everyday Hoodie open for immediate visual punch
   const [fundByTx, setFundByTx] = useState({});
+  const [stellarByTx, setStellarByTx] = useState({});
+  const [loadingTxId, setLoadingTxId] = useState(null);
   const [autoRoundup, setAutoRoundup] = useState(false);
 
   const traceableTxs = FEED.filter((t) => t.productId);
@@ -62,12 +65,26 @@ export default function Embedded() {
     });
   };
 
-  const addFundForTx = (txId, amount = 1) => {
+  const addFundForTx = async (tx, amount = 1) => {
+    const txId = tx.id;
     vibrate([0, 10, 20, 10]);
     coinClink();
-    setFundByTx((prev) => ({ ...prev, [txId]: +( (prev[txId] || 0) + amount ).toFixed(2) }));
+    setFundByTx((prev) => ({ ...prev, [txId]: +((prev[txId] || 0) + amount).toFixed(2) }));
     addToWorkerFund(amount);
     celebrate();
+    const prod = getProduct(tx.productId);
+    if (prod) {
+      setLoadingTxId(txId);
+      const res = await settleStellarPayout({
+        amount,
+        productObj: prod,
+        currencyOverride: "GBP",
+      });
+      setLoadingTxId(null);
+      if (res) {
+        setStellarByTx((prev) => ({ ...prev, [txId]: res }));
+      }
+    }
   };
 
   const openFullTrace = (tx) => {
@@ -324,15 +341,15 @@ export default function Embedded() {
                           <motion.button
                             type="button"
                             whileTap={TAP}
-                            onClick={() => addFundForTx(tx.id, 1)}
+                            onClick={() => addFundForTx(tx, 1)}
                             className="flex-1 rounded-xl bg-white border border-jejak-navy/15 py-2 text-xs font-extrabold text-jejak-navy shadow-sm no-tap"
                           >
-                            +£1 round-up
+                            +£1 Stellar round-up
                           </motion.button>
                           <motion.button
                             type="button"
                             whileTap={TAP}
-                            onClick={() => addFundForTx(tx.id, gap)}
+                            onClick={() => addFundForTx(tx, gap)}
                             className="flex flex-1 items-center justify-center gap-1 rounded-xl bg-jejak-materials py-2 text-xs font-extrabold text-white shadow-sm no-tap"
                           >
                             {txBoost >= gap && <Check size={12} />}
@@ -348,6 +365,12 @@ export default function Embedded() {
                             {route[0]?.country} <ExternalLink size={12} />
                           </motion.button>
                         </div>
+
+                        <StellarSettlementBadge
+                          tx={stellarByTx[tx.id]}
+                          loading={loadingTxId === tx.id}
+                          compact
+                        />
                       </motion.div>
                     )}
                   </AnimatePresence>

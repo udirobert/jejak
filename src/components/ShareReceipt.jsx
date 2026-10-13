@@ -12,7 +12,7 @@ import { Share2, FileDown, Loader2, Users } from "lucide-react";
 // can't capture backdrop-filter), then shares it via the Web Share API or
 // falls back to a download. The receipt carries the impact line + branding.
 export default function ShareReceipt() {
-  const { product, market, currency, compareMode, customPrice } = useApp();
+  const { product, market, currency, compareMode, customPrice, lastStellarTx } = useApp();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const APP_URL = "https://jejak-trace-flow.base44.app";
@@ -56,6 +56,13 @@ export default function ShareReceipt() {
         <p style="margin:0;font-size:12px;font-weight:700;color:#1B1B3A;line-height:1.45;">${impact}</p>
         <p style="margin:6px 0 0;font-size:11px;color:#1B1B3Acc;line-height:1.4;">${stdImpact}</p>
       </div>
+      ${
+        lastStellarTx
+          ? `<div style="margin-top:10px;padding:9px 12px;border-radius:10px;background:#2FBF7125;border:1px solid #2FBF71;font-size:10px;font-weight:700;color:#1B1B3A;">
+              ⚡ Stellar Testnet Boost: $${lastStellarTx.usdcEquivalent} USDC settled to ${lastStellarTx.coopLabel} · TX ${lastStellarTx.hash.slice(0, 10)}…
+             </div>`
+          : ""
+      }
       <div style="margin-top:12px;padding:10px 12px;border-radius:12px;background:#1B1B3A;display:flex;align-items:center;justify-content:space-between;">
         <span style="font-size:11px;font-weight:700;color:#fff;">Can you beat ${labour.pct.mid}% to the makers?</span>
         <span style="font-size:11px;font-weight:800;color:#FFC24B;">${APP_URL.replace("https://", "")}</span>

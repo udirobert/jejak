@@ -3,14 +3,15 @@ import { motion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { formatMoney } from "@/lib/money";
 import SupplyFlowPipe from "./SupplyFlowPipe";
+import StellarSettlementBadge from "./StellarSettlementBadge";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
-import { HeartHandshake, Check, RotateCcw } from "lucide-react";
+import { HeartHandshake, Check, RotateCcw, Zap } from "lucide-react";
 
 // Concise, visual-first "Flow & Boost" card:
 // 1. Animated SVG SupplyFlowPipe showing where money gets stuck vs reaches makers
-// 2. One-tap +£1 Round-up or Bridge-the-Gap action
+// 2. One-tap +£1 Round-up or Bridge-the-Gap action settled live on Stellar Testnet
 export default function MakerBridgeCard({
   price,
   currency,
@@ -18,21 +19,33 @@ export default function MakerBridgeCard({
   labourAmount,
   transparentLabourAmount,
 }) {
-  const { makerTip, setMakerTip, addToWorkerFund } = useApp();
+  const {
+    makerTip,
+    setMakerTip,
+    addToWorkerFund,
+    lastStellarTx,
+    setLastStellarTx,
+    stellarLoading,
+    stellarError,
+    settleStellarPayout,
+  } = useApp();
   const gapAmount = Math.max(1, +(transparentLabourAmount - labourAmount).toFixed(2));
   const unitStep = 1;
 
   const handleTip = (amt) => {
     vibrate([0, 10, 25, 10]);
     coinClink();
-    setMakerTip((prev) => +(prev + amt).toFixed(2));
+    const nextTip = +(makerTip + amt).toFixed(2);
+    setMakerTip(nextTip);
     addToWorkerFund(amt);
     celebrate();
+    settleStellarPayout({ amount: amt });
   };
 
   const resetTip = () => {
     vibrate(6);
     setMakerTip(0);
+    setLastStellarTx(null);
   };
 
   return (
@@ -57,9 +70,14 @@ export default function MakerBridgeCard({
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-jejak-materials text-white">
               <HeartHandshake size={14} />
             </span>
-            <p className="text-xs font-extrabold text-jejak-navy">
-              Bypass intermediaries · boost makers
-            </p>
+            <div>
+              <p className="text-xs font-extrabold text-jejak-navy">
+                Bypass intermediaries · Stellar Direct Boost
+              </p>
+              <p className="flex items-center gap-1 text-[10px] font-semibold text-jejak-navy/65">
+                <Zap size={10} className="text-jejak-labour" /> Instant cross-border USDC/XLM settlement (0.00001 XLM fee)
+              </p>
+            </div>
           </div>
           {makerTip > 0 && (
             <button
@@ -91,6 +109,12 @@ export default function MakerBridgeCard({
             Bridge {formatMoney(gapAmount, currency)} gap
           </motion.button>
         </div>
+
+        <StellarSettlementBadge
+          tx={lastStellarTx}
+          loading={stellarLoading}
+          error={stellarError}
+        />
       </div>
     </div>
   );
