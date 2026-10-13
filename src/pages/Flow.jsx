@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
-import { pageVariants, SPRING } from "@/lib/motion";
 import Home from "./Home";
 import Identifying from "./Identifying";
 import Journey from "./Journey";
@@ -13,12 +12,13 @@ import Onboarding from "@/components/Onboarding";
 // Orchestrates the main demo flow based on the shared screen state.
 export default function Flow() {
   const { screen, setImmersive } = useApp();
-  const Current = {
-    home: Home,
-    identifying: Identifying,
-    journey: Journey,
-    split: MoneySplit,
-  }[screen] || Home;
+  const Current =
+    {
+      home: Home,
+      identifying: Identifying,
+      journey: Journey,
+      split: MoneySplit,
+    }[screen] || Home;
 
   // Tell the layout to hide the tab bar during the immersive trace flow.
   useEffect(() => {
@@ -26,20 +26,22 @@ export default function Flow() {
     return () => setImmersive(false);
   }, [screen, setImmersive]);
 
+  // Scroll to top whenever switching screens in the flow
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }, [screen]);
+
   return (
     <>
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={screen}
-          variants={pageVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={SPRING}
-        >
-          <Current />
-        </motion.div>
-      </AnimatePresence>
+      <motion.div
+        key={screen}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: "easeOut" }}
+        className="w-full"
+      >
+        <Current />
+      </motion.div>
       <DetailDrawer />
       <HowWeEstimateDrawer />
       <Onboarding />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { getRoute, formatMoney } from "@/lib/money";
 import { routeDistance } from "@/lib/metrics";
@@ -193,15 +193,13 @@ export default function Journey() {
           </div>
 
           {/* Animated active stage card with bespoke SVG illustration & Provenance Basis badge */}
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeIdx}
-              initial={{ opacity: 0, x: 18, scale: 0.98 }}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={{ opacity: 0, x: -18, scale: 0.98 }}
-              transition={{ type: "spring", stiffness: 320, damping: 26 }}
-              className="flex items-center gap-3 rounded-2xl frosted-strong border border-white/85 p-3 shadow-md"
-            >
+          <motion.div
+            key={activeIdx}
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex items-center gap-3 rounded-2xl frosted-strong border border-white/85 p-3 shadow-md"
+          >
               <StageIllustration stage={currentStop.stage} index={activeIdx} />
 
               <div className="min-w-0 flex-1">
@@ -236,8 +234,7 @@ export default function Journey() {
                     </p>
                   )}
               </div>
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
         </div>
 
         {/* Step 3: Care / Made-in Label Scan (Provenance Evidence) */}

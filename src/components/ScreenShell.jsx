@@ -14,9 +14,10 @@ export default function ScreenShell({
   header = true,
   maxWidth = 420,
 }) {
-  const { setShowHowTo, startGuidedTour } = useApp();
+  const { setShowHowTo, startGuidedTour, tourStep } = useApp();
   const isMap = variant === "map";
   const isHostBank = variant === "host-bank";
+  const hasTourBanner = tourStep != null;
 
   return (
     <div className="min-h-screen w-full flex justify-center bg-lilac-peach">
@@ -28,7 +29,7 @@ export default function ScreenShell({
             : isHostBank
             ? "safe-bottom bg-[#F5F7FA] text-slate-900"
             : "safe-bottom"
-        }`}
+        } ${hasTourBanner && !isMap ? "pt-36" : ""}`}
         style={{
           maxWidth,
           background:

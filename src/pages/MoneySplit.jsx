@@ -334,8 +334,7 @@ export default function MoneySplit() {
 
         {/* Active Lens Stage (cross-fades instead of stacking everything vertically) */}
         <div className="mt-3">
-          <AnimatePresence mode="wait">
-            {activeLens === "coins" && (
+          {activeLens === "coins" && (
               <motion.div
                 key={`coins-${compareMode}`}
                 initial={{ opacity: 0, y: 6 }}
@@ -424,18 +423,16 @@ export default function MoneySplit() {
               </motion.div>
             )}
 
-            {activeLens === "context" && (
-              <motion.div
-                key="context"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.2 }}
-              >
-                <MetricsCarousel metrics={metrics} />
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {activeLens === "context" && (
+            <motion.div
+              key="context"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <MetricsCarousel metrics={metrics} />
+            </motion.div>
+          )}
         </div>
 
         {/* Social + Stellar On-Chain Estimate Record bar */}
