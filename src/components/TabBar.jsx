@@ -16,14 +16,15 @@ const TABS = [
 
 export default function TabBar() {
   return (
-    <motion.nav
+    <motion.div
       initial={{ y: 120 }}
       animate={{ y: 0 }}
       exit={{ y: 120 }}
       transition={SPRING}
-      className="fixed bottom-0 left-1/2 z-40 w-full max-w-[420px] -translate-x-1/2 frosted-strong border-t border-white/60 safe-bottom"
+      className="fixed bottom-0 inset-x-0 z-40 flex justify-center safe-bottom"
     >
-      <div className="flex items-stretch justify-around px-2 pt-1.5">
+      <nav className="w-full max-w-[420px] frosted-strong border-t border-white/60">
+        <div className="flex items-stretch justify-around px-2 pt-1.5">
         {TABS.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
@@ -53,7 +54,8 @@ export default function TabBar() {
             )}
           </NavLink>
         ))}
-      </div>
-    </motion.nav>
+        </div>
+      </nav>
+    </motion.div>
   );
 }
