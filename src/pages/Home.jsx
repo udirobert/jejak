@@ -1,39 +1,53 @@
 import React, { useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
+import { base44 } from "@/api/base44Client";
 import { DEMO_CHIPS, getProduct } from "@/data";
 import ScreenShell from "@/components/ScreenShell";
 import ShutterButton from "@/components/ShutterButton";
 import ProductPicker from "@/components/ProductPicker";
+import { vibrate } from "@/lib/haptics";
 import { Camera, Sparkles } from "lucide-react";
 
 export default function Home() {
-  const { setPhoto, setProduct, setScreen, setLowConfidence } = useApp();
+  const { setPhoto, setPhotoUrl, setProduct, setScreen, setLowConfidence } = useApp();
   const inputRef = useRef(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const handleFiles = (files) => {
+  const handleFiles = async (files) => {
     const file = files && files[0];
     if (!file) {
       setPickerOpen(true);
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhoto(reader.result);
-      setLowConfidence(false);
-      setScreen("identifying");
-    };
-    reader.onerror = () => setPickerOpen(true);
-    reader.readAsDataURL(file);
+    vibrate(10);
+    // Show the photo instantly via a local object URL.
+    setPhoto(URL.createObjectURL(file));
+    setLowConfidence(false);
+    setScreen("identifying");
+    // Upload privately, then mint a short-lived signed URL the vision model
+    // can fetch for one-time recognition (stored privately — not a public URL).
+    try {
+      setUploading(true);
+      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
+      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
+      setPhotoUrl(signed_url);
+    } catch {
+      setPhotoUrl(""); // empty string signals "upload failed" to Identifying
+    } finally {
+      setUploading(false);
+    }
   };
 
   const onPickFile = () => inputRef.current?.click();
 
   const pickChip = (id) => {
+    vibrate(8);
     setProduct(getProduct(id));
     setLowConfidence(false);
     setPhoto(null);
+    setPhotoUrl(null);
     setScreen("identifying");
   };
 

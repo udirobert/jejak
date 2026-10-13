@@ -7,6 +7,7 @@ import Journey from "./Journey";
 import MoneySplit from "./MoneySplit";
 import DetailDrawer from "@/components/DetailDrawer";
 import HowWeEstimateDrawer from "@/components/HowWeEstimateDrawer";
+import Onboarding from "@/components/Onboarding";
 
 // Orchestrates the main demo flow based on the shared screen state.
 export default function Flow() {
@@ -33,6 +34,7 @@ export default function Flow() {
       </AnimatePresence>
       <DetailDrawer />
       <HowWeEstimateDrawer />
+      <Onboarding />
     </>
   );
 }

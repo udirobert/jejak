@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
-import { computeSplit, formatMoney, labourPerUnit, sumMid } from "@/lib/money";
+import { computeSplit, formatMoney, labourPerUnit } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
 import CoinDrop from "@/components/CoinDrop";
 import StackedBar from "@/components/StackedBar";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
-import { ArrowLeft, Repeat2, Info } from "lucide-react";
+import ShareReceipt from "@/components/ShareReceipt";
+import { celebrate } from "@/lib/celebrate";
+import { vibrate, coinClink } from "@/lib/haptics";
+import { ArrowLeft, Info } from "lucide-react";
 
 export default function MoneySplit() {
   const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory } = useApp();
@@ -18,8 +21,25 @@ export default function MoneySplit() {
     compareMode ? product.transparentAlternative.split : product.split,
     currency
   );
-  const intermediaries = compareMode ? 2 : 4;
   const routeLen = (product.route?.length || 0) + 1;
+
+  // Personal impact line — emotional, not just a chart.
+  const stdLabourAmt = computeSplit(product, market, "split").find((s) => s.key === "labour").amount;
+  const impactLine = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
+  const stdImpact = `A transparent brand would send about ${formatMoney(stdLabourAmt, currency)} their way.`;
+
+  // Celebrate the first trace of this product.
+  const celebrated = useRef(false);
+  useEffect(() => {
+    if (celebrated.current) return;
+    celebrated.current = true;
+    vibrate([0, 12, 30, 12]);
+    coinClink();
+    if (!reduce) {
+      const t = setTimeout(celebrate, 350);
+      return () => clearTimeout(t);
+    }
+  }, [reduce]);
 
   return (
     <ScreenShell variant="soft">
@@ -96,6 +116,18 @@ export default function MoneySplit() {
           </p>
         </div>
 
+        {/* Personal impact line */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="mt-3 rounded-2xl p-4"
+          style={{ background: "linear-gradient(135deg,#FF8A6522,#FF3D8122)", border: "1px solid #FF8A6555" }}
+        >
+          <p className="text-sm font-extrabold leading-snug text-jejak-navy">{impactLine}</p>
+          <p className="mt-1 text-xs font-semibold text-jejak-navy/65">{stdImpact}</p>
+        </motion.div>
+
         {/* Compare summary */}
         <AnimatePresence>
           {compareMode && (
@@ -142,6 +174,8 @@ export default function MoneySplit() {
             </button>
           ))}
         </div>
+
+        <ShareReceipt />
       </div>
     </ScreenShell>
   );

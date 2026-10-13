@@ -8,7 +8,8 @@ export function AppProvider({ children }) {
   const [currency, setCurrency] = useState("GBP"); // 'GBP' | 'SGD'
   const [market, setMarket] = useState("GB"); // 'GB' | 'SG'
   const [product, setProduct] = useState(hoodie);
-  const [photo, setPhoto] = useState(null); // data URL of the captured/selected image
+  const [photo, setPhoto] = useState(null); // display URL (object URL or data URL)
+  const [photoUrl, setPhotoUrl] = useState(null); // uploaded public URL used for recognition
   const [screen, setScreen] = useState("home"); // home | identifying | journey | split
   const [compareMode, setCompareMode] = useState(false);
   const [detailCategory, setDetailCategory] = useState(null); // category key
@@ -23,6 +24,7 @@ export function AppProvider({ children }) {
   const reset = useCallback(() => {
     setScreen("home");
     setPhoto(null);
+    setPhotoUrl(null);
     setCompareMode(false);
     setDetailCategory(null);
     setShowHowTo(false);
@@ -34,6 +36,7 @@ export function AppProvider({ children }) {
     market,
     product,
     photo,
+    photoUrl,
     screen,
     compareMode,
     detailCategory,
@@ -43,6 +46,7 @@ export function AppProvider({ children }) {
     setMarket,
     setProduct,
     setPhoto,
+    setPhotoUrl,
     setScreen,
     setCompareMode,
     setDetailCategory,

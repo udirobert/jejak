@@ -1,0 +1,18 @@
+{
+  "name": "Jejak — Trace what you pay for",
+  "short_name": "Jejak",
+  "description": "A photo-first receipt for the physical supply chain. Scan a product, see its journey and where your money goes.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EDE7FF",
+  "theme_color": "#FF8A65",
+  "icons": [
+    {
+      "src": "/jejak-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -5,10 +5,14 @@ import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
 
 // Product picker — the graceful fallback for any camera or AI failure.
-export default function ProductPicker({ open, onClose, message }) {
+export default function ProductPicker({ open, onClose, message, onPick }) {
   const { setProduct, setScreen, setLowConfidence } = useApp();
 
   const pick = (id) => {
+    if (onPick) {
+      onPick(id);
+      return;
+    }
     setProduct(getProduct(id));
     setLowConfidence(true);
     onClose?.();

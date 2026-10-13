@@ -11,7 +11,7 @@ export default function ScreenShell({ children, variant = "soft", header = true,
   return (
     <div className="min-h-screen w-full flex justify-center bg-lilac-peach">
       <div
-        className="relative w-full min-h-screen flex flex-col"
+        className="relative w-full min-h-screen flex flex-col safe-bottom"
         style={{ maxWidth, background: variant === "sunrise" ? "linear-gradient(160deg,#FF8A65 0%,#FFC24B 45%,#FF3D81 120%)" : undefined }}
       >
         {header && (

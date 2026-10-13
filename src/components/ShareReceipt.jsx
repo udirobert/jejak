@@ -1,0 +1,105 @@
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useApp } from "@/lib/AppContext";
+import { computeSplit, formatMoney, getRoute } from "@/lib/money";
+import { vibrate } from "@/lib/haptics";
+import html2canvas from "html2canvas";
+import Logo from "./Logo";
+import { Share2, Download, Loader2 } from "lucide-react";
+
+// Builds a solid, shareable receipt image (no frosted glass — html2canvas
+// can't capture backdrop-filter), then shares it via the Web Share API or
+// falls back to a download. The receipt carries the impact line + branding.
+export default function ShareReceipt() {
+  const { product, market, currency, compareMode } = useApp();
+  const [busy, setBusy] = useState(false);
+
+  const price = product.markets[market].price;
+  const split = computeSplit(product, market, compareMode ? "transparent" : "split");
+  const route = getRoute(product, market);
+  const labour = split.find((s) => s.key === "labour");
+  const stdSplit = computeSplit(product, market, "split");
+  const stdLabour = stdSplit.find((s) => s.key === "labour").amount;
+  const curSymbol = currency === "SGD" ? "S$" : "£";
+  const impact = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
+  const stdImpact = `A transparent brand would send about ${formatMoney(stdLabour, currency)} their way.`;
+
+  const buildNode = () => {
+    const wrap = document.createElement("div");
+    wrap.style.cssText =
+      "width:360px;padding:28px 26px;background:linear-gradient(160deg,#FF8A65 0%,#FFC24B 50%,#FF3D81 120%);border-radius:24px;font-family:'Plus Jakarta Sans',Arial,sans-serif;color:#1B1B3A;position:fixed;left:-9999px;top:0;";
+    wrap.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:radial-gradient(circle at 38% 32%,#FFF3C4,#FFC24B 55%,#E8921A);border:2px solid #B5750E;"></div>
+        <span style="font-weight:800;font-size:16px;color:#fff;">Jejak</span>
+        <span style="margin-left:auto;font-size:10px;font-weight:700;color:#ffffffcc;text-transform:uppercase;letter-spacing:0.05em;">Estimated</span>
+      </div>
+      <p style="margin:14px 0 2px;font-weight:700;font-size:13px;color:#ffffffdd;">${product.name} · ${product.markets[market].retailer}</p>
+      <p style="margin:0 0 14px;font-weight:800;font-size:30px;color:#fff;">${formatMoney(price, currency)}</p>
+      <div style="display:flex;height:34px;border-radius:10px;overflow:hidden;background:#ffffff55;">
+        ${split.map((c) => `<div style="width:${c.pct.mid}%;background:${c.color};"></div>`).join("")}
+      </div>
+      <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:6px 14px;">
+        ${split.map((c) => `
+          <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#1B1B3A;">
+            <span style="width:8px;height:8px;border-radius:50%;background:${c.color};display:inline-block;"></span>
+            <span style="font-weight:600;">${c.label}</span>
+            <span style="margin-left:auto;font-weight:800;">${formatMoney(c.amount, currency)}</span>
+          </div>`).join("")}
+      </div>
+      <div style="margin-top:14px;padding:12px;border-radius:12px;background:#ffffffcc;">
+        <p style="margin:0;font-size:12px;font-weight:700;color:#1B1B3A;line-height:1.45;">${impact}</p>
+        <p style="margin:6px 0 0;font-size:11px;color:#1B1B3Acc;line-height:1.4;">${stdImpact}</p>
+      </div>
+      <p style="margin:14px 0 0;font-size:10px;color:#ffffffcc;text-align:center;">${route.length} stops traced · Ranges, not facts · jejak.app</p>
+    `;
+    document.body.appendChild(wrap);
+    return wrap;
+  };
+
+  const handleShare = async () => {
+    if (busy) return;
+    setBusy(true);
+    vibrate(8);
+    const node = buildNode();
+    try {
+      const canvas = await html2canvas(node, { scale: 2, backgroundColor: null, logging: false });
+      const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+      const file = new File([blob], "jejak-receipt.png", { type: "image/png" });
+      const shareData = {
+        title: "Jejak — trace what you pay for",
+        text: `${impact} ${stdImpact}`,
+        files: [file],
+      };
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share(shareData);
+      } else if (navigator.share) {
+        await navigator.share({ title: shareData.title, text: shareData.text });
+      } else {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "jejak-receipt.png";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    } catch (e) {
+      // user cancelled or unsupported — silent
+    } finally {
+      node.remove();
+      setBusy(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      disabled={busy}
+      className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3 text-sm font-extrabold text-white no-tap disabled:opacity-60"
+    >
+      {busy ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+      {busy ? "Preparing…" : "Share your receipt"}
+    </button>
+  );
+}

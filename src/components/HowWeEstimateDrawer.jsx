@@ -46,8 +46,8 @@ export default function HowWeEstimateDrawer() {
                 stage types only — never a facility as fact.
               </p>
               <p>
-                <strong>Your photo isn't saved.</strong> It is processed only to identify the product and is never stored
-                or sent anywhere except the one-time recognition call.
+                <strong>Your photo isn't stored on your profile.</strong> It's uploaded privately and used only for the
+                one-time recognition call, then discarded — we never keep it.
               </p>
               <p className="text-jejak-navy/60 italic">
                 We're not telling you what to buy — we're making the payment visible.
