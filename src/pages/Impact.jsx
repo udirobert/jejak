@@ -102,7 +102,7 @@ export default function Impact() {
     (async () => {
       try {
         const [realCount, telRes] = await Promise.all([
-          base44.entities.Scan.count({ is_sample: { $ne: true } }).catch(() => 0),
+          base44.entities.Scan.count({ sample_entry: { $ne: true }, is_sample: { $ne: true } }).catch(() => 0),
           base44.functions.invoke("stellarMakerPayout", { action: "telemetry" }).catch(() => null),
         ]);
         if (cancelled) return;

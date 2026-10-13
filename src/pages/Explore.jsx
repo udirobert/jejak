@@ -70,7 +70,7 @@ export default function Explore() {
       const o = s.origin || "Bangladesh";
       const prev = map.get(o) || { origin: o, total: 0, real: 0 };
       prev.total += 1;
-      if (!s.is_sample) prev.real += 1;
+      if (!s.sample_entry && !s.is_sample) prev.real += 1;
       map.set(o, prev);
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);

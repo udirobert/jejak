@@ -49,11 +49,12 @@ export default function TodaySnapPulse({
         const [realN, sampleN] = await Promise.all([
           base44.entities.Scan.count({
             product_id: product.id,
+            sample_entry: { $ne: true },
             is_sample: { $ne: true },
           }),
           base44.entities.Scan.count({
             product_id: product.id,
-            is_sample: true,
+            sample_entry: true,
           }),
         ]);
         if (!cancelled) {

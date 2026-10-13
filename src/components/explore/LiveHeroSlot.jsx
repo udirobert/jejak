@@ -5,6 +5,7 @@ import { Image as ContentImage } from "@/components/ui/image";
 import {
   FLAGS,
   PRODUCT_SURFACES,
+  isSampleScan,
   materialOriginLine,
   hasOwnAnchoredRecord,
   txExplorerUrl,
@@ -58,7 +59,7 @@ export default function LiveHeroSlot({
           {paused ? " · paused" : ""}
         </span>
         <div className="flex items-center gap-2">
-          {scan.is_sample && (
+          {isSampleScan(scan) && (
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-jejak-navy/55">
               Sample
             </span>

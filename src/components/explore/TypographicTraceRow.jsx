@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ExternalLink } from "lucide-react";
 import {
   FLAGS,
+  isSampleScan,
   materialOriginLine,
   hasOwnAnchoredRecord,
   txExplorerUrl,
@@ -135,7 +136,7 @@ export default function TypographicTraceRow({
 
         {/* Status tags: Sample & Anchored (links to its own transaction) */}
         <div className="flex items-center gap-2 shrink-0">
-          {activeScan.is_sample && (
+          {isSampleScan(activeScan) && (
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-jejak-navy/50">
               Sample
             </span>

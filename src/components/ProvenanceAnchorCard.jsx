@@ -146,36 +146,24 @@ export default function ProvenanceAnchorCard({ compact = false }) {
         canonicalJson,
       });
       const data = res?.data || {};
-      const txHash =
-        data.hash ||
-        "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
-      const finalHashHex = data.recordHashHex || recordHashHex;
-      setProvenanceRecord({
-        record,
-        canonicalJson,
-        recordHashHex: finalHashHex,
-        txHash,
-        ledger: data.ledger || 5180822,
-        explorerUrl:
-          data.explorerUrl ||
-          `https://stellar.expert/explorer/testnet/tx/${txHash}`,
-        cachedFallback: Boolean(data.cachedFallback),
-        fallbackNotice: data.fallbackNotice || null,
-      });
+      if (data.hash && !data.cachedFallback) {
+        const txHash = data.hash;
+        const finalHashHex = data.recordHashHex || recordHashHex;
+        setProvenanceRecord({
+          record,
+          canonicalJson,
+          recordHashHex: finalHashHex,
+          txHash,
+          ledger: data.ledger,
+          explorerUrl:
+            data.explorerUrl ||
+            `https://stellar.expert/explorer/testnet/tx/${txHash}`,
+          cachedFallback: false,
+          fallbackNotice: null,
+        });
+      }
     } catch {
-      const fallbackHash =
-        "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
-      setProvenanceRecord({
-        record,
-        canonicalJson,
-        recordHashHex,
-        txHash: fallbackHash,
-        ledger: 5180822,
-        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${fallbackHash}`,
-        cachedFallback: true,
-        fallbackNotice:
-          "Testnet is slow right now — here's a recent verified testnet transaction.",
-      });
+      // Do not assign a shared fallback transaction to a trace that has no anchor of its own
     } finally {
       setAnchoring(false);
     }

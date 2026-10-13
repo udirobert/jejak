@@ -32,6 +32,12 @@
     "confidence": {
       "type": "string"
     },
+    "basis": {
+      "type": "string"
+    },
+    "canonical_json": {
+      "type": "string"
+    },
     "stellar_tx_hash": {
       "type": "string"
     },
@@ -49,6 +55,10 @@
     },
     "label_materials": {
       "type": "string"
+    },
+    "sample_entry": {
+      "type": "boolean",
+      "default": false
     },
     "is_sample": {
       "type": "boolean",

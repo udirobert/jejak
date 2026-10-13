@@ -105,7 +105,15 @@ export default function MoneySplit() {
         provenanceRecord && !provenanceRecord.cachedFallback
           ? Number(provenanceRecord.ledger) || 0
           : 0;
+      let canonical_json =
+        provenanceRecord && !provenanceRecord.cachedFallback
+          ? provenanceRecord.canonicalJson || ""
+          : "";
       const effectiveOrigin = labelEvidence?.country_of_manufacture || originCountry;
+      const basis =
+        labelEvidence?.country_of_manufacture || labelEvidence?.fibre_composition
+          ? "Read from label"
+          : "Estimated";
 
       if (!stellar_tx_hash || !record_sha256) {
         try {
@@ -115,12 +123,12 @@ export default function MoneySplit() {
             labelEvidence,
             timestampISO: new Date().toISOString(),
           });
-          const canonicalJson = JSON.stringify(record);
+          canonical_json = JSON.stringify(record);
           const anchorRes = await base44.functions.invoke("stellarMakerPayout", {
             action: "anchor_provenance",
             productId: product.id,
             origin: effectiveOrigin,
-            canonicalJson,
+            canonicalJson: canonical_json,
           });
           if (anchorRes?.data?.ok && !anchorRes.data.cachedFallback && anchorRes.data.hash) {
             stellar_tx_hash = anchorRes.data.hash;
@@ -144,13 +152,15 @@ export default function MoneySplit() {
         market,
         photo_url,
         confidence: labour.confidence,
+        basis,
+        canonical_json,
         stellar_tx_hash,
         stellar_ledger,
         stellar_memo,
         record_sha256,
         label_country: labelEvidence?.country_of_manufacture || "",
         label_materials: labelEvidence?.fibre_composition || "",
-        is_sample: false,
+        sample_entry: false,
       });
       if (stellar_tx_hash) {
         setAnchoredEstimate({
