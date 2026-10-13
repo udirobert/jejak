@@ -11,7 +11,7 @@ import { vibrate } from "@/lib/haptics";
 const worldGeo = feature(worldTopo, worldTopo.objects.countries);
 
 const W = 420;
-const H = 560;
+const H = 780;
 const CLUSTER_RADIUS_PX = 36;
 
 const CATEGORY_ACCENTS = [
@@ -26,6 +26,7 @@ export default function ExploreFullBleedMap({
   originChips,
   originFilter,
   onSelectOrigin,
+  onEmptyMapTap,
   onOpenInfo,
   arcOrigin,
   reduce,
@@ -54,13 +55,13 @@ export default function ExploreFullBleedMap({
     [originChips]
   );
 
-  // Center the projection on the Afro-Eurasian origin belt where traces cluster
+  // Center the projection on the Afro-Eurasian origin belt so the map is the hero on load
   const projection = useMemo(
     () =>
       geoNaturalEarth1()
         .rotate([-65, 0])
-        .scale(138)
-        .translate([W * 0.46, H * 0.42]),
+        .scale(152)
+        .translate([W * 0.46, H * 0.43]),
     []
   );
 
@@ -142,7 +143,7 @@ export default function ExploreFullBleedMap({
     return groups;
   }, [rawPins]);
 
-  // Compute animated arrival arc from origin dot into the bottom sheet
+  // Compute animated arrival arc from origin dot into the bottom peek/sheet
   const activeArc = useMemo(() => {
     if (!arcOrigin) return null;
     const pin = rawPins.find((p) => p.origin === arcOrigin);
@@ -150,7 +151,7 @@ export default function ExploreFullBleedMap({
     const startX = pin.x;
     const startY = pin.y;
     const endX = W * 0.5;
-    const endY = H * 0.72;
+    const endY = H * 0.82;
     const ctrlX = (startX + endX) / 2 + (startX < endX ? -35 : 35);
     const ctrlY = Math.min(startY, endY) - 68;
     return {
@@ -162,24 +163,27 @@ export default function ExploreFullBleedMap({
     };
   }, [arcOrigin, rawPins]);
 
+  const handleBackgroundClick = () => {
+    if (expandedClusterId) setExpandedClusterId(null);
+    if (onEmptyMapTap) onEmptyMapTap();
+  };
+
   return (
-    <div className="absolute inset-0 overflow-hidden select-none">
+    <div className="absolute inset-0 h-full w-full overflow-hidden select-none">
       {/* Full-bleed rich indigo/teal ocean SVG map */}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid slice"
-        className="h-full w-full"
+        className="h-full w-full block"
         aria-label="Interactive world map of product origins"
-        onClick={() => {
-          if (expandedClusterId) setExpandedClusterId(null);
-        }}
+        onClick={handleBackgroundClick}
       >
         <defs>
-          {/* Deep, rich indigo/teal ocean gradient (no pure black) */}
-          <radialGradient id="richOceanBg" cx="48%" cy="36%" r="78%">
+          {/* Deep, rich indigo/teal ocean gradient (fills full height behind sheet & tab bar) */}
+          <radialGradient id="richOceanBg" cx="48%" cy="40%" r="78%">
             <stop offset="0%" stopColor="#1B4D7E" />
-            <stop offset="52%" stopColor="#153963" />
-            <stop offset="100%" stopColor="#162A4C" />
+            <stop offset="55%" stopColor="#153963" />
+            <stop offset="100%" stopColor="#162B4E" />
           </radialGradient>
 
           {/* Warm sunrise glow for traced origin land */}
@@ -244,7 +248,7 @@ export default function ExploreFullBleedMap({
               if (!c.isTraced) return;
               e.stopPropagation();
               vibrate(5);
-              onSelectOrigin(originFilter === c.name ? "All" : c.name);
+              onSelectOrigin(c.name);
             }}
             style={{ cursor: c.isTraced ? "pointer" : "default" }}
           />
@@ -364,7 +368,6 @@ export default function ExploreFullBleedMap({
                   pin.active || hoveredOrigin === pin.origin;
                 const pillW = Math.max(76, pin.origin.length * 6.4 + 34);
                 const halfW = pillW / 2;
-                // Clamp horizontal label offset so edge pins (e.g. Ethiopia, Indonesia) are never clipped
                 const clampedX = Math.max(
                   halfW + 10,
                   Math.min(W - halfW - 10, px)
@@ -392,9 +395,7 @@ export default function ExploreFullBleedMap({
                       onClick={(e) => {
                         e.stopPropagation();
                         vibrate(6);
-                        onSelectOrigin(
-                          originFilter === pin.origin ? "All" : pin.origin
-                        );
+                        onSelectOrigin(pin.origin);
                       }}
                       style={{ cursor: "pointer" }}
                     >
@@ -485,7 +486,7 @@ export default function ExploreFullBleedMap({
         })}
       </svg>
 
-      {/* Top Overlay Bar: Map dots ARE the filter — only a compact "All" reset chip + Privacy ⓘ */}
+      {/* Top Overlay Bar: Map dots ARE the filter — compact "All" reset chip + Privacy ⓘ */}
       <div className="pointer-events-none absolute inset-x-0 top-16 z-20 px-5">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5">

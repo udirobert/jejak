@@ -7,7 +7,7 @@ import { HelpCircle } from "lucide-react";
 
 // Shared shell: phone-width column, lilac-to-peach background, header with
 // logo, currency switch and a "how we estimate" link.
-// For variant="map", the map flows full-bleed behind the transparent header with no dark band.
+// For variant="map", the map fills 100% of the column height behind the header, sheet, and tab bar.
 export default function ScreenShell({
   children,
   variant = "soft",
@@ -22,12 +22,12 @@ export default function ScreenShell({
     <div className="min-h-screen w-full flex justify-center bg-lilac-peach">
       <StageSidebars />
       <div
-        className={`relative w-full min-h-screen flex flex-col safe-bottom xl:shadow-2xl ${
+        className={`relative w-full min-h-screen flex flex-col xl:shadow-2xl ${
           isMap
-            ? "overflow-hidden bg-[#143356]"
+            ? "h-[100dvh] overflow-hidden bg-[#153963]"
             : isHostBank
-            ? "bg-[#F5F7FA] text-slate-900"
-            : ""
+            ? "safe-bottom bg-[#F5F7FA] text-slate-900"
+            : "safe-bottom"
         }`}
         style={{
           maxWidth,
@@ -35,7 +35,7 @@ export default function ScreenShell({
             variant === "sunrise"
               ? "linear-gradient(160deg,#FF8A65 0%,#FFC24B 45%,#FF3D81 120%)"
               : isMap
-              ? "#143356"
+              ? "#153963"
               : isHostBank
               ? "#F5F7FA"
               : undefined,
@@ -82,7 +82,7 @@ export default function ScreenShell({
         <main
           className={`flex-1 flex flex-col ${
             isMap
-              ? "h-screen"
+              ? "relative h-full w-full overflow-hidden"
               : "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
           }`}
         >

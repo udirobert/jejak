@@ -9,7 +9,9 @@ import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
 import { Camera, X, Sparkles } from "lucide-react";
 import ExploreFullBleedMap from "@/components/explore/ExploreFullBleedMap";
-import ExploreBottomSheet from "@/components/explore/ExploreBottomSheet";
+import ExploreBottomSheet, {
+  SNAP_HEIGHTS,
+} from "@/components/explore/ExploreBottomSheet";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
 import { isSampleScan } from "@/components/explore/exploreUtils";
 
@@ -18,7 +20,8 @@ export default function Explore() {
   const [originFilter, setOriginFilter] = useState("All");
   const [selectedScan, setSelectedScan] = useState(null);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
-  const [snap, setSnap] = useState("half");
+  // Default state is collapsed peek: handle + one line ("N traced products"). Never auto-expand on load.
+  const [snap, setSnap] = useState("peek");
   const [newlyArrivedId, setNewlyArrivedId] = useState(null);
   const [arcOrigin, setArcOrigin] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +57,7 @@ export default function Explore() {
     return () => clearTimeout(t);
   }, [arcOrigin]);
 
-  // Live subscription: when a new real trace arrives, animate an arc from its origin dot into the sheet
+  // Live subscription: when a new real trace arrives, pulse the peek line and animate an arc from its origin dot (never auto-expand)
   useEffect(() => {
     const unsub = base44.entities.Scan.subscribe((event) => {
       if (event.type !== "create") return;
@@ -117,11 +120,22 @@ export default function Explore() {
     return PRODUCTS.filter((p) => !tracedIds.has(p.id));
   }, [scans, originFilter]);
 
+  // Tapping a dot opens the sheet to half height, filtered to that origin.
   const handleSelectOrigin = (origin) => {
+    if (origin === "All") {
+      setOriginFilter("All");
+      return;
+    }
     setOriginFilter(origin);
-    if (origin !== "All") {
-      setArcOrigin(origin);
-      if (snap === "peek") setSnap("half");
+    setArcOrigin(origin);
+    setSnap("half");
+  };
+
+  // Tapping empty map collapses the sheet to peek
+  const handleEmptyMapTap = () => {
+    if (snap !== "peek") {
+      vibrate(4);
+      setSnap("peek");
     }
   };
 
@@ -141,36 +155,48 @@ export default function Explore() {
     navigate("/");
   };
 
+  // Camera button floats right above the current sheet height (above peek on load) and never overlaps sheet content
+  const sheetHeightPx = SNAP_HEIGHTS[snap] || SNAP_HEIGHTS.peek;
+
   return (
     <ScreenShell variant="map">
-      <div className="relative flex-1 w-full overflow-hidden">
+      <div className="relative flex-1 h-full w-full overflow-hidden">
         {/* Full-bleed Rich Indigo/Teal Interactive Map Background */}
         <ExploreFullBleedMap
           originChips={originChips}
           originFilter={originFilter}
           onSelectOrigin={handleSelectOrigin}
+          onEmptyMapTap={handleEmptyMapTap}
           onOpenInfo={() => setShowInfoSheet(true)}
           arcOrigin={arcOrigin}
           reduce={reduce}
         />
 
-        {/* Floating Round Gold Camera Button — bottom-right above the tab bar, never overlaps sheet handle */}
-        <div className="fixed bottom-[82px] left-1/2 z-40 w-full max-w-[420px] -translate-x-1/2 px-4 pointer-events-none">
-          <div className="flex justify-end">
-            <motion.button
-              type="button"
-              whileTap={reduce ? undefined : TAP}
-              onClick={handleTraceYours}
-              aria-label="Trace a product with camera"
-              title="Trace yours"
-              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-jejak-gold text-jejak-navy shadow-[0_8px_24px_rgba(255,194,75,0.45)] border-2 border-white/95 hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy"
-            >
-              <Camera size={20} strokeWidth={2.4} />
-            </motion.button>
-          </div>
-        </div>
+        {/* Floating Round Gold Camera Button — anchored inside phone column right above the sheet */}
+        <motion.div
+          animate={{
+            bottom: `calc(4.5rem + env(safe-area-inset-bottom, 0px) + ${sheetHeightPx + 12}px)`,
+          }}
+          transition={
+            reduce
+              ? { duration: 0 }
+              : { type: "spring", stiffness: 360, damping: 34 }
+          }
+          className="absolute right-4 z-30 pointer-events-none"
+        >
+          <motion.button
+            type="button"
+            whileTap={reduce ? undefined : TAP}
+            onClick={handleTraceYours}
+            aria-label="Trace a product with camera"
+            title="Trace yours"
+            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-jejak-gold text-jejak-navy shadow-[0_8px_24px_rgba(255,194,75,0.45)] border-2 border-white/95 hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <Camera size={20} strokeWidth={2.4} />
+          </motion.button>
+        </motion.div>
 
-        {/* Three-Snap-Point Draggable Bottom Sheet (peek | half | full) */}
+        {/* Three-Snap-Point Draggable Bottom Sheet (peek | half | full), constrained to phone column */}
         <ExploreBottomSheet
           snap={snap}
           setSnap={setSnap}
