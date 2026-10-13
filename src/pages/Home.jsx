@@ -7,11 +7,12 @@ import ScreenShell from "@/components/ScreenShell";
 import ShutterButton from "@/components/ShutterButton";
 import ProductPicker from "@/components/ProductPicker";
 import { vibrate } from "@/lib/haptics";
-import { Camera, Sparkles } from "lucide-react";
+import { Camera, Image as ImageIcon, Sparkles } from "lucide-react";
 
 export default function Home() {
   const { setPhoto, setPhotoUrl, setProduct, setScreen, setLowConfidence } = useApp();
-  const inputRef = useRef(null);
+  const cameraRef = useRef(null);
+  const libraryRef = useRef(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
 
@@ -40,7 +41,8 @@ export default function Home() {
     }
   };
 
-  const onPickFile = () => inputRef.current?.click();
+  const onPickCamera = () => cameraRef.current?.click();
+  const onPickLibrary = () => libraryRef.current?.click();
 
   const pickChip = (id) => {
     vibrate(8);
@@ -54,10 +56,17 @@ export default function Home() {
   return (
     <ScreenShell variant="sunrise">
       <input
-        ref={inputRef}
+        ref={cameraRef}
         type="file"
         accept="image/*"
         capture="environment"
+        className="hidden"
+        onChange={(e) => handleFiles(e.target.files)}
+      />
+      <input
+        ref={libraryRef}
+        type="file"
+        accept="image/*"
         className="hidden"
         onChange={(e) => handleFiles(e.target.files)}
       />
@@ -76,10 +85,22 @@ export default function Home() {
         </motion.div>
 
         <div className="flex flex-1 flex-col items-center justify-center py-8">
-          <ShutterButton onPick={onPickFile} />
+          <ShutterButton onPick={onPickCamera} />
           <p className="mt-4 flex items-center gap-1.5 text-sm font-semibold text-white/90">
-            <Camera size={15} /> Tap to scan
+            <Camera size={15} /> Take a photo
           </p>
+          <div className="mt-5 flex items-center gap-3 self-stretch px-2">
+            <span className="h-px flex-1 bg-white/30" />
+            <span className="text-xs font-bold uppercase tracking-widest text-white/70">or</span>
+            <span className="h-px flex-1 bg-white/30" />
+          </div>
+          <button
+            type="button"
+            onClick={onPickLibrary}
+            className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl frosted border border-white/70 px-5 py-3.5 text-sm font-extrabold text-jejak-navy no-tap hover:bg-white/90 transition-colors"
+          >
+            <ImageIcon size={18} /> Upload from photos
+          </button>
         </div>
 
         <div className="rounded-3xl frosted-strong p-5">
