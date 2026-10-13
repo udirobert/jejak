@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { Image as ContentImage } from "@/components/ui/image";
 import { useNavigate } from "react-router-dom";
 import { vibrate } from "@/lib/haptics";
+import { TAP } from "@/lib/motion";
 import { RefreshCw, Users, MapPin, Radio, Camera, SlidersHorizontal, X } from "lucide-react";
 
 const LABOUR_FILTERS = [
@@ -147,9 +148,10 @@ export default function Explore() {
             <span className="flex items-center gap-1 rounded-full bg-jejak-materials/15 px-2 py-1 text-[10px] font-bold text-jejak-materials">
               <Radio size={11} className="animate-pulse-soft" /> Live
             </span>
-            <button
+            <motion.button
               type="button"
               onClick={() => { vibrate(6); setShowFilters((s) => !s); }}
+              whileTap={TAP}
               className="relative flex h-10 items-center gap-1.5 rounded-full frosted border border-white/60 px-3 text-xs font-extrabold text-jejak-navy no-tap"
             >
               <SlidersHorizontal size={14} /> Filter
@@ -158,14 +160,15 @@ export default function Explore() {
                   {activeCount}
                 </span>
               )}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               type="button"
               onClick={() => { vibrate(8); navigate("/"); }}
+              whileTap={TAP}
               className="flex h-10 items-center gap-1.5 rounded-full bg-jejak-navy px-3 text-xs font-extrabold text-white no-tap"
             >
               <Camera size={14} /> Trace
-            </button>
+            </motion.button>
             <button
               type="button"
               onClick={load}

@@ -17,6 +17,7 @@ export function AppProvider({ children }) {
   const [showHowTo, setShowHowTo] = useState(false);
   const [lowConfidence, setLowConfidence] = useState(false);
   const [shareToFeed, setShareToFeed] = useState(false); // opt-in community feed (off by default)
+  const [immersive, setImmersive] = useState(false); // hide tab bar during the trace flow
   const [traces, setTraces] = useState(0);
   const [workerTotal, setWorkerTotal] = useState(0);
   const [distanceTotal, setDistanceTotal] = useState(0);
@@ -56,6 +57,8 @@ export function AppProvider({ children }) {
     showHowTo,
     lowConfidence,
     shareToFeed,
+    immersive,
+    setImmersive,
     traces,
     workerTotal,
     distanceTotal,

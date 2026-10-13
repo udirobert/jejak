@@ -11,6 +11,7 @@ import Flow from '@/pages/Flow';
 import Embedded from '@/pages/Embedded';
 import Impact from '@/pages/Impact';
 import Explore from '@/pages/Explore';
+import AppLayout from '@/components/AppLayout';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -41,10 +42,12 @@ const AuthenticatedApp = () => {
     <AppProvider>
       <Routes>
         {/* Add your page Route elements here */}
-        <Route path="/" element={<Flow />} />
-        <Route path="/impact" element={<Impact />} />
-        <Route path="/explore" element={<Explore />} />
-        <Route path="/embedded" element={<Embedded />} />
+        <Route element={<AppLayout />}>
+          <Route path="/" element={<Flow />} />
+          <Route path="/impact" element={<Impact />} />
+          <Route path="/explore" element={<Explore />} />
+          <Route path="/embedded" element={<Embedded />} />
+        </Route>
         <Route path="*" element={<PageNotFound />} />
       </Routes>
     </AppProvider>

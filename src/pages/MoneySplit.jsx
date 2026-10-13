@@ -12,6 +12,7 @@ import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
+import { TAP } from "@/lib/motion";
 import { ArrowLeft, Info, Camera } from "lucide-react";
 
 export default function MoneySplit() {
@@ -101,9 +102,10 @@ export default function MoneySplit() {
         </motion.div>
 
         {/* Compare toggle */}
-        <button
+        <motion.button
           type="button"
           onClick={() => setCompareMode(!compareMode)}
+          whileTap={TAP}
           className="mt-4 flex items-center justify-between rounded-2xl frosted p-4 no-tap"
           aria-pressed={compareMode}
         >
@@ -121,7 +123,7 @@ export default function MoneySplit() {
               transition={{ type: "spring", stiffness: 500, damping: 32 }}
             />
           </span>
-        </button>
+        </motion.button>
 
         <AnimatePresence mode="wait">
           <motion.div
@@ -225,13 +227,14 @@ export default function MoneySplit() {
 
         <ShareReceipt />
 
-        <button
+        <motion.button
           type="button"
           onClick={() => { vibrate(10); reset(); }}
+          whileTap={TAP}
           className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-sunrise py-3.5 text-sm font-extrabold text-white no-tap shadow-lg"
         >
           <Camera size={18} /> Trace another product
-        </button>
+        </motion.button>
       </div>
     </ScreenShell>
   );

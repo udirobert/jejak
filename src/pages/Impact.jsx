@@ -3,10 +3,10 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/lib/AppContext";
 import ScreenShell from "@/components/ScreenShell";
-import TabBar from "@/components/TabBar";
 import Logo from "@/components/Logo";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { formatMoney } from "@/lib/money";
+import { TAP } from "@/lib/motion";
 import { Crosshair, Users, Globe2, HandCoins } from "lucide-react";
 
 // Illustrative community baseline — clearly labelled, not live data.
@@ -130,15 +130,15 @@ export default function Impact() {
           </p>
         </motion.div>
 
-        <button
+        <motion.button
           type="button"
           onClick={startScan}
+          whileTap={TAP}
           className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3.5 text-sm font-extrabold text-white no-tap"
         >
           <Crosshair size={16} /> Scan your next product
-        </button>
+        </motion.button>
       </div>
-      <TabBar />
     </ScreenShell>
   );
 }

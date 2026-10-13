@@ -8,6 +8,7 @@ import ShutterButton from "@/components/ShutterButton";
 import ProductPicker from "@/components/ProductPicker";
 import StreakPill from "@/components/StreakPill";
 import { vibrate } from "@/lib/haptics";
+import { TAP } from "@/lib/motion";
 import { Camera, Image as ImageIcon, Sparkles } from "lucide-react";
 
 export default function Home() {
@@ -98,13 +99,14 @@ export default function Home() {
             <span className="text-xs font-bold uppercase tracking-widest text-white/70">or</span>
             <span className="h-px flex-1 bg-white/30" />
           </div>
-          <button
+          <motion.button
             type="button"
             onClick={onPickLibrary}
+            whileTap={TAP}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl frosted border border-white/70 px-5 py-3.5 text-sm font-extrabold text-jejak-navy no-tap hover:bg-white/90 transition-colors"
           >
             <ImageIcon size={18} /> Upload from photos
-          </button>
+          </motion.button>
         </div>
 
         <div className="rounded-3xl frosted-strong p-5">
@@ -113,14 +115,15 @@ export default function Home() {
           </p>
           <div className="flex flex-wrap gap-2">
             {DEMO_CHIPS.map((c) => (
-              <button
+              <motion.button
                 key={c.id}
                 type="button"
                 onClick={() => pickChip(c.id)}
+                whileTap={TAP}
                 className="flex items-center gap-1.5 rounded-full border border-white/70 bg-white/80 px-3.5 py-2 text-sm font-bold text-jejak-navy no-tap hover:bg-white transition-colors"
               >
                 <span>{c.emoji}</span> {c.label}
-              </button>
+              </motion.button>
             ))}
           </div>
           <button

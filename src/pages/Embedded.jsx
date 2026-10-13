@@ -7,7 +7,6 @@ import Logo from "@/components/Logo";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { ArrowUpRight, ArrowDownRight, ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import TabBar from "@/components/TabBar";
 import { vibrate } from "@/lib/haptics";
 
 // Concept screen: a generic mock banking-app feed. No real brand logos.
@@ -94,7 +93,6 @@ export default function Embedded() {
           </motion.div>
         )}
       </AnimatePresence>
-      <TabBar />
     </div>
   );
 }
