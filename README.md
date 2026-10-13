@@ -75,7 +75,7 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
 ## How to Run Locally
 
 ```bash
-npm install
+npm install                  # also installs git hooks (husky): pre-commit runs lint-staged + secretlint
 base44 dev                   # Recommended: runs the Base44 backend + frontend together
 # or, frontend only against a hosted Base44 app:
 cp .env.example .env         # fill in VITE_BASE44_APP_ID / VITE_BASE44_APP_BASE_URL
