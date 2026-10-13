@@ -37,6 +37,19 @@
     },
     "stellar_memo": {
       "type": "string"
+    },
+    "record_sha256": {
+      "type": "string"
+    },
+    "label_country": {
+      "type": "string"
+    },
+    "label_materials": {
+      "type": "string"
+    },
+    "is_sample": {
+      "type": "boolean",
+      "default": false
     }
   },
   "required": [

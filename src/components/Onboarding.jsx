@@ -9,21 +9,19 @@ import { ArrowRight } from "lucide-react";
 // (a single UI flag in localStorage — no product data is persisted).
 const SLIDES = [
   {
-    title: "You deserve a receipt for everything you buy.",
-    body: "Every product has a hidden journey. Jejak makes the payment visible.",
-    emoji: "🧾",
-  },
-  {
-    title: "Scan a product. See where it came from.",
-    body: "Photograph an item and we trace its likely route across the world.",
+    title: "Know the story behind what you buy.",
+    body: "See where your clothes, coffee and gear likely came from — and what evidence backs each stage.",
     emoji: "🌍",
   },
   {
-    title: "See where every penny goes.",
-    body: "Watch your money split into materials, labour, freight, brand and retail.",
+    title: "Scan the item and its care label.",
+    body: "Combine AI route estimates with 'Made in' & fibre facts read directly from the label, then anchor the SHA-256 record on Stellar Testnet.",
+    emoji: "🏷️",
+  },
+  {
+    title: "Follow the money.",
+    body: "Explore the second layer: how your payment splits across materials, labour, freight, brand and retail.",
     emoji: "🪙",
-    stat: "65% of shoppers would switch to brands that reveal product origins.",
-    source: "Source: ESW",
   },
 ];
 

@@ -4,9 +4,9 @@ import { Camera, Globe2, Coins, Play } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 
 const STEPS = [
-  { num: "1", label: "Snap item", sub: "Photo or sample", icon: Camera, color: "#FF7A1A" },
-  { num: "2", label: "3D Route", sub: "Factory stops", icon: Globe2, color: "#2D5BFF" },
-  { num: "3", label: "Cost Split", sub: "Maker's cut", icon: Coins, color: "#2FBF71" },
+  { num: "1", label: "Scan & label", sub: "Item + care tag", icon: Camera, color: "#FF7A1A" },
+  { num: "2", label: "Provenance", sub: "Route + Stellar hash", icon: Globe2, color: "#2D5BFF" },
+  { num: "3", label: "Follow money", sub: "5-way cost split", icon: Coins, color: "#2FBF71" },
 ];
 
 // Compact 1-2-3 visual strip on the Home screen that teaches the entire

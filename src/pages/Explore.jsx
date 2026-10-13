@@ -76,12 +76,17 @@ function ScanCard({ scan, todayCount, onOpen }) {
               </span>
             </div>
           )}
+          {scan.is_sample && (
+            <span className="absolute left-2 top-2 rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-jejak-navy shadow-sm">
+              Sample
+            </span>
+          )}
           <span className="absolute right-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/70">
             {timeAgo(scan.created_date)}
           </span>
-          {todayCount > 0 && (
+          {todayCount >= 2 && (
             <span className="absolute left-2 bottom-2 rounded-full bg-jejak-navy/85 px-2 py-0.5 text-[9px] font-bold text-white">
-              {todayCount} snapped today
+              {todayCount} traced today
             </span>
           )}
         </div>
@@ -92,12 +97,17 @@ function ScanCard({ scan, todayCount, onOpen }) {
           </div>
           <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-jejak-navy/60">
             <MapPin size={10} /> {scan.origin}
+            {scan.label_country && (
+              <span className="rounded bg-jejak-materials/20 px-1 py-0.2 text-[9px] font-extrabold text-jejak-materials">
+                Label read
+              </span>
+            )}
           </div>
           <div className="mt-1.5 flex items-end justify-between">
             <span className="text-lg font-extrabold text-jejak-labour">{scan.labour_pct}%</span>
             <span className="text-xs font-bold text-jejak-navy">{formatMoney(scan.price, scan.currency)}</span>
           </div>
-          <p className="text-[10px] font-semibold text-jejak-navy/45">estimated maker share · tap receipt</p>
+          <p className="text-[10px] font-semibold text-jejak-navy/45">estimated maker share · tap trace</p>
         </div>
       </button>
 
@@ -110,8 +120,10 @@ function ScanCard({ scan, todayCount, onOpen }) {
           onClick={(e) => e.stopPropagation()}
           className="flex items-center justify-between rounded-xl bg-jejak-navy px-2 py-1 text-[9px] font-extrabold text-amber-300 hover:opacity-95 no-tap"
         >
-          <span className="truncate font-mono">{memoLabel}</span>
-          <span className="shrink-0 ml-1 underline">Estimate record ↗</span>
+          <span className="truncate font-mono">
+            {scan.record_sha256 ? `SHA256:${scan.record_sha256.slice(0, 8)}…` : memoLabel}
+          </span>
+          <span className="shrink-0 ml-1 underline">Anchored estimate ↗</span>
         </a>
       </div>
     </motion.div>
@@ -142,7 +154,7 @@ export default function Explore() {
     }
     setCompareMode(false);
     setLowConfidence(false);
-    setScreen("split");
+    setScreen("journey");
     navigate("/");
   };
 

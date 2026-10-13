@@ -38,6 +38,8 @@ export default function MoneySplit() {
     customPrice,
     setCustomPrice,
     guessedLabourPct,
+    labelEvidence,
+    provenanceRecord,
     reset,
   } = useApp();
   const [editingPrice, setEditingPrice] = useState(false);
@@ -88,27 +90,31 @@ export default function MoneySplit() {
         const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: photoFile });
         photo_url = file_url;
       }
-      // Anchor estimate record memo on Stellar Testnet
-      let stellar_tx_hash = "d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43";
+      // Use existing anchored provenance record if already anchored on Journey, else anchor estimate memo
+      let stellar_tx_hash =
+        provenanceRecord?.txHash ||
+        "976dc854593180c819797b3606963c4ecbccd83ae8cbec0b9ca47db5c1407ff3";
       let stellar_memo = `EST:${product.id.toUpperCase().slice(0, 8)}:${originCountry.slice(0, 6).toUpperCase()}:${labour.pct.mid}%`;
-      try {
-        const anchorRes = await base44.functions.invoke("stellarMakerPayout", {
-          action: "anchor_estimate",
-          productId: product.id,
-          origin: originCountry,
-          labourPct: labour.pct.mid,
-        });
-        if (anchorRes?.data?.hash) {
-          stellar_tx_hash = anchorRes.data.hash;
-          stellar_memo = anchorRes.data.memo || stellar_memo;
-        }
-      } catch {}
+      if (!provenanceRecord?.txHash) {
+        try {
+          const anchorRes = await base44.functions.invoke("stellarMakerPayout", {
+            action: "anchor_estimate",
+            productId: product.id,
+            origin: originCountry,
+            labourPct: labour.pct.mid,
+          });
+          if (anchorRes?.data?.hash) {
+            stellar_tx_hash = anchorRes.data.hash;
+            stellar_memo = anchorRes.data.memo || stellar_memo;
+          }
+        } catch {}
+      }
 
       await base44.entities.Scan.create({
         product_id: product.id,
         product_name: product.name,
         emoji: product.emoji,
-        origin: originCountry,
+        origin: labelEvidence?.country_of_manufacture || originCountry,
         labour_pct: labour.pct.mid,
         price: product.markets[market].price,
         currency,
@@ -117,6 +123,10 @@ export default function MoneySplit() {
         confidence: labour.confidence,
         stellar_tx_hash,
         stellar_memo,
+        record_sha256: provenanceRecord?.recordHashHex || "",
+        label_country: labelEvidence?.country_of_manufacture || "",
+        label_materials: labelEvidence?.fibre_composition || "",
+        is_sample: false,
       });
       setAnchoredEstimate({
         hash: stellar_tx_hash,

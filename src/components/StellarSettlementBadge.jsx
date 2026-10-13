@@ -112,31 +112,12 @@ export default function StellarSettlementBadge({
             </p>
           </div>
 
-          {/* Sourced Fee Context: World Bank RPW vs Stellar */}
+          {/* Honest qualitative fee comparison */}
           {!compact && (
-            <div className="mt-2 grid grid-cols-2 gap-1.5 text-[10px]">
-              <div className="rounded-xl bg-white/6 border border-white/10 px-2.5 py-1.5">
-                <p className="text-[9px] font-bold uppercase text-white/50">
-                  Avg Global Remittance
-                </p>
-                <p className="font-extrabold text-jejak-retail tabular-nums">
-                  ~6.4% fee + FX spread
-                </p>
-                <p className="text-[9px] text-white/55">
-                  Source: World Bank RPW
-                </p>
-              </div>
-              <div className="rounded-xl bg-jejak-materials/15 border border-jejak-materials/40 px-2.5 py-1.5">
-                <p className="text-[9px] font-bold uppercase text-jejak-materials">
-                  Stellar Network Fee
-                </p>
-                <p className="font-extrabold text-white tabular-nums">
-                  Typically much lower
-                </p>
-                <p className="text-[9px] text-amber-200 tabular-nums">
-                  Base fee: {tx.feeXlm} XLM to wallet
-                </p>
-              </div>
+            <div className="mt-2 rounded-xl bg-white/6 border border-white/10 px-2.5 py-2 text-[10px] text-white/80">
+              <p className="font-semibold leading-snug">
+                Small cross-border payments are costly on card and bank rails; Stellar network fees are a fraction of a cent (<span className="font-mono text-amber-200">{tx.feeXlm} XLM</span> base fee sent to a demo co-op wallet).
+              </p>
             </div>
           )}
 

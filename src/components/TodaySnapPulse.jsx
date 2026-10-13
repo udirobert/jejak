@@ -8,14 +8,14 @@ import { Lock, Users, Camera, ShieldCheck } from "lucide-react";
 const MODES = [
   {
     key: "private",
-    label: "Private",
+    label: "Private (default)",
     sub: "On your device only",
     icon: Lock,
   },
   {
     key: "count",
     label: "Count only",
-    sub: "+1 to today's tally · no photo",
+    sub: "+1 to tally · no photo",
     icon: Users,
   },
   {
@@ -38,20 +38,33 @@ export default function TodaySnapPulse({
   setShareMode,
   compact = false,
 }) {
-  const [todayCount, setTodayCount] = useState(null);
+  const [realOptInCount, setRealOptInCount] = useState(null);
+  const [sampleCount, setSampleCount] = useState(0);
   const [confirmingFeed, setConfirmingFeed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        const n = await base44.entities.Scan.count({
-          product_id: product.id,
-          created_date: { $gte: startOfTodayISO() },
-        });
-        if (!cancelled) setTodayCount(n);
+        const [realN, sampleN] = await Promise.all([
+          base44.entities.Scan.count({
+            product_id: product.id,
+            is_sample: { $ne: true },
+          }),
+          base44.entities.Scan.count({
+            product_id: product.id,
+            is_sample: true,
+          }),
+        ]);
+        if (!cancelled) {
+          setRealOptInCount(realN);
+          setSampleCount(sampleN);
+        }
       } catch {
-        if (!cancelled) setTodayCount(0);
+        if (!cancelled) {
+          setRealOptInCount(0);
+          setSampleCount(0);
+        }
       }
     })();
     return () => {
@@ -59,8 +72,20 @@ export default function TodaySnapPulse({
     };
   }, [product.id]);
 
-  const displayTotal =
-    (todayCount ?? 0) + (shareMode !== "private" ? 1 : 0);
+  const effectiveReal =
+    (realOptInCount ?? 0) + (shareMode !== "private" ? 1 : 0);
+
+  // Privacy rule: hide single-person real counts (count === 1) so an individual cannot be singled out.
+  let socialHeadline = "Checking community traces…";
+  if (realOptInCount !== null) {
+    if (effectiveReal >= 2) {
+      socialHeadline = `${effectiveReal} people traced this ${product.name.toLowerCase()} (opted-in)`;
+    } else if (sampleCount > 0) {
+      socialHeadline = `${sampleCount} sample trace${sampleCount > 1 ? "s" : ""} in Explore · real counts shown at 2+`;
+    } else {
+      socialHeadline = `No public traces yet · real counts shown once 2+ people opt in`;
+    }
+  }
 
   return (
     <div className="rounded-2xl frosted p-3.5">
@@ -71,25 +96,23 @@ export default function TodaySnapPulse({
           </span>
           <div className="min-w-0">
             <p className="text-xs font-extrabold text-jejak-navy truncate">
-              {todayCount === null
-                ? "Checking today's pulse…"
-                : `${displayTotal} ${displayTotal === 1 ? "person" : "people"} snapped a ${product.name.toLowerCase()} today`}
+              {socialHeadline}
             </p>
             <p className="flex items-center gap-1 text-[10px] font-semibold text-jejak-navy/55">
               <ShieldCheck size={11} className="text-jejak-materials shrink-0" />
-              Opt-in community tally · private by default
+              Real opted-in data only · seeded records labelled “Sample”
             </p>
           </div>
         </div>
         <span className="shrink-0 rounded-full bg-jejak-materials/15 px-2 py-0.5 text-[10px] font-extrabold text-jejak-materials">
-          Today
+          Explore
         </span>
       </div>
 
       {!compact && setShareMode && (
         <div className="mt-3">
           <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-jejak-navy/50">
-            Your privacy choice for this trace
+            Share to community (default off)
           </p>
           <div className="grid grid-cols-3 gap-1.5">
             {MODES.map(({ key, label, sub, icon: Icon }) => {
@@ -116,7 +139,10 @@ export default function TodaySnapPulse({
                   }`}
                 >
                   <div className="flex items-center gap-1 text-[11px] font-extrabold">
-                    <Icon size={12} className={active ? "text-amber-300" : "text-jejak-navy/60"} />
+                    <Icon
+                      size={12}
+                      className={active ? "text-amber-300" : "text-jejak-navy/60"}
+                    />
                     <span>{label}</span>
                   </div>
                   <p
@@ -133,7 +159,7 @@ export default function TodaySnapPulse({
           {confirmingFeed && (
             <div className="mt-2 flex items-center justify-between gap-2 rounded-xl bg-jejak-navy p-2.5 text-white">
               <p className="text-[10px] font-semibold leading-snug text-white/85">
-                Share this estimate record & photo publicly to Explore and anchor its memo on Stellar Testnet?
+                Your product photo will be uploaded to a publicly viewable URL for the Explore feed (label photos are never uploaded). Continue?
               </p>
               <div className="flex items-center gap-1 shrink-0">
                 <button
@@ -151,7 +177,7 @@ export default function TodaySnapPulse({
                   }}
                   className="rounded-lg bg-amber-300 px-2.5 py-1 text-[10px] font-extrabold text-jejak-navy no-tap"
                 >
-                  Confirm
+                  Confirm public
                 </button>
               </div>
             </div>

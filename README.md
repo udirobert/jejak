@@ -1,93 +1,165 @@
-# Jejak — Trace what you pay for
+# Jejak — Know the story behind what you buy
 
-A photo-first **receipt for the physical supply chain**. Photograph a product (or pick a demo chip) and Jejak shows (1) its likely route across the world on a rotating globe and (2) how your payment splits into **materials, labour, freight & duties, brand margin and retail margin**.
+> **Lead:** _"Know the story behind what you buy: where your clothes, coffee and gear really came from."_  
+> **Layer 2:** _"Follow the money."_
 
-Built for the Fintech Hackathon London (13 Oct 2026, Payments track).
+Jejak is an open-source, photo-first **supply-chain provenance and cost-split receipt** built on **Stellar Testnet** for the **Stellar "Find Your Way" Hackathon (General Track)**.
 
-> Tagline: _"Trace what you pay for."_
-
-Currency-agnostic: each product carries its own price and split per market — **Singapore dollars (S$)** and **British pounds (£)**, switchable in the header. We never convert via an exchange rate.
+Photograph an item (or pick a sample product), scan its **care / Made-in label** to attach high-confidence provenance facts, inspect its multi-stage route across a 3D globe, and **anchor a tamper-evident SHA-256 provenance record (`MEMO_HASH`) on Stellar Testnet**—verifiable in one click against Stellar Horizon. Then step into Layer 2 ("Follow the money") to see the estimated 5-way cost split and optionally send a Testnet payment to a demo co-op wallet.
 
 ---
 
-## What's real vs mocked
+## Architecture & Meaningful Use of Stellar
 
-**Real (the working app):**
-- The full demo flow: Home/Camera → Identifying → Journey → Money split → detail drawers → Compare mode.
-- Currency handling and per-market pricing (GBP & SGD via `Intl.NumberFormat`).
-- The rotating orthographic globe (d3-geo + world-atlas/topojson, no API keys), route arcs, travelling coin.
-- The 100-coin money split, stacked bar, compare-mode reflow, and all motion.
-- The embedded banking-feed **concept** screen (clearly labelled as a concept).
-- **Live AI vision recognition** — a backend function (`identifyProduct`) calls a vision LLM to classify the photo into one of four demo products and return detected attributes (colour, material, category, likely origin). Non-matches (and any unsafe content) return `unknown` and fall back to the product picker, so only the curated product set ever reaches the feed.
-- **Community feed** (Explore tab) — a live, filterable feed of shared traces (origin, labour share, price), updated in realtime via entity subscriptions.
-- **Impact metrics carousel** — on the receipt: distance travelled (from route), hours to earn it (cited wage), where the tax went (VAT/GST), and what the payment cost (interchange). Each is one huge number, an everyday comparison, a confidence badge and a cited source.
-- Trust/labelling: every figure is "Estimated", shown as a range, with a confidence badge and a basis label.
+Stellar is a **first-class provenance and settlement primitive** in Jejak:
 
-**Mocked (illustrative, not fact):**
-- **Supply-chain data** — all percentages, routes, countries and context notes are curated estimates for the demo. They are labelled "Estimated" and carry confidence badges. They are **not** sourced from specific factories or suppliers.
-- **Product matching** — the camera path uses live AI vision recognition (vision LLM via a backend function) to classify the photo into one of four demo products, returning detected attributes. Anything that doesn't match — or is flagged unsafe — falls back to the product picker, so only the curated product set ever reaches the feed.
-- The banking feed is a generic mock with no real bank logos or integration.
+1. **Tamper-Evident On-Chain Provenance Record (`MEMO_HASH` + `manageData`):**
+   - When a user completes a trace and clicks **Anchor this trace on Stellar**, the browser builds a deterministic canonical JSON document (`schema_version: "jejak.provenance.v1"`) containing:
+     - Product category & market (`GB` / `SG`)
+     - Multi-stage origin route with per-stage provenance basis (`"Read from label"` for label-verified final manufacture vs `"Estimated"` for upstream stages) and confidence (`high` / `medium` / `low`)
+     - Extracted care-label evidence (`country_of_manufacture`, `fibre_composition`, `care_or_brand_text`), if scanned
+     - 5-category cost-split estimate ranges (`low`, `mid`, `high`), confidence, and basis labels
+     - UTC ISO-8601 timestamp
+     - **Zero photos or personal data**
+   - The canonical JSON is hashed with **SHA-256** (32 bytes) in the browser and submitted to Stellar Testnet (`base44/functions/stellarMakerPayout/entry.ts`, `action: "anchor_provenance"`) using:
+     - `Memo.hash(recordHashHex)` (`MEMO_HASH`) — stores the exact 32-byte SHA-256 digest in the transaction header.
+     - `Operation.manageData({ name: "jejak_prov_<product>", value: "<origin>:<hashPrefix>" })` — indexes the provenance entry on the account ledger.
+     - `Operation.payment` (`0.0000100 XLM`) to the corridor's Demo Co-op Wallet (Testnet) so the transaction appears in the corridor's Horizon feed.
+   - Users can download the off-chain JSON (`jejak-provenance-<product>.json`) and scan a QR code linking directly to `stellar.expert/explorer/testnet/tx/{hash}`.
 
-## How to run locally
+2. **Cryptographic Verification Step (`action: "verify_provenance"`):**
+   - Clicking **Verify hash on Horizon** recomputes the SHA-256 hash from the off-chain canonical JSON in the browser, fetches the transaction directly from Stellar Horizon Testnet (`GET https://horizon-testnet.stellar.org/transactions/{txHash}`), decodes the base64 `memo` (`memo_type: "hash"`) back to hex, and compares the two digests byte-for-byte.
+   - Includes a **Test altered JSON** toggle that modifies one field in the off-chain JSON and re-runs verification against Horizon to prove that any post-anchor tampering triggers a **HASH MISMATCH**.
+
+3. **Secondary Maker Bridge (`Operation.payment` & `Operation.createClaimableBalance`):**
+   - In Layer 2 ("Follow the money"), users can send an optional Testnet XLM payment or create an unconditional `ClaimableBalance` (`Operation.createClaimableBalance`) to a **Demo co-op wallet (testnet)** with a structured `MEMO_TEXT` (`JEJAK:<PRODUCT>:<ORIGIN>:<AMOUNT>`).
+   - Small cross-border payments are costly on card and bank rails; Stellar network fees are a fraction of a cent (`0.00001 XLM` base fee).
+
+4. **Zero-Fail Testnet Resilience:**
+   - Every Stellar Testnet and Horizon call has an automatic fallback to a cached, real verified Testnet transaction (`976dc854593180c819797b3606963c4ecbccd83ae8cbec0b9ca47db5c1407ff3` / `d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43`) with a clear notice (*"Testnet is slow right now — here's a recent verified testnet transaction"*), ensuring the app never hard-fails during a live judge run.
+
+---
+
+## What's Real vs. Mocked
+
+### Real (Live in this build)
+- **Product & Care-Label AI Vision (`base44/functions/identifyProduct/entry.ts`):**
+  - `mode: "product"`: classifies photographed items into the curated product set (`hoodie`, `trainers`, `coffee`, `phone_case`) and extracts visual attributes (`colour`, `material`, `category`, `likely_origin`). Unsafe or unmatched images return `unknown` and fall back to the manual picker.
+  - `mode: "label"`: extracts `country_of_manufacture`, `fibre_composition`, and `care_or_brand_text` from photographed care tags or "Made in" labels as structured JSON.
+- **Private-by-Default Photo Handling:**
+  - Product and label photos for vision recognition use `UploadPrivateFile` + short-lived `CreateFileSignedUrl` (stored privately).
+  - Community sharing defaults to **Private (`shareMode = "private"`)**. Switching to **Public feed** requires an explicit confirmation before a product photo is uploaded to a public URL (label photos are never uploaded publicly).
+- **Live Stellar Testnet & Horizon Integration (`base44/functions/stellarMakerPayout/entry.ts`):**
+  - Real `MEMO_HASH` provenance anchoring, live Horizon transaction lookup and SHA-256 verification, live `payment` and `createClaimableBalance` operations on Stellar Testnet, and live Horizon account telemetry on the Impact screen.
+- **Live Explore Feed & "Others Traced This":**
+  - Backed by the `Scan` entity with realtime subscriptions. Seeded records carry `is_sample: true` and are badged **Sample** in the UI; single-person real counts (`count === 1`) are hidden so an individual cannot be singled out.
+
+### Mocked / Illustrative (Clearly labelled in the UI)
+- **Supply-Chain Route & Cost-Split Percentages:**
+  - Upstream stages, country routes, and 5-category cost-split ranges (`low` / `mid` / `high`) are curated category-level estimates, not data from specific named factories or suppliers. Every stage and figure is labelled **Estimated** (unless a care label was scanned for the final-manufacture stage, which is labelled **Read from label**).
+- **Demo Co-op Wallets & Future Off-Ramps:**
+  - Destination wallets (`Bangladesh`, `Vietnam`, `Ethiopia`, `China`) are **Demo co-op wallets (testnet)**, not real partner cooperatives, and funds do not reach individual workers. Local-currency anchor off-ramps (SEP-24) are described strictly as a **future integration**.
+- **Embedded Bank Screen (`/embedded`):**
+  - An illustrative concept preview showing how provenance and cost splits could appear inside a consumer bank feed.
+
+---
+
+## How to Run Locally
 
 ```bash
 npm install
-npm run dev      # Vite dev server
-npm run build    # production build
-node scripts/validate-data.mjs   # asserts every split sums to 100
+cp .env.example .env
+npm run dev                  # Start Vite dev server
+npm run build                # Production build check
+node scripts/validate-data.mjs   # Asserts every product split sums to 100%
 ```
 
-### Environment variables
-None are required for the core demo. The optional AI recognition path would use a server-side `ANTHROPIC_API_KEY` (never exposed to the client); it is not wired in this prototype — the app gracefully falls back to the product picker, which is the default behaviour.
-
-## Demo script (≈90s)
-1. **Home** — tap the gold shutter (or a "Hoodie" chip). Switch currency to £ or S$ in the header.
-2. **Identifying** — scanning overlay + rotating status text (~2.5s).
-3. **Journey** — globe spins, arcs draw stop by stop, coin travels the route, country chips pop in. Tap **Replay** or **See where your money went**.
-4. **Money split** — 100 coins drop into 5 columns; stacked bar; headline garment-worker share (e.g. 6–10p per £1). Tap any column → detail drawer.
-5. **Compare mode** — toggle "what if direct from a transparent brand?"; coins reflow, brand/retail shrink, labour/materials grow.
-6. **How we estimate this** — open from any screen (the ? in the header) for methodology, confidence meaning, basis types, and what we do **not** know.
-7. **Embedded concept** — open `/embedded` for the mock banking feed; tap the **Trace** chip on the hoodie transaction to open the Jejak receipt as a bottom sheet.
+### Environment Variables (`.env.example`)
+No secrets are committed to this repository. See `.env.example`:
+- `STELLAR_TESTNET_SIGNER_SECRET` *(optional)* — Stellar Testnet secret key (`S...`, funded via Friendbot). If unset, the backend generates an ephemeral Testnet keypair in memory and funds it via `https://friendbot.stellar.org`.
+- `STELLAR_HORIZON_URL` — defaults to `https://horizon-testnet.stellar.org`.
+- `STELLAR_DEMO_COOP_PUBLIC_KEY_BD` / `VN` / `ET` / `CN` — public Testnet addresses (`G...`) for the four demo co-op wallets.
 
 ---
 
-## Every number and its basis label
+## Every Claim & Number in the Data Files (and its Basis Label)
 
-Basis labels come only from: `public price benchmark`, `published brand disclosure`, `trade data`, `AI inference`.
+Allowed basis labels (`src/lib/tokens.js`): `public price benchmark`, `published brand disclosure`, `trade data`, `AI inference`.  
+Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high confidence, only when extracted from a care/Made-in label) and `Estimated` (medium/low confidence).
 
-### Everyday Hoodie (GB £120 / SG S$100)
-| Category | Low–Mid–High % | Confidence | Basis |
-|---|---|---|---|
-| Materials | 12 / 15 / 18 | medium | public price benchmark |
-| Labour | 6 / 7.5 / 10 | medium | published brand disclosure |
-| Freight & duties | 7 / 9.5 / 11 | medium | trade data |
-| Brand margin | 24 / 28 / 32 | low | AI inference |
-| Retail margin | 36 / 40 / 44 | medium | public price benchmark |
+### 1. `src/data/hoodie.js` — Everyday Hoodie (GB £120 / SG S$100)
+| Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
+|---|---|---|---|---|
+| Materials split | 12% – **15%** – 18% | medium | `public price benchmark` | Category estimate; needs named apparel BOM benchmark |
+| Labour split | 6% – **7.5%** – 10% | medium | `published brand disclosure` | Category estimate; needs cited brand tear-down |
+| Freight & duties split | 7% – **9.5%** – 11% | medium | `trade data` | Category estimate; needs UN Comtrade / freight tariff citation |
+| Brand margin split | 24% – **28%** – 32% | low | `AI inference` | Illustrative estimate |
+| Retail margin split | 36% – **40%** – 44% | medium | `public price benchmark` | Category estimate |
+| Transparent alternative | Mat 22%, Lab 18%, Frt 10%, Brd 20%, Ret 30% | low/medium | `AI inference` / `trade data` | Illustrative scenario (`transparentAlternative.note`) |
+| Route (5 stops + final) | India (Cotton) → China (Spinning) → Bangladesh (Cut & sew) → Singapore (Hub) → Netherlands (Warehouse) → UK/SG (Sold) | medium | `Estimated` (final manufacture upgrades to `Read from label` when care tag scanned) | Illustrative route; no specific factory claimed |
 
-Transparent alternative (illustrative): Materials 22, Labour 18, Freight 10, Brand 20, Retail 30 — all `AI inference` except Freight `trade data`.
+### 2. `src/data/trainers.js` — Running Trainers (GB £90 / SG S$110)
+| Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
+|---|---|---|---|---|
+| Materials split | 20% – **25%** – 30% | medium | `public price benchmark` | Category estimate; needs footwear BOM source |
+| Labour split | 6% – **8%** – 11% | medium | `published brand disclosure` | Category estimate; needs cited brand disclosure |
+| Freight & duties split | 7% – **9%** – 12% | medium | `trade data` | Category estimate |
+| Brand margin split | 26% – **30%** – 34% | low | `AI inference` | Illustrative estimate |
+| Retail margin split | 24% – **28%** – 32% | medium | `public price benchmark` | Category estimate |
+| Transparent alternative | Mat 30%, Lab 18%, Frt 10%, Brd 22%, Ret 20% | low/medium | `AI inference` / `trade data` | Illustrative scenario |
+| Route (4 stops + final) | Vietnam (Rubber & foam) → China (Components) → Vietnam (Assembly) → Singapore (Freight hub) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
-### Running Trainers (GB £90 / SG S$110)
-Materials 25 (public price benchmark), Labour 8 (published brand disclosure), Freight 9 (trade data), Brand 30 (AI inference), Retail 28 (public price benchmark). Transparent: 30/18/10/22/20.
+### 3. `src/data/coffee.js` — Coffee Bag (GB £6 / SG S$12)
+| Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
+|---|---|---|---|---|
+| Materials split | 16% – **20%** – 24% | medium | `public price benchmark` | Category estimate; needs ICO / specialty coffee benchmark |
+| Labour split | 8% – **12%** – 16% | medium | `published brand disclosure` | Category estimate |
+| Freight & duties split | 10% – **14%** – 18% | medium | `trade data` | Category estimate |
+| Brand margin split | 20% – **24%** – 28% | low | `AI inference` | Illustrative estimate |
+| Retail margin split | 26% – **30%** – 34% | medium | `public price benchmark` | Category estimate |
+| Transparent alternative | Mat 34%, Lab 24%, Frt 13%, Brd 15%, Ret 14% | low/medium | `AI inference` / `trade data` | Illustrative scenario |
+| Route (3 stops + final) | Ethiopia (Cherry harvest) → Ethiopia (Processing) → UK (Roasting) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
-### Coffee Bag (GB £6 / SG S$12)
-Materials 20, Labour 12, Freight 14, Brand 24, Retail 30. Transparent: 34/24/13/15/14.
+### 4. `src/data/phoneCase.js` — Phone Case (GB £25 / SG S$32)
+| Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
+|---|---|---|---|---|
+| Materials split | 14% – **18%** – 22% | medium | `public price benchmark` | Category estimate |
+| Labour split | 7% – **10%** – 13% | medium | `published brand disclosure` | Category estimate |
+| Freight & duties split | 8% – **12%** – 16% | medium | `trade data` | Category estimate |
+| Brand margin split | 26% – **30%** – 34% | low | `AI inference` | Illustrative estimate |
+| Retail margin split | 26% – **30%** – 34% | medium | `public price benchmark` | Category estimate |
+| Transparent alternative | Mat 28%, Lab 22%, Frt 14%, Brd 20%, Ret 16% | low/medium | `AI inference` / `trade data` | Illustrative scenario |
+| Route (3 stops + final) | China (Plastic & silicone) → China (Assembly) → Singapore (Freight hub) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
-### Phone Case (GB £25 / SG S$32)
-Materials 18, Labour 10, Freight 12, Brand 30, Retail 30. Transparent: 28/22/14/20/16.
-
-All **mid** values sum to exactly 100 for every product and scenario (verified by `scripts/validate-data.mjs`).
-
-### Still needing a real source
-- Every percentage above is currently an estimate. None is backed by a named, verifiable source.
-- Country/stage assignments are illustrative; specific factory or supplier identities are deliberately **not** claimed.
-- When real sources are verified, add a `sources` array (title + url) to each product file with a TODO for the team to fill.
+### 5. `src/lib/metrics.js` — Receipt Context Equivalents
+| Metric | Formula / Value | Confidence | Basis / Source | Status |
+|---|---|---|---|---|
+| Distance travelled | Great-circle Haversine sum across route coordinates | high | `Route data` (computed from stops) | Exact math on estimated stops |
+| Hours to earn shelf price | Shelf price ÷ ~US$0.55/hr (range $0.45–$0.65/hr, 12,500 BDT/month ÷ 208 hrs) | low | `Bangladesh garment min wage, Dec 2023` | Statutory minimum wage citation; cross-rate fixed at 1.27 USD/GBP, 0.74 USD/SGD |
+| Where the tax went | UK VAT 20% (`price × 0.2 / 1.2`), SG GST 9% (`price × 0.09 / 1.09`) | high | `gov.uk` (UK VAT) / `IRAS` (SG GST) | Verified statutory tax rates |
+| What the payment cost | UK ~1.5% all-in card processing, SG ~2.0% | medium | `PSD2 interchange cap` | Estimate of merchant acquiring + interchange |
 
 ---
 
-## Assumptions & what's not finished
-- **AI recognition** is live: a backend function (`identifyProduct`) calls a vision LLM to classify the photo and return detected attributes. It only ever matches the curated demo set; non-matches or unsafe content fall back to the product picker with a low-confidence badge.
-- **No persistence / no localStorage** — state lives in React context, as specified.
-- **Community feed & photo sharing** — completed traces can be shared to the live community feed (Explore tab). Photo sharing is strictly **opt-in and off by default**; a toggle on the route screen must be turned on before a photo is stored. When off, nothing is shared. Photos shared to the feed are stored publicly (anyone with the link can open them), matching the explicit opt-in. The vision call also returns `unknown` for unsafe content, so it never reaches the feed.
-- **Tests**: a runnable validation script (`scripts/validate-data.mjs`) covers split sums and currency formatting. A full vitest suite was not added to avoid adding a dependency; the script gives the same guarantees.
-- The globe uses the 110m world atlas for performance; on very low-end devices it still renders (reduced-motion disables the spin).
-- Designed mobile-first at 390px; desktop shows the app in a phone-width column centred on a lilac-to-peach backdrop.
+## 3-Minute Pitch Video Demo Script (Provenance-First)
+
+- **0:00 – 0:25 · The Hook & Scan (Home → Identifying):**
+  - Open Jejak on mobile: *"Know the story behind what you buy: where your clothes, coffee and gear really came from."*
+  - Tap the shutter to photograph a hoodie (or tap the **Everyday Hoodie** sample card). Show the private AI vision scan extracting visual attributes and launching into the 3D globe.
+- **0:25 – 1:10 · Provenance & Care-Label Evidence (Journey Screen):**
+  - Spin the 3D route globe across India → China → Bangladesh → Singapore → Netherlands → UK. Point out that each stage carries an honest provenance badge: **Estimated (Medium)**.
+  - Tap **Scan label** (or **Try sample label**) on the *Add provenance evidence* card. Show how Jejak extracts `"Made in Bangladesh · 80% cotton, 20% recycled polyester"` and upgrades the final-manufacture stage badge to **Read from label (High)** while keeping upstream stages **Estimated**.
+- **1:10 – 2:05 · Core Stellar Feature: Anchor & Verify On-Chain Provenance Record:**
+  - Tap **Preview JSON** to show the canonical `jejak.provenance.v1` JSON (stages, label facts, estimate ranges, basis, timestamp — no photos or personal data).
+  - Tap **Anchor this trace on Stellar**. Show the SHA-256 digest written as a `MEMO_HASH` transaction on Stellar Testnet, complete with ledger number, QR code, and `stellar.expert` link.
+  - Tap **Verify hash on Horizon** — show the live **HASH MATCH** against Horizon Testnet. Then tap **Test altered JSON** to demonstrate how altering a single field in the off-chain JSON produces an immediate **HASH MISMATCH**.
+- **2:05 – 2:40 · Layer 2: Follow the Money & Demo Co-op Wallet (Money Split Screen):**
+  - Tap **Follow the money** to drop the 100 coins across Materials, Labour, Freight, Brand, and Retail.
+  - Switch to **Flow & Boost** and send a Testnet payment (or Claimable Balance) to the **Demo co-op wallet (testnet)**, noting that Stellar fees are a fraction of a cent (`0.00001 XLM`).
+- **2:40 – 3:00 · Explore & Honest Methodology:**
+  - Open **Explore** to show community traces with clickable `stellar.expert` links and **Sample** badges on seeded items, then open the **?** drawer to highlight the **What's real vs. mocked** transparency box.
+
+---
+
+## License
+Released under the [MIT License](./LICENSE).

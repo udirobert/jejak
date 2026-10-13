@@ -114,9 +114,12 @@ export default function Home() {
           transition={{ type: "spring", stiffness: 220, damping: 24 }}
           className="mt-3"
         >
-          <h1 className="text-[26px] font-extrabold leading-[1.12] tracking-tight text-white drop-shadow-sm">
-            Scan any product.<br />See where your money goes.
+          <h1 className="text-[24px] font-extrabold leading-[1.14] tracking-tight text-white drop-shadow-sm">
+            Know the story behind what you buy.
           </h1>
+          <p className="mt-1 text-xs font-bold text-white/90">
+            Trace where your clothes, coffee and gear really came from — then follow the money.
+          </p>
         </motion.div>
 
         <HowItWorksStrip onStartGuidedDemo={startGuidedTour} />

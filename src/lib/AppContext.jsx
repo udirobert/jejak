@@ -53,6 +53,8 @@ export function AppProvider({ children }) {
   const [lastStellarTx, setLastStellarTx] = useState(null);
   const [stellarLoading, setStellarLoading] = useState(false);
   const [stellarError, setStellarError] = useState(null);
+  const [labelEvidence, setLabelEvidence] = useState(null); // extracted care/Made-in label facts
+  const [provenanceRecord, setProvenanceRecord] = useState(null); // anchored SHA-256 provenance record
 
   const settleStellarPayout = useCallback(
     async ({ amount, productObj, currencyOverride, mode = "direct" }) => {
@@ -162,6 +164,8 @@ export function AppProvider({ children }) {
     setGuessedLabourPct(null);
     setLastStellarTx(null);
     setStellarError(null);
+    setLabelEvidence(null);
+    setProvenanceRecord(null);
   }, []);
 
   const value = {
@@ -200,6 +204,10 @@ export function AppProvider({ children }) {
     stellarLoading,
     stellarError,
     settleStellarPayout,
+    labelEvidence,
+    setLabelEvidence,
+    provenanceRecord,
+    setProvenanceRecord,
     addTrace,
     addToWorkerFund,
     setCurrency: switchCurrency,

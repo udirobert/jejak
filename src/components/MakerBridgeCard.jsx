@@ -73,10 +73,10 @@ export default function MakerBridgeCard({
             </span>
             <div>
               <p className="text-xs font-extrabold text-jejak-navy">
-                Demo co-op wallet boost (Stellar Testnet)
+                Send a testnet payment to a demo co-op wallet
               </p>
               <p className="flex items-center gap-1 text-[10px] font-semibold text-jejak-navy/65">
-                <Zap size={10} className="text-jejak-labour" /> Sends Testnet XLM to a demo wallet · typically much lower fees than remittance averages
+                <Zap size={10} className="text-jejak-labour" /> Small cross-border payments are costly on card/bank rails; Stellar fees are a fraction of a cent
               </p>
             </div>
           </div>

@@ -8,23 +8,23 @@ import { Sparkles, ArrowRight, X, CheckCircle2 } from "lucide-react";
 
 const TOUR_STEPS = [
   {
-    title: "Step 1 of 4 · Pick or Snap a Product",
-    body: "You can snap any real item with your camera, or tap one of the 4 sample products below. Let's trace the £45 Everyday Hoodie together.",
-    cta: "Trace the £45 Hoodie",
+    title: "Step 1 of 4 · Trace Where It Came From",
+    body: "Snap any item with your camera or tap one of the 4 sample products below. Let's trace the Everyday Hoodie.",
+    cta: "Trace the Hoodie",
   },
   {
-    title: "Step 2 of 4 · Interactive 3D Supply Route",
-    body: "Spin the 3D globe or tap any numbered country pill below it to inspect each factory stage from cotton harvest to UK retail.",
-    cta: "Next: See the Money Split",
+    title: "Step 2 of 4 · Provenance, Label Scan & Stellar Anchor",
+    body: "Inspect each stage's provenance basis ('Read from label' vs 'Estimated'), scan a care label, and anchor the SHA-256 provenance record on Stellar Testnet.",
+    cta: "Next: Follow the Money",
   },
   {
-    title: "Step 3 of 4 · Interactive Cost Receipt",
-    body: "Tap any coloured segment on the bar to see who keeps what, or switch to 'Flow & Boost' to bridge the maker's pay gap.",
-    cta: "Next: See Bank Integration",
+    title: "Step 3 of 4 · Follow the Money (Layer 2)",
+    body: "See the estimated 5-way cost split, or send a secondary Testnet payment to a demo co-op wallet.",
+    cta: "Next: Embedded Concept",
   },
   {
-    title: "Step 4 of 4 · Embedded Bank Feed",
-    body: "Here's how Jejak works inside a mobile bank: every retail purchase shows a 5-colour cost split and a 1-tap maker round-up.",
+    title: "Step 4 of 4 · Embedded Bank Concept",
+    body: "Preview how provenance and cost splits could appear inside a banking feed (concept preview).",
     cta: "Finish Guided Tour",
   },
 ];
