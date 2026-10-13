@@ -22,8 +22,8 @@ import { TAP } from "@/lib/motion";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { celebrate } from "@/lib/celebrate";
 import ProductIllustrationIcon from "./ProductIllustrationIcon";
+import OriginFlagChip from "./OriginFlagChip";
 import {
-  FLAGS,
   PRODUCT_SURFACES,
   isSampleScan,
   materialMadeInHeadline,
@@ -60,7 +60,7 @@ export default function TraceDetailSheet({
     setGiveEnabled(false);
     setGivingLoading(false);
     setGiveTx(null);
-  }, [scan?.id, scan?.product_id, scan?.origin]);
+  }, [scan?.id, scan?.product_id, scan?.origin, scan?.stellar_tx_hash]);
 
   // Build route stops for the thin animated route strip below the hero
   const routeStops = useMemo(() => {
@@ -219,7 +219,7 @@ export default function TraceDetailSheet({
                 type="button"
                 onClick={onClose}
                 aria-label="Close trace details"
-                className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-jejak-navy/35 text-white backdrop-blur-md hover:bg-jejak-navy/55 no-tap"
+                className="absolute right-3.5 top-3.5 flex h-8 w-8 items-center justify-center rounded-full bg-jejak-navy/35 text-white backdrop-blur-md hover:bg-jejak-navy/55 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <X size={15} />
               </button>
@@ -237,8 +237,8 @@ export default function TraceDetailSheet({
               </div>
             </div>
 
-            {/* Thin animated route line with origin flags through the stages */}
-            <div className="relative shrink-0 px-5 py-2.5 bg-white/65 border-b border-jejak-navy/10">
+            {/* Thin animated route line with shared vector origin flag chips through the stages */}
+            <div className="relative shrink-0 px-5 py-2.5 bg-white/70 border-b border-jejak-navy/10">
               <div className="relative flex items-center justify-between">
                 <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-[2px] bg-jejak-navy/12 rounded-full overflow-hidden">
                   <motion.div
@@ -252,18 +252,13 @@ export default function TraceDetailSheet({
                 {routeStops.map((stop, idx) => (
                   <div
                     key={`${stop.country}-${idx}`}
-                    className="relative z-10 flex items-center gap-1 rounded-full bg-white px-2 py-0.5 shadow-sm border border-jejak-navy/10"
+                    className="relative z-10"
                   >
-                    <span className="text-xs leading-none">
-                      {FLAGS[stop.country] || "🌐"}
-                    </span>
-                    <span className="text-[10px] font-extrabold text-jejak-navy/80">
-                      {stop.country === "United Kingdom"
-                        ? "UK"
-                        : stop.country === "Netherlands"
-                        ? "NL"
-                        : stop.country}
-                    </span>
+                    <OriginFlagChip
+                      country={stop.country}
+                      showLabel
+                      size="xs"
+                    />
                   </div>
                 ))}
               </div>
@@ -271,7 +266,7 @@ export default function TraceDetailSheet({
 
             {/* Scrollable Body content */}
             <div className="flex-1 overflow-y-auto p-5 pb-7 space-y-3 scrollbar-hide">
-              {/* Headline: material and origin + Basis tag next to headline */}
+              {/* Headline: "material · origin" + Basis tag next to headline */}
               <div>
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="text-base sm:text-lg font-extrabold leading-snug text-jejak-navy">
@@ -290,7 +285,7 @@ export default function TraceDetailSheet({
                   </span>
                 </div>
 
-                {/* Short secondary line ("Traced 3h ago") + original price + small secondary maker share tag */}
+                {/* Short secondary line ("Traced 3h ago") + price + small secondary maker share tag */}
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-semibold text-jejak-navy/55">
                     {relativeTracedTime(scan.created_date)}
@@ -318,7 +313,10 @@ export default function TraceDetailSheet({
               <div className="rounded-2xl bg-white/80 border border-jejak-navy/10 px-3.5 py-2.5">
                 <div className="flex items-center justify-between gap-2">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-jejak-navy">
-                    <HeartHandshake size={14} className="text-jejak-labour shrink-0" />
+                    <HeartHandshake
+                      size={14}
+                      className="text-jejak-labour shrink-0"
+                    />
                     Give to a cause (optional, default off)
                   </span>
                   <button
@@ -328,13 +326,17 @@ export default function TraceDetailSheet({
                       setGiveEnabled((v) => !v);
                     }}
                     aria-pressed={giveEnabled}
-                    className="relative h-6 w-11 shrink-0 rounded-full transition-colors no-tap"
+                    className="relative h-6 w-11 shrink-0 rounded-full transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/60"
                     style={{ background: giveEnabled ? "#2FBF71" : "#D9DBE8" }}
                   >
                     <motion.span
                       className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
                       animate={{ left: giveEnabled ? 22 : 2 }}
-                      transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 500,
+                        damping: 32,
+                      }}
                     />
                   </button>
                 </div>
@@ -370,7 +372,10 @@ export default function TraceDetailSheet({
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-freight hover:underline"
                           >
-                            <CheckCircle2 size={12} className="text-jejak-materials" />
+                            <CheckCircle2
+                              size={12}
+                              className="text-jejak-materials"
+                            />
                             Ledger #{giveTx.ledger} <ExternalLink size={10} />
                           </a>
                         )}
@@ -380,7 +385,7 @@ export default function TraceDetailSheet({
                 </AnimatePresence>
               </div>
 
-              {/* One Trust Row: green dot + "Anchored on Stellar" + chevron (ONLY when trace has its own anchor) */}
+              {/* Collapsed "Anchored on Stellar" row (ONLY when trace has its own anchor) */}
               {anchored && (
                 <div className="rounded-2xl bg-white/80 border border-jejak-navy/10 overflow-hidden">
                   <button
@@ -389,7 +394,7 @@ export default function TraceDetailSheet({
                       vibrate(5);
                       setTrustOpen((v) => !v);
                     }}
-                    className="flex w-full items-center justify-between px-3.5 py-2.5 text-left no-tap"
+                    className="flex w-full items-center justify-between px-3.5 py-2.5 text-left no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/50"
                   >
                     <span className="inline-flex items-center gap-2 text-xs font-extrabold text-jejak-navy">
                       <span className="h-2 w-2 rounded-full bg-jejak-materials" />
@@ -450,7 +455,11 @@ export default function TraceDetailSheet({
                               >
                                 {copiedField === "sha" ? (
                                   <>
-                                    <Check size={11} className="text-jejak-materials" /> Copied
+                                    <Check
+                                      size={11}
+                                      className="text-jejak-materials"
+                                    />{" "}
+                                    Copied
                                   </>
                                 ) : (
                                   <>
@@ -472,7 +481,10 @@ export default function TraceDetailSheet({
                             {verifying ? (
                               <Loader2 size={12} className="animate-spin" />
                             ) : (
-                              <ShieldCheck size={12} className="text-amber-300" />
+                              <ShieldCheck
+                                size={12}
+                                className="text-amber-300"
+                              />
                             )}
                             Verify
                           </button>
@@ -494,7 +506,8 @@ export default function TraceDetailSheet({
                               >
                                 {verifyResult.matched ? (
                                   <>
-                                    <CheckCircle2 size={13} /> Hash matches on-chain memo
+                                    <CheckCircle2 size={13} /> Hash matches
+                                    on-chain memo
                                   </>
                                 ) : (
                                   <>
@@ -520,7 +533,7 @@ export default function TraceDetailSheet({
                   onClose();
                   onTraceProduct(pid);
                 }}
-                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-gold py-3.5 text-sm font-extrabold text-jejak-navy shadow-md hover:brightness-105 no-tap"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-gold py-3.5 text-sm font-extrabold text-jejak-navy shadow-md hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/60"
               >
                 Trace this too
               </motion.button>

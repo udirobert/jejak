@@ -11,6 +11,7 @@ import { Camera, X, Sparkles } from "lucide-react";
 import ExploreFullBleedMap from "@/components/explore/ExploreFullBleedMap";
 import ExploreBottomSheet from "@/components/explore/ExploreBottomSheet";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
+import { isSampleScan } from "@/components/explore/exploreUtils";
 
 export default function Explore() {
   const [scans, setScans] = useState([]);
@@ -36,9 +37,6 @@ export default function Explore() {
       );
       const items = page.items || [];
       setScans(items);
-      if (items[0]?.origin) {
-        setArcOrigin(items[0].origin);
-      }
     } catch {
       setScans([]);
     }
@@ -49,20 +47,22 @@ export default function Explore() {
     load();
   }, [load]);
 
-  // Clear initial arrival arc after animation finishes
+  // Clear arrival arc after animation finishes
   useEffect(() => {
     if (!arcOrigin) return;
     const t = setTimeout(() => setArcOrigin(null), 2400);
     return () => clearTimeout(t);
   }, [arcOrigin]);
 
-  // Live subscription: animates an arc from the new trace's origin dot into the sheet
+  // Live subscription: when a new real trace arrives, animate an arc from its origin dot into the sheet
   useEffect(() => {
     const unsub = base44.entities.Scan.subscribe((event) => {
       if (event.type !== "create") return;
       const s = event.data;
       setNewlyArrivedId(s.id);
-      if (s.origin) setArcOrigin(s.origin);
+      if (s.origin && !isSampleScan(s)) {
+        setArcOrigin(s.origin);
+      }
       setScans((prev) =>
         prev.some((p) => p.id === s.id) ? prev : [s, ...prev]
       );
@@ -76,13 +76,14 @@ export default function Explore() {
     return () => clearTimeout(t);
   }, [newlyArrivedId]);
 
+  // Origin chips: seeded traces are NOT counted as live (real)
   const originChips = useMemo(() => {
     const map = new Map();
     scans.forEach((s) => {
       const o = s.origin || "Bangladesh";
       const prev = map.get(o) || { origin: o, total: 0, real: 0 };
       prev.total += 1;
-      if (!s.sample_entry && !s.is_sample) prev.real += 1;
+      if (!isSampleScan(s)) prev.real += 1;
       map.set(o, prev);
     });
     return Array.from(map.values()).sort((a, b) => b.total - a.total);
@@ -140,19 +141,10 @@ export default function Explore() {
     navigate("/");
   };
 
-  // Position floating round gold camera button right above the draggable sheet
-  // (or tucked cleanly in the top-right corner when sheet is full) so it never covers content.
-  const fabBottomClass =
-    snap === "peek"
-      ? "bottom-[168px]"
-      : snap === "half"
-      ? "bottom-[382px]"
-      : "bottom-[572px]";
-
   return (
     <ScreenShell variant="map">
       <div className="relative flex-1 w-full overflow-hidden">
-        {/* Full-bleed High-Contrast Interactive Map Background */}
+        {/* Full-bleed Rich Indigo/Teal Interactive Map Background */}
         <ExploreFullBleedMap
           originChips={originChips}
           originFilter={originFilter}
@@ -162,10 +154,8 @@ export default function Explore() {
           reduce={reduce}
         />
 
-        {/* Floating Round Gold Camera Button (never covers list rows) */}
-        <div
-          className={`fixed left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 px-5 pointer-events-none transition-all duration-300 ${fabBottomClass}`}
-        >
+        {/* Floating Round Gold Camera Button — bottom-right above the tab bar, never overlaps sheet handle */}
+        <div className="fixed bottom-[82px] left-1/2 z-40 w-full max-w-[420px] -translate-x-1/2 px-4 pointer-events-none">
           <div className="flex justify-end">
             <motion.button
               type="button"
@@ -173,7 +163,7 @@ export default function Explore() {
               onClick={handleTraceYours}
               aria-label="Trace a product with camera"
               title="Trace yours"
-              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-jejak-gold text-jejak-navy shadow-[0_8px_24px_rgba(255,194,75,0.45)] border-2 border-white/90 hover:brightness-105 no-tap"
+              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-jejak-gold text-jejak-navy shadow-[0_8px_24px_rgba(255,194,75,0.45)] border-2 border-white/95 hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy"
             >
               <Camera size={20} strokeWidth={2.4} />
             </motion.button>
@@ -195,7 +185,7 @@ export default function Explore() {
           reduce={reduce}
         />
 
-        {/* Detail Sheet on Row Tap */}
+        {/* Shared TraceDetailSheet on Row Tap */}
         <TraceDetailSheet
           scan={selectedScan}
           onClose={() => setSelectedScan(null)}
@@ -218,14 +208,15 @@ export default function Explore() {
               />
               <motion.div
                 className="relative w-full max-w-[420px] rounded-t-3xl frosted-strong p-5 pb-8"
-                initial={{ y: "100%" }}
-                animate={{ y: 0 }}
-                exit={{ y: "100%" }}
+                initial={reduce ? { opacity: 0 } : { y: "100%" }}
+                animate={reduce ? { opacity: 1 } : { y: 0 }}
+                exit={reduce ? { opacity: 0 } : { y: "100%" }}
                 transition={{ type: "spring", stiffness: 360, damping: 34 }}
               >
                 <div className="flex items-center justify-between">
                   <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-jejak-navy">
-                    <Sparkles size={13} className="text-jejak-coral" /> Community privacy
+                    <Sparkles size={13} className="text-jejak-coral" />{" "}
+                    Community privacy
                   </span>
                   <button
                     type="button"
@@ -236,7 +227,9 @@ export default function Explore() {
                   </button>
                 </div>
                 <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  Every trace is private by default and only appears here when a user explicitly opts in; seeded demo entries are covered by the single “Sample data” banner and excluded from live counts.
+                  Every trace is private by default and only appears here when a
+                  user explicitly opts in; seeded demo entries are covered by
+                  the single “Sample data” banner and excluded from live counts.
                 </p>
               </motion.div>
             </motion.div>

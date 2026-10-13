@@ -1,15 +1,15 @@
 export const FLAGS = {
-  Bangladesh: "🇧🇩",
-  Vietnam: "🇻🇳",
-  Ethiopia: "🇪🇹",
-  China: "🇨🇳",
-  Cambodia: "🇰🇭",
-  Indonesia: "🇮🇩",
-  India: "🇮🇳",
-  Singapore: "🇸🇬",
-  Netherlands: "🇳🇱",
-  "United Kingdom": "🇬🇧",
-  UK: "🇬🇧",
+  Bangladesh: "BD",
+  Vietnam: "VN",
+  Ethiopia: "ET",
+  China: "CN",
+  Cambodia: "KH",
+  Indonesia: "ID",
+  India: "IN",
+  Singapore: "SG",
+  Netherlands: "NL",
+  "United Kingdom": "GB",
+  UK: "GB",
 };
 
 export const ORIGIN_COORDS = {
@@ -43,6 +43,8 @@ const RETIRED_SHARED_TX_HASH =
   "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
 const RETIRED_SHARED_SHA256 =
   "711a78b17f427af83d26d3efcce5af117cee0bf2fb8c375b4cf3388a4b20113c";
+export const EMPTY_STRING_SHA256 =
+  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
 export function isSampleScan(scan) {
   return Boolean(scan && (scan.sample_entry || scan.is_sample));
@@ -64,7 +66,7 @@ export function materialOriginLine(scan) {
 
 export function materialMadeInHeadline(scan) {
   if (!scan) return "";
-  return `${getMaterialName(scan)} · Made in ${scan.origin || "Origin"}`;
+  return `${getMaterialName(scan)} · ${scan.origin || "Origin"}`;
 }
 
 export function getScanBasis(scan) {
@@ -98,10 +100,22 @@ export function relativeTracedTime(iso) {
 
 export function hasOwnAnchoredRecord(scan) {
   if (!scan) return false;
-  const tx = typeof scan.stellar_tx_hash === "string" ? scan.stellar_tx_hash.trim() : "";
-  const sha = typeof scan.record_sha256 === "string" ? scan.record_sha256.trim() : "";
+  const tx =
+    typeof scan.stellar_tx_hash === "string"
+      ? scan.stellar_tx_hash.trim().toLowerCase()
+      : "";
+  const sha =
+    typeof scan.record_sha256 === "string"
+      ? scan.record_sha256.trim().toLowerCase()
+      : "";
   if (tx.length !== 64 || sha.length !== 64) return false;
-  if (tx === RETIRED_SHARED_TX_HASH || sha === RETIRED_SHARED_SHA256) return false;
+  if (
+    tx === RETIRED_SHARED_TX_HASH ||
+    sha === RETIRED_SHARED_SHA256 ||
+    sha === EMPTY_STRING_SHA256
+  ) {
+    return false;
+  }
   return true;
 }
 

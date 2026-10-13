@@ -5,12 +5,16 @@ import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
 import { computeSplit, formatMoney, getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
+import Logo from "@/components/Logo";
 import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
+import OriginFlagChip from "@/components/explore/OriginFlagChip";
+import PersonalOriginMapHeader from "@/components/explore/PersonalOriginMapHeader";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
-import { FLAGS } from "@/components/explore/exploreUtils";
-import { ArrowDownLeft, Info, X } from "lucide-react";
+import { ArrowDownLeft, Info, Landmark, X } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 
+// Each traced purchase has its own distinct canonical provenance record,
+// SHA-256 hash, and Stellar Testnet transaction hash.
 const FEED = [
   {
     id: "bank-coffee",
@@ -119,10 +123,13 @@ const FEED = [
     basis: "Estimated",
     label_materials: "Moulded TPU",
     created_date: new Date(Date.now() - 48 * 3600 * 1000).toISOString(),
-    stellar_tx_hash: "",
-    stellar_ledger: 0,
-    record_sha256: "",
-    canonical_json: "",
+    stellar_tx_hash:
+      "892b9d299032db32a61751c73e3260e85894912b2f1ce44eaddb2c9b525e6d54",
+    stellar_ledger: 5181332,
+    record_sha256:
+      "b29d71731eb680f585554ddad02a103b31ea4bfe0ff8e30121ff52d7564d3c34",
+    canonical_json:
+      '{"schema_version":"jejak.provenance.v1","record_type":"anchored_record_of_an_estimate","trace_id":"bank-case-china","product_category":"phone_case","product_name":"Phone Case","origin":"China","materials":"Moulded TPU","basis":"Estimated","market":"GB","price":25,"currency":"GBP","estimated_labour_pct":4,"timestamp":"2026-10-13T19:25:00Z"}',
   },
   {
     id: "bank-salary",
@@ -133,7 +140,8 @@ const FEED = [
   },
 ];
 
-const WEEK_COUNTRIES = [
+const WEEK_ORIGINS = ["Ethiopia", "Bangladesh", "Vietnam", "China"];
+const WEEK_ALL_COUNTRIES = [
   "Ethiopia",
   "Bangladesh",
   "Vietnam",
@@ -154,6 +162,9 @@ export default function Embedded() {
   } = useApp();
   const navigate = useNavigate();
   const reduce = useReducedMotion();
+
+  // In-memory state only ("Without Jejak | With Jejak" toggle, default With)
+  const [withJejak, setWithJejak] = useState(true);
   const [selectedScan, setSelectedScan] = useState(null);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
 
@@ -162,7 +173,7 @@ export default function Embedded() {
 
   const openDetailForTx = (tx) => {
     const prod = tx.productId ? getProduct(tx.productId) : null;
-    if (!prod) return;
+    if (!prod || !withJejak) return;
     vibrate(6);
     const price = +(Math.abs(tx.amount) * fxMult).toFixed(2);
     const split = computeSplit(prod, market, "split", price);
@@ -203,14 +214,18 @@ export default function Embedded() {
   };
 
   return (
-    <ScreenShell variant="soft">
-      <div className="flex flex-1 flex-col px-5 pt-1 pb-6 space-y-3.5">
-        {/* Top bar: small "Embedded concept" badge + ⓘ chip */}
-        <div className="flex items-center justify-between gap-2">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/75 border border-white/90 px-3 py-1 text-[10px] font-extrabold uppercase tracking-wider text-jejak-navy shadow-sm">
-            <span className="h-1.5 w-1.5 rounded-full bg-jejak-freight" />
-            Embedded concept
-          </span>
+    <ScreenShell variant="host-bank" header={false}>
+      <div className="flex flex-1 flex-col px-5 pt-5 pb-6 space-y-3.5">
+        {/* Fictional "Demo Bank" Host Header + Single Merged "Embedded concept ⓘ" Badge */}
+        <header className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
+              <Landmark size={16} strokeWidth={2.2} />
+            </div>
+            <span className="text-base font-extrabold tracking-tight text-slate-900">
+              Demo Bank
+            </span>
+          </div>
 
           <button
             type="button"
@@ -219,48 +234,88 @@ export default function Embedded() {
               setShowInfoSheet(true);
             }}
             aria-label="About embedded concept"
-            className="inline-flex items-center gap-1 rounded-full bg-white/75 border border-white/90 px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy shadow-sm hover:bg-white no-tap"
+            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm hover:bg-slate-50 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
           >
-            <Info size={12} className="text-jejak-freight" />
-            <span>Info</span>
+            <span>Embedded concept</span>
+            <Info size={13} className="text-slate-500" />
+          </button>
+        </header>
+
+        {/* "Without Jejak | With Jejak" Toggle (in-memory state only, default With) */}
+        <div
+          role="group"
+          aria-label="Jejak integration toggle"
+          className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-200/75 p-1 border border-slate-200"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(5);
+              setWithJejak(false);
+            }}
+            aria-pressed={!withJejak}
+            className={`rounded-xl py-1.5 text-xs font-bold transition-all no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 ${
+              !withJejak
+                ? "bg-white text-slate-900 shadow-sm"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            Without Jejak
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(5);
+              setWithJejak(true);
+            }}
+            aria-pressed={withJejak}
+            className={`inline-flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-extrabold transition-all no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy ${
+              withJejak
+                ? "bg-white text-jejak-navy shadow-sm ring-1 ring-jejak-gold/60"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <Logo size={16} />
+            <span>With Jejak</span>
           </button>
         </div>
 
-        {/* Bright Bank Account Header: Balance + Provenance Summary + Row of Origin Flags */}
-        <div className="rounded-3xl frosted-strong border border-white/90 p-5 shadow-md">
-          <p className="text-[11px] font-extrabold uppercase tracking-wider text-jejak-navy/50">
-            Current account
-          </p>
-          <p className="mt-1 text-3xl sm:text-4xl font-extrabold tracking-tight text-jejak-navy tabular-nums">
-            {formatMoney(displayBalance, currency)}
-          </p>
-
-          <div className="mt-3 pt-3 border-t border-jejak-navy/8 flex items-center justify-between gap-2 flex-wrap">
-            <p className="text-xs font-extrabold text-jejak-navy/80">
-              This week: 4 purchases traced · 6 countries
-            </p>
-            <div className="flex items-center gap-1" aria-label="Traced countries">
-              {WEEK_COUNTRIES.map((country) => (
-                <span
-                  key={country}
-                  title={country}
-                  className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white/85 border border-jejak-navy/10 text-xs shadow-sm"
-                >
-                  {FLAGS[country] || "🌐"}
-                </span>
-              ))}
+        {/* Neutral Host Bank Balance Card + Personal Origin-Arc Map Header (when With Jejak) */}
+        <div className="rounded-3xl bg-white border border-slate-200/90 p-5 shadow-sm">
+          <div className="flex items-baseline justify-between gap-2">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                Current account
+              </p>
+              <p className="mt-0.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 tabular-nums">
+                {formatMoney(displayBalance, currency)}
+              </p>
             </div>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-500">
+              Sort 04-00-24
+            </span>
           </div>
+
+          <AnimatePresence initial={false}>
+            {withJejak && (
+              <PersonalOriginMapHeader
+                key="personal-map"
+                origins={WEEK_ORIGINS}
+                allCountries={WEEK_ALL_COUNTRIES}
+                homeCountry={
+                  market === "SG" ? "Singapore" : "United Kingdom"
+                }
+                reduce={reduce}
+              />
+            )}
+          </AnimatePresence>
         </div>
 
-        {/* Bright Bank Feed Rows */}
-        <div className="rounded-3xl frosted-strong border border-white/90 overflow-hidden shadow-md divide-y divide-jejak-navy/8">
-          {FEED.map((tx) => {
+        {/* Host Bank Transaction Feed */}
+        <div className="rounded-3xl bg-white border border-slate-200/90 overflow-hidden shadow-sm divide-y divide-slate-100">
+          {FEED.map((tx, rowIdx) => {
             const prod = tx.productId ? getProduct(tx.productId) : null;
             const rawPrice = +(Math.abs(tx.amount) * fxMult).toFixed(2);
-            const split = prod
-              ? computeSplit(prod, market, "split", rawPrice)
-              : null;
             const route = prod ? getRoute(prod, market) : [];
             const routeFlags = prod
               ? Array.from(
@@ -273,28 +328,30 @@ export default function Embedded() {
                   .slice(0, 2)
               : [];
 
+            const isInteractive = Boolean(prod && withJejak);
+
             return (
               <div
                 key={tx.id}
-                role={prod ? "button" : undefined}
-                tabIndex={prod ? 0 : undefined}
+                role={isInteractive ? "button" : undefined}
+                tabIndex={isInteractive ? 0 : undefined}
                 onClick={() => {
-                  if (prod) openDetailForTx(tx);
+                  if (isInteractive) openDetailForTx(tx);
                 }}
                 onKeyDown={(e) => {
-                  if (prod && (e.key === "Enter" || e.key === " ")) {
+                  if (isInteractive && (e.key === "Enter" || e.key === " ")) {
                     e.preventDefault();
                     openDetailForTx(tx);
                   }
                 }}
-                className={`px-4 py-3.5 transition-colors no-tap ${
-                  prod
-                    ? "cursor-pointer hover:bg-white/75 active:bg-white/90"
+                className={`px-4 py-3.5 transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${
+                  isInteractive
+                    ? "cursor-pointer hover:bg-slate-50/90 active:bg-slate-100/70"
                     : ""
                 }`}
               >
-                <div className="flex items-center justify-between gap-3">
-                  {/* Left: Illustrated product icon or neutral merchant avatar + Merchant name */}
+                <div className="flex items-center justify-between gap-2.5">
+                  {/* Left: Shared ProductIllustrationIcon or neutral merchant avatar */}
                   <div className="flex items-center gap-3 min-w-0 flex-1">
                     {prod ? (
                       <ProductIllustrationIcon
@@ -302,44 +359,71 @@ export default function Embedded() {
                         size="sm"
                       />
                     ) : (
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-jejak-materials/15 border border-jejak-materials/30 text-jejak-materials">
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200/70 text-emerald-600">
                         <ArrowDownLeft size={17} strokeWidth={2.4} />
                       </div>
                     )}
 
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-extrabold text-jejak-navy truncate">
+                      <p className="text-sm font-bold text-slate-900 truncate">
                         {tx.merchant}
                       </p>
-                      <p className="text-[11px] font-semibold text-jejak-navy/50 truncate">
+                      <p className="text-[11px] font-medium text-slate-400 truncate">
                         {tx.date} · {tx.cat}
                       </p>
                     </div>
                   </div>
 
-                  {/* Right: "Trace" chip with origin flag(s) + Amount */}
+                  {/* Right: Hero Jejak "Trace" Chip (animates in row-by-row when With Jejak) + Amount */}
                   <div className="flex items-center gap-2.5 shrink-0">
-                    {prod && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDetailForTx(tx);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-full bg-jejak-navy/6 hover:bg-jejak-navy hover:text-white border border-jejak-navy/12 px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy transition-colors no-tap"
-                      >
-                        <span className="text-xs leading-none">
-                          {routeFlags.map((c) => FLAGS[c] || "🌐").join("")}
-                        </span>
-                        <span>Trace</span>
-                      </button>
-                    )}
+                    <AnimatePresence>
+                      {prod && withJejak && (
+                        <motion.div
+                          key={`chip-${tx.id}`}
+                          initial={
+                            reduce
+                              ? false
+                              : { opacity: 0, scale: 0.82, x: 8 }
+                          }
+                          animate={
+                            reduce
+                              ? { opacity: 1, scale: 1, x: 0 }
+                              : {
+                                  opacity: 1,
+                                  scale: [0.85, 1.06, 1],
+                                  x: 0,
+                                }
+                          }
+                          exit={
+                            reduce
+                              ? undefined
+                              : { opacity: 0, scale: 0.85, x: 6 }
+                          }
+                          transition={{
+                            duration: reduce ? 0 : 0.38,
+                            delay: reduce ? 0 : rowIdx * 0.08,
+                            ease: "easeOut",
+                          }}
+                        >
+                          <OriginFlagChip
+                            countries={routeFlags}
+                            variant="jejak-hero"
+                            size="md"
+                            labelOverride="Trace"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openDetailForTx(tx);
+                            }}
+                          />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
 
                     <span
                       className={`text-sm font-extrabold tabular-nums ${
                         tx.amount > 0
-                          ? "text-jejak-materials"
-                          : "text-jejak-navy"
+                          ? "text-emerald-600"
+                          : "text-slate-900"
                       }`}
                     >
                       {tx.amount > 0 ? "+" : "-"}
@@ -347,24 +431,6 @@ export default function Embedded() {
                     </span>
                   </div>
                 </div>
-
-                {/* Optional thin 5-color split bar beneath traceable rows (no orange "est. maker" text) */}
-                {split && (
-                  <div className="mt-2 pl-12">
-                    <div className="flex h-1 w-full overflow-hidden rounded-full bg-jejak-navy/8">
-                      {split.map((seg) => (
-                        <div
-                          key={seg.key}
-                          style={{
-                            width: `${seg.pct.mid}%`,
-                            background: seg.color,
-                          }}
-                          className="h-full"
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             );
           })}
@@ -388,30 +454,31 @@ export default function Embedded() {
               exit={{ opacity: 0 }}
             >
               <div
-                className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
                 onClick={() => setShowInfoSheet(false)}
               />
               <motion.div
-                className="relative w-full max-w-[420px] rounded-t-3xl frosted-strong p-5 pb-8"
+                className="relative w-full max-w-[420px] rounded-t-3xl bg-white border-t border-slate-200 p-5 pb-8 shadow-2xl"
                 initial={reduce ? { opacity: 0 } : { y: "100%" }}
                 animate={reduce ? { opacity: 1 } : { y: 0 }}
                 exit={reduce ? { opacity: 0 } : { y: "100%" }}
                 transition={{ type: "spring", stiffness: 360, damping: 34 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-extrabold uppercase tracking-wider text-jejak-navy">
+                  <span className="text-xs font-extrabold uppercase tracking-wider text-slate-900">
                     Embedded concept
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowInfoSheet(false)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-jejak-navy/10 text-jejak-navy no-tap"
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-slate-700 no-tap"
                   >
                     <X size={14} />
                   </button>
                 </div>
-                <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  Concept preview, not a live bank connection.
+                <p className="mt-2.5 text-xs font-medium leading-relaxed text-slate-600">
+                  Concept preview with a fictional bank. Not a live bank
+                  connection.
                 </p>
               </motion.div>
             </motion.div>

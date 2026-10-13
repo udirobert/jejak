@@ -3,21 +3,22 @@ import { motion } from "framer-motion";
 import { geoNaturalEarth1, geoPath, geoGraticule10 } from "d3-geo";
 import { feature } from "topojson-client";
 import worldTopo from "world-atlas/countries-110m.json";
-import { Info } from "lucide-react";
-import { FLAGS, ORIGIN_COORDS } from "./exploreUtils";
+import { Info, RotateCcw } from "lucide-react";
+import { ORIGIN_COORDS } from "./exploreUtils";
+import { MapSvgFlag } from "./OriginFlagChip";
 import { vibrate } from "@/lib/haptics";
 
 const worldGeo = feature(worldTopo, worldTopo.objects.countries);
 
 const W = 420;
 const H = 560;
-const CLUSTER_RADIUS_PX = 38;
+const CLUSTER_RADIUS_PX = 36;
 
 const CATEGORY_ACCENTS = [
   "#FFC24B", // gold
   "#FF7A1A", // labour orange
   "#2FBF71", // materials green
-  "#2D5BFF", // freight blue
+  "#38BDF8", // bright sky-teal
   "#FF3D81", // retail magenta
 ];
 
@@ -30,6 +31,7 @@ export default function ExploreFullBleedMap({
   reduce,
 }) {
   const [expandedClusterId, setExpandedClusterId] = useState(null);
+  const [hoveredOrigin, setHoveredOrigin] = useState(null);
   const [graticuleOffset, setGraticuleOffset] = useState(0);
 
   // Subtle animated graticule drift (respects prefers-reduced-motion)
@@ -41,26 +43,24 @@ export default function ExploreFullBleedMap({
     return () => clearInterval(id);
   }, [reduce]);
 
-  // Collapse expanded cluster when originFilter resets to All
-  useEffect(() => {
-    if (originFilter === "All") {
-      // keep cluster open if user just expanded it, otherwise no-op
-    }
-  }, [originFilter]);
-
   const tracedSet = useMemo(
     () => new Set(originChips.map((c) => c.origin)),
     [originChips]
   );
 
-  // Center the projection on the Afro-Eurasian origin belt where traces cluster,
-  // while showing the surrounding world ocean & continents full-bleed.
+  // Total live (non-sample) traces across all origins
+  const liveCount = useMemo(
+    () => originChips.reduce((sum, c) => sum + (c.real || 0), 0),
+    [originChips]
+  );
+
+  // Center the projection on the Afro-Eurasian origin belt where traces cluster
   const projection = useMemo(
     () =>
       geoNaturalEarth1()
         .rotate([-65, 0])
         .scale(138)
-        .translate([W * 0.46, H * 0.41]),
+        .translate([W * 0.46, H * 0.42]),
     []
   );
 
@@ -131,14 +131,12 @@ export default function ExploreFullBleedMap({
       const cy =
         members.reduce((sum, m) => sum + m.y, 0) / members.length;
       const id = members.map((m) => m.origin).join("|");
-      const totalCount = members.reduce((sum, m) => sum + m.total, 0);
 
       groups.push({
         id,
         cx,
         cy,
         members,
-        totalCount,
       });
     }
     return groups;
@@ -166,7 +164,7 @@ export default function ExploreFullBleedMap({
 
   return (
     <div className="absolute inset-0 overflow-hidden select-none">
-      {/* Full-bleed high-contrast SVG map */}
+      {/* Full-bleed rich indigo/teal ocean SVG map */}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid slice"
@@ -177,18 +175,18 @@ export default function ExploreFullBleedMap({
         }}
       >
         <defs>
-          {/* Rich ocean gradient */}
-          <radialGradient id="richOceanBg" cx="50%" cy="38%" r="75%">
-            <stop offset="0%" stopColor="#172A5A" />
-            <stop offset="55%" stopColor="#0F1C3F" />
-            <stop offset="100%" stopColor="#091024" />
+          {/* Deep, rich indigo/teal ocean gradient (no pure black) */}
+          <radialGradient id="richOceanBg" cx="48%" cy="36%" r="78%">
+            <stop offset="0%" stopColor="#1B4D7E" />
+            <stop offset="52%" stopColor="#153963" />
+            <stop offset="100%" stopColor="#162A4C" />
           </radialGradient>
 
           {/* Warm sunrise glow for traced origin land */}
           <linearGradient id="tracedLandFill" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#FF8A65" />
             <stop offset="55%" stopColor="#FFC24B" />
-            <stop offset="100%" stopColor="#FF3D81" />
+            <stop offset="100%" stopColor="#FF5E7E" />
           </linearGradient>
 
           {/* Selected origin land highlight */}
@@ -197,7 +195,7 @@ export default function ExploreFullBleedMap({
             <stop offset="100%" stopColor="#2FBF71" />
           </linearGradient>
 
-          {/* Glow filter for origin dots and arcs */}
+          {/* Soft glow filter for origin dots and arcs */}
           <filter id="originGlow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3.5" result="blur" />
             <feMerge>
@@ -207,21 +205,21 @@ export default function ExploreFullBleedMap({
           </filter>
         </defs>
 
-        {/* Rich ocean backdrop */}
+        {/* Rich indigo/teal ocean backdrop */}
         <rect x="0" y="0" width={W} height={H} fill="url(#richOceanBg)" />
 
         {/* Subtle animated graticule */}
         <path
           d={graticulePath}
           fill="none"
-          stroke="#4F6EC9"
+          stroke="#6395CC"
           strokeWidth="0.55"
           strokeDasharray="4 6"
           strokeDashoffset={graticuleOffset}
-          opacity="0.28"
+          opacity="0.3"
         />
 
-        {/* Saturated land masses + glowing origin countries */}
+        {/* Vivid saturated land masses + glowing origin countries */}
         {countries.map((c) => (
           <path
             key={c.key}
@@ -231,17 +229,17 @@ export default function ExploreFullBleedMap({
                 ? "url(#selectedLandFill)"
                 : c.isTraced
                 ? "url(#tracedLandFill)"
-                : "#243560"
+                : "#265584"
             }
-            fillOpacity={c.isSelected ? 0.95 : c.isTraced ? 0.78 : 0.88}
+            fillOpacity={c.isSelected ? 0.96 : c.isTraced ? 0.82 : 0.9}
             stroke={
               c.isSelected
                 ? "#FFFFFF"
                 : c.isTraced
                 ? "#FFE49E"
-                : "#395089"
+                : "#467EB5"
             }
-            strokeWidth={c.isSelected ? 1.2 : c.isTraced ? 0.85 : 0.45}
+            strokeWidth={c.isSelected ? 1.25 : c.isTraced ? 0.9 : 0.5}
             onClick={(e) => {
               if (!c.isTraced) return;
               e.stopPropagation();
@@ -272,7 +270,7 @@ export default function ExploreFullBleedMap({
               strokeWidth="2.5"
               strokeLinecap="round"
               initial={reduce ? { pathLength: 1 } : { pathLength: 0, opacity: 1 }}
-              animate={{ pathLength: 1, opacity: [1, 1, 0.3] }}
+              animate={{ pathLength: 1, opacity: [1, 1, 0.35] }}
               transition={{ duration: reduce ? 0 : 1.15, ease: "easeOut" }}
             />
             {!reduce && (
@@ -296,7 +294,6 @@ export default function ExploreFullBleedMap({
               cluster.members.some((m) => m.origin === originFilter));
 
           if (!isSingle && !isExpanded) {
-            // Clustered bubble with count that expands on tap
             return (
               <g
                 key={cluster.id}
@@ -309,16 +306,16 @@ export default function ExploreFullBleedMap({
                 style={{ cursor: "pointer" }}
               >
                 {!reduce && (
-                  <circle r="18" fill="#FFC24B" opacity="0.25">
+                  <circle r="18" fill="#FFC24B" opacity="0.28">
                     <animate
                       attributeName="r"
-                      values="13;24;13"
+                      values="13;23;13"
                       dur="2.1s"
                       repeatCount="indefinite"
                     />
                     <animate
                       attributeName="opacity"
-                      values="0.45;0.05;0.45"
+                      values="0.45;0.06;0.45"
                       dur="2.1s"
                       repeatCount="indefinite"
                     />
@@ -326,7 +323,7 @@ export default function ExploreFullBleedMap({
                 )}
                 <circle
                   r="13"
-                  fill="#1B1B3A"
+                  fill="#173861"
                   stroke="#FFC24B"
                   strokeWidth="2.2"
                   filter="url(#originGlow)"
@@ -341,34 +338,10 @@ export default function ExploreFullBleedMap({
                 >
                   {cluster.members.length}
                 </text>
-                <g transform="translate(0, -19)">
-                  <rect
-                    x="-28"
-                    y="-8"
-                    width="56"
-                    height="13"
-                    rx="6.5"
-                    fill="rgba(27,27,58,0.88)"
-                    stroke="rgba(255,194,75,0.5)"
-                    strokeWidth="0.8"
-                  />
-                  <text
-                    x="0"
-                    y="1"
-                    textAnchor="middle"
-                    fill="#FFFFFF"
-                    fontSize="7.5"
-                    fontWeight="800"
-                    fontFamily="Plus Jakarta Sans, sans-serif"
-                  >
-                    {cluster.members.length} origins
-                  </text>
-                </g>
               </g>
             );
           }
 
-          // Render individual pulsing origin dots (fanned out if part of an expanded cluster)
           return (
             <g key={cluster.id}>
               {cluster.members.map((pin, idx) => {
@@ -377,7 +350,7 @@ export default function ExploreFullBleedMap({
                   count > 1
                     ? -Math.PI / 2 + (idx * 2 * Math.PI) / count
                     : 0;
-                const fanRadius = count > 1 ? 28 : 0;
+                const fanRadius = count > 1 ? 30 : 0;
                 const px =
                   count > 1
                     ? cluster.cx + Math.cos(angle) * fanRadius
@@ -387,9 +360,19 @@ export default function ExploreFullBleedMap({
                     ? cluster.cy + Math.sin(angle) * fanRadius
                     : pin.y;
 
+                const showFullLabel =
+                  pin.active || hoveredOrigin === pin.origin;
+                const pillW = Math.max(76, pin.origin.length * 6.4 + 34);
+                const halfW = pillW / 2;
+                // Clamp horizontal label offset so edge pins (e.g. Ethiopia, Indonesia) are never clipped
+                const clampedX = Math.max(
+                  halfW + 10,
+                  Math.min(W - halfW - 10, px)
+                );
+                const labelShiftX = clampedX - px;
+
                 return (
                   <g key={pin.origin}>
-                    {/* Leader line from true origin to fanned dot */}
                     {count > 1 && (
                       <line
                         x1={pin.x}
@@ -399,11 +382,13 @@ export default function ExploreFullBleedMap({
                         stroke="#FFC24B"
                         strokeWidth="1.2"
                         strokeDasharray="2 2"
-                        opacity="0.75"
+                        opacity="0.8"
                       />
                     )}
                     <g
                       transform={`translate(${px}, ${py})`}
+                      onMouseEnter={() => setHoveredOrigin(pin.origin)}
+                      onMouseLeave={() => setHoveredOrigin(null)}
                       onClick={(e) => {
                         e.stopPropagation();
                         vibrate(6);
@@ -413,12 +398,12 @@ export default function ExploreFullBleedMap({
                       }}
                       style={{ cursor: "pointer" }}
                     >
-                      {/* Pulsing halo */}
+                      {/* Soft glowing halo */}
                       {!reduce && (
                         <circle
                           r={pin.active ? 18 : 13}
                           fill={pin.active ? "#2FBF71" : pin.color}
-                          opacity="0.3"
+                          opacity="0.32"
                         >
                           <animate
                             attributeName="r"
@@ -437,45 +422,60 @@ export default function ExploreFullBleedMap({
 
                       {/* Core glowing dot */}
                       <circle
-                        r={pin.active ? 9 : 6.5}
+                        r={pin.active ? 8.5 : 6.5}
                         fill={pin.active ? "#2FBF71" : pin.color}
                         stroke="#FFFFFF"
                         strokeWidth={pin.active ? 2.4 : 1.8}
                         filter="url(#originGlow)"
                       />
 
-                      {/* Country label pill */}
-                      <g transform="translate(0, -14)">
-                        <rect
-                          x="-30"
-                          y="-9"
-                          width="60"
-                          height="14"
-                          rx="7"
-                          fill={
-                            pin.active
-                              ? "#2FBF71"
-                              : "rgba(15, 23, 42, 0.86)"
-                          }
-                          stroke={
-                            pin.active
-                              ? "#FFFFFF"
-                              : "rgba(255, 255, 255, 0.28)"
-                          }
-                          strokeWidth="0.8"
-                        />
-                        <text
-                          x="0"
-                          y="0.5"
-                          textAnchor="middle"
-                          fill={pin.active ? "#0B132B" : "#FFFFFF"}
-                          fontSize="7.8"
-                          fontWeight="800"
-                          fontFamily="Plus Jakarta Sans, sans-serif"
-                        >
-                          {FLAGS[pin.origin] || "🌐"} {pin.origin.slice(0, 8)}
-                        </text>
-                      </g>
+                      {/* Flag only until selected/hovered; full unclamped label when selected/hovered */}
+                      {showFullLabel ? (
+                        <g transform={`translate(${labelShiftX}, -16)`}>
+                          <rect
+                            x={-halfW}
+                            y="-9"
+                            width={pillW}
+                            height="18"
+                            rx="9"
+                            fill={
+                              pin.active
+                                ? "#2FBF71"
+                                : "rgba(19, 44, 78, 0.94)"
+                            }
+                            stroke="#FFFFFF"
+                            strokeWidth="1"
+                          />
+                          <MapSvgFlag
+                            country={pin.origin}
+                            x={-halfW + 13}
+                            y={0}
+                            width={14}
+                            height={10}
+                          />
+                          <text
+                            x="7"
+                            y="3"
+                            textAnchor="middle"
+                            fill={pin.active ? "#0F2440" : "#FFFFFF"}
+                            fontSize="8.8"
+                            fontWeight="800"
+                            fontFamily="Plus Jakarta Sans, sans-serif"
+                          >
+                            {pin.origin}
+                          </text>
+                        </g>
+                      ) : (
+                        <g transform="translate(0, -14)">
+                          <MapSvgFlag
+                            country={pin.origin}
+                            x={0}
+                            y={0}
+                            width={16}
+                            height={11}
+                          />
+                        </g>
+                      )}
                     </g>
                   </g>
                 );
@@ -485,24 +485,42 @@ export default function ExploreFullBleedMap({
         })}
       </svg>
 
-      {/* Top Overlay Controls: Community Live chip + Single Info Icon chip + Edge-Faded Scrollable Filter Strip */}
-      <div className="pointer-events-none absolute inset-x-0 top-14 z-20 px-5 space-y-2">
+      {/* Top Overlay Bar: Map dots ARE the filter — only a compact "All" reset chip + Privacy ⓘ */}
+      <div className="pointer-events-none absolute inset-x-0 top-16 z-20 px-5">
         <div className="flex items-center justify-between gap-2">
-          <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-jejak-navy/75 backdrop-blur-md border border-white/20 px-3 py-1 shadow-md">
-            <span
-              className={`h-2 w-2 rounded-full bg-jejak-materials ${
-                reduce ? "" : "animate-pulse"
-              }`}
-            />
-            <span className="text-xs font-extrabold tracking-tight text-white">
-              Community Map
-            </span>
-            <span className="text-[10px] font-bold text-amber-300 tabular-nums">
-              {originChips.length} origins
-            </span>
+          <div className="flex items-center gap-1.5">
+            <div className="pointer-events-auto inline-flex items-center gap-2 rounded-full bg-[#122D4F]/80 backdrop-blur-md border border-white/25 px-3 py-1 shadow-md">
+              <span
+                className={`h-2 w-2 rounded-full bg-jejak-materials ${
+                  reduce ? "" : "animate-pulse"
+                }`}
+              />
+              <span className="text-xs font-extrabold tracking-tight text-white">
+                {originFilter === "All"
+                  ? `${originChips.length} origins`
+                  : originFilter}
+              </span>
+              {liveCount > 0 && (
+                <span className="text-[10px] font-bold text-amber-300 tabular-nums">
+                  · {liveCount} live
+                </span>
+              )}
+            </div>
+
+            {originFilter !== "All" && (
+              <button
+                type="button"
+                onClick={() => {
+                  vibrate(5);
+                  onSelectOrigin("All");
+                }}
+                className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-jejak-gold px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy border border-white shadow-md hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                <RotateCcw size={11} /> All
+              </button>
+            )}
           </div>
 
-          {/* Single clean info icon chip (fixed double icon) */}
           <button
             type="button"
             onClick={() => {
@@ -510,68 +528,11 @@ export default function ExploreFullBleedMap({
               onOpenInfo();
             }}
             aria-label="Community privacy information"
-            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-jejak-navy/75 backdrop-blur-md border border-white/20 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-md hover:bg-jejak-navy no-tap"
+            className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-[#122D4F]/80 backdrop-blur-md border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-white shadow-md hover:bg-[#122D4F] no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
           >
             <Info size={13} className="text-amber-300" />
             <span>Privacy</span>
           </button>
-        </div>
-
-        {/* Scrollable filter pills with visible right-edge fade */}
-        <div
-          className="pointer-events-auto relative flex items-center gap-1.5 overflow-x-auto scrollbar-hide py-0.5 pr-8"
-          style={{
-            WebkitMaskImage:
-              "linear-gradient(to right, black 82%, transparent 100%)",
-            maskImage:
-              "linear-gradient(to right, black 82%, transparent 100%)",
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => {
-              vibrate(5);
-              onSelectOrigin("All");
-            }}
-            className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-extrabold transition-colors no-tap border ${
-              originFilter === "All"
-                ? "bg-jejak-gold text-jejak-navy border-white shadow-sm"
-                : "bg-jejak-navy/70 text-white/85 border-white/15 backdrop-blur-md hover:bg-jejak-navy"
-            }`}
-          >
-            All origins
-          </button>
-
-          {originChips.map((chip) => {
-            const active = originFilter === chip.origin;
-            return (
-              <button
-                key={chip.origin}
-                type="button"
-                onClick={() => {
-                  vibrate(5);
-                  onSelectOrigin(active ? "All" : chip.origin);
-                }}
-                className={`shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold transition-colors no-tap border ${
-                  active
-                    ? "bg-jejak-gold text-jejak-navy border-white shadow-sm"
-                    : "bg-jejak-navy/70 text-white/85 border-white/15 backdrop-blur-md hover:bg-jejak-navy"
-                }`}
-              >
-                <span>{FLAGS[chip.origin] || "🌐"}</span>
-                <span>{chip.origin}</span>
-                {chip.real > 0 && (
-                  <span
-                    className={`text-[10px] font-bold tabular-nums ${
-                      active ? "text-jejak-navy" : "text-amber-300"
-                    }`}
-                  >
-                    {chip.real}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </div>
       </div>
     </div>

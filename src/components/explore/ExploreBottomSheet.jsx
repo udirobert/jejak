@@ -3,8 +3,8 @@ import { motion } from "framer-motion";
 import { ChevronUp, ChevronDown, Sparkles, X } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 import ProductIllustrationIcon from "./ProductIllustrationIcon";
+import OriginFlagChip from "./OriginFlagChip";
 import {
-  FLAGS,
   isSampleScan,
   getMaterialName,
   relativeTracedTime,
@@ -12,8 +12,8 @@ import {
 } from "./exploreUtils";
 
 const SNAP_HEIGHTS = {
-  peek: 156,
-  half: 370,
+  peek: 162,
+  half: 376,
   full: 560,
 };
 
@@ -29,7 +29,9 @@ function CompactProductRow({
   const safeIdx = Math.min(activeIdx, items.length - 1);
   const scan = items[safeIdx] || items[0];
   const anchored = hasOwnAnchoredRecord(scan);
-  const origins = Array.from(new Set(items.map((i) => i.origin).filter(Boolean)));
+  const origins = Array.from(
+    new Set(items.map((i) => i.origin).filter(Boolean))
+  );
 
   return (
     <div
@@ -45,10 +47,8 @@ function CompactProductRow({
           onSelectScan(scan);
         }
       }}
-      className={`group flex items-center justify-between gap-3 py-2.5 px-2.5 rounded-2xl transition-colors cursor-pointer no-tap ${
-        isHighlighted
-          ? "bg-jejak-gold/20"
-          : "hover:bg-white/65"
+      className={`group flex items-center justify-between gap-3 py-2.5 px-2.5 rounded-2xl transition-colors cursor-pointer no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/50 ${
+        isHighlighted ? "bg-jejak-gold/20" : "hover:bg-white/65"
       }`}
     >
       {/* Left: Small illustrated product icon or user photo + "Product · Origin" */}
@@ -76,15 +76,17 @@ function CompactProductRow({
         </div>
       </div>
 
-      {/* Right: Origin switcher pills if multiple origins exist for this product */}
+      {/* Right: Shared OriginFlagChip switcher pills */}
       <div className="flex items-center gap-1 shrink-0">
         {origins.length > 1 ? (
           origins.map((orig) => {
             const active = scan.origin === orig;
             return (
-              <button
+              <OriginFlagChip
                 key={orig}
-                type="button"
+                country={orig}
+                size="xs"
+                active={active}
                 title={`View ${orig} trace`}
                 onClick={(e) => {
                   e.stopPropagation();
@@ -94,20 +96,11 @@ function CompactProductRow({
                     setActiveIdx(idx);
                   }
                 }}
-                className={`rounded-full px-1.5 py-0.5 text-[11px] leading-none transition-all no-tap ${
-                  active
-                    ? "bg-jejak-navy text-white shadow-sm"
-                    : "bg-jejak-navy/8 opacity-65 hover:opacity-100"
-                }`}
-              >
-                {FLAGS[orig] || "🌐"}
-              </button>
+              />
             );
           })
         ) : (
-          <span className="text-sm leading-none">
-            {FLAGS[scan.origin] || "🌐"}
-          </span>
+          <OriginFlagChip country={scan.origin} size="xs" />
         )}
       </div>
     </div>
@@ -165,7 +158,7 @@ export default function ExploreBottomSheet({
           ? { duration: 0 }
           : { type: "spring", stiffness: 340, damping: 34 }
       }
-      className="fixed bottom-0 left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 rounded-t-3xl frosted-strong border-t border-white/85 shadow-[0_-12px_40px_rgba(11,19,43,0.38)] flex flex-col overflow-hidden pb-20"
+      className="fixed bottom-0 left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 rounded-t-3xl frosted-strong border-t border-white/85 shadow-[0_-12px_40px_rgba(18,45,79,0.34)] flex flex-col overflow-hidden"
       style={{
         background:
           "linear-gradient(170deg, rgba(255,255,255,0.95) 0%, rgba(255,238,226,0.94) 55%, rgba(237,231,255,0.95) 100%)",
@@ -182,7 +175,7 @@ export default function ExploreBottomSheet({
             cycleSnap();
           }
         }}
-        className="shrink-0 pt-2.5 pb-1.5 px-4 cursor-grab active:cursor-grabbing select-none no-tap"
+        className="shrink-0 pt-2.5 pb-1.5 px-4 cursor-grab active:cursor-grabbing select-none no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/50"
       >
         <div className="mx-auto h-1.5 w-10 rounded-full bg-jejak-navy/20" />
 
@@ -206,7 +199,7 @@ export default function ExploreBottomSheet({
                 }}
                 className="inline-flex items-center gap-0.5 rounded-full bg-jejak-navy px-2 py-0.5 text-[10px] font-extrabold text-amber-300 no-tap"
               >
-                <X size={10} /> Reset
+                <X size={10} /> All
               </button>
             )}
           </div>
@@ -226,8 +219,8 @@ export default function ExploreBottomSheet({
         </div>
       </div>
 
-      {/* Sheet Content */}
-      <div className="flex-1 overflow-y-auto px-3.5 pb-4 scrollbar-hide">
+      {/* Sheet Scroll Content — bottom padding equals tab bar height + FAB + safe area so last row is never clipped */}
+      <div className="flex-1 overflow-y-auto px-3.5 pb-[calc(6.75rem+env(safe-area-inset-bottom,0px))] scrollbar-hide">
         {loading ? (
           <div className="space-y-2 py-2">
             {[0, 1].map((i) => (
@@ -244,7 +237,7 @@ export default function ExploreBottomSheet({
             ))}
           </div>
         ) : snap === "peek" ? (
-          /* PEEK MODE: Latest trace as a single compact line */
+          /* PEEK MODE: Latest trace as a single compact line, with right margin reserved for the bottom-right camera FAB */
           latestScan ? (
             <div
               role="button"
@@ -259,7 +252,7 @@ export default function ExploreBottomSheet({
                   onSelectScan(latestScan);
                 }
               }}
-              className="flex items-center justify-between gap-3 rounded-2xl bg-white/75 border border-white/90 px-3 py-2 shadow-sm cursor-pointer no-tap"
+              className="mr-14 flex items-center justify-between gap-2.5 rounded-2xl bg-white/80 border border-white/90 px-3 py-2 shadow-sm cursor-pointer no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/50"
             >
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <ProductIllustrationIcon
@@ -285,9 +278,7 @@ export default function ExploreBottomSheet({
                   </p>
                 </div>
               </div>
-              <span className="text-sm shrink-0">
-                {FLAGS[latestScan.origin] || "🌐"}
-              </span>
+              <OriginFlagChip country={latestScan.origin} size="xs" />
             </div>
           ) : (
             <p className="px-2 py-2 text-xs font-semibold text-jejak-navy/60">
@@ -306,7 +297,7 @@ export default function ExploreBottomSheet({
               </div>
             )}
 
-            <div className="divide-y divide-jejak-navy/8">
+            <div className="divide-y divide-jejak-navy/8 pr-12">
               {productGroups.map((group) => (
                 <CompactProductRow
                   key={group.productId}
