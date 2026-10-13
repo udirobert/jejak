@@ -84,6 +84,19 @@ export default function Impact() {
           </p>
         </motion.div>
 
+        {/* Why this matters */}
+        <motion.div
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.14 }}
+          className="mt-3 flex items-center gap-2 px-1"
+        >
+          <p className="text-xs font-semibold text-jejak-navy/70">
+            65% of shoppers would switch to brands that reveal product origins.
+          </p>
+          <span className="ml-auto text-[10px] font-bold text-jejak-navy/40">Source: ESW</span>
+        </motion.div>
+
         {/* Your traces */}
         <motion.div
           initial={{ opacity: 0, y: 14 }}

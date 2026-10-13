@@ -127,6 +127,9 @@ export default function MoneySplit() {
         >
           <p className="text-sm font-extrabold leading-snug text-jejak-navy">{impactLine}</p>
           <p className="mt-1 text-xs font-semibold text-jejak-navy/65">{stdImpact}</p>
+          <p className="mt-2 text-[11px] font-semibold text-jejak-navy/55">
+            Fair pay is one of the strongest reasons consumers say they'll pay more. <span className="text-jejak-navy/40">Source: McKinsey</span>
+          </p>
         </motion.div>
 
         {/* Compare summary */}

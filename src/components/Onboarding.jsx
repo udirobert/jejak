@@ -22,6 +22,8 @@ const SLIDES = [
     title: "See where every penny goes.",
     body: "Watch your money split into materials, labour, freight, brand and retail.",
     emoji: "🪙",
+    stat: "65% of shoppers would switch to brands that reveal product origins.",
+    source: "Source: ESW",
   },
 ];
 
@@ -92,6 +94,12 @@ export default function Onboarding() {
                 >
                   <h2 className="text-2xl font-extrabold leading-tight drop-shadow-sm">{SLIDES[idx].title}</h2>
                   <p className="mt-3 text-sm font-semibold text-white/90">{SLIDES[idx].body}</p>
+                  {SLIDES[idx].stat && (
+                    <p className="mt-4 rounded-xl bg-white/20 px-3 py-2 text-xs font-bold text-white">
+                      {SLIDES[idx].stat}
+                      <span className="ml-1 font-semibold text-white/70">{SLIDES[idx].source}</span>
+                    </p>
+                  )}
                 </motion.div>
               </AnimatePresence>
             </div>
