@@ -6,6 +6,7 @@ import { computeSplit, formatMoney, getRoute } from "@/lib/money";
 import Logo from "@/components/Logo";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import StageSidebars from "@/components/StageSidebars";
+import GlobalCorridorTicker from "@/components/GlobalCorridorTicker";
 import { ArrowUpRight, ArrowDownRight, ChevronLeft, HeartHandshake, Sparkles } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { vibrate, coinClink } from "@/lib/haptics";
@@ -98,6 +99,10 @@ export default function Embedded() {
               £{(totalSpent - totalToMakers).toFixed(2)} absorbed by retail, brand & freight intermediaries
               {totalBoosted > 0 ? ` · +£${totalBoosted.toFixed(2)} boosted by you` : ""}
             </p>
+          </div>
+
+          <div className="mt-2.5">
+            <GlobalCorridorTicker dark />
           </div>
         </div>
 

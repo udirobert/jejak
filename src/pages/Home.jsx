@@ -8,6 +8,7 @@ import ProductPicker from "@/components/ProductPicker";
 import StreakPill from "@/components/StreakPill";
 import ViewfinderStage from "@/components/ViewfinderStage";
 import DemoProductGrid from "@/components/DemoProductGrid";
+import GlobalCorridorTicker from "@/components/GlobalCorridorTicker";
 import { vibrate } from "@/lib/haptics";
 
 export default function Home() {
@@ -102,8 +103,9 @@ export default function Home() {
       />
 
       <div className="flex flex-1 flex-col px-5 pb-28">
-        <div className="mt-1">
+        <div className="mt-1 space-y-2">
           <StreakPill />
+          <GlobalCorridorTicker />
         </div>
 
         <motion.div
