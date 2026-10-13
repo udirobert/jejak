@@ -148,13 +148,14 @@ export default function ProvenanceAnchorCard({ compact = false }) {
       const data = res?.data || {};
       const txHash =
         data.hash ||
-        "976dc854593180c819797b3606963c4ecbccd83ae8cbec0b9ca47db5c1407ff3";
+        "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
+      const finalHashHex = data.recordHashHex || recordHashHex;
       setProvenanceRecord({
         record,
         canonicalJson,
-        recordHashHex,
+        recordHashHex: finalHashHex,
         txHash,
-        ledger: data.ledger || 5180640,
+        ledger: data.ledger || 5180822,
         explorerUrl:
           data.explorerUrl ||
           `https://stellar.expert/explorer/testnet/tx/${txHash}`,
@@ -163,13 +164,13 @@ export default function ProvenanceAnchorCard({ compact = false }) {
       });
     } catch {
       const fallbackHash =
-        "976dc854593180c819797b3606963c4ecbccd83ae8cbec0b9ca47db5c1407ff3";
+        "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
       setProvenanceRecord({
         record,
         canonicalJson,
         recordHashHex,
         txHash: fallbackHash,
-        ledger: 5180640,
+        ledger: 5180822,
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${fallbackHash}`,
         cachedFallback: true,
         fallbackNotice:

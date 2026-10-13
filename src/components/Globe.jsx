@@ -130,10 +130,10 @@ export default function Globe({
 
   const project = (pt) => projection(pt);
 
-  // Current coin + trailing pulse position.
+  // Signature animation: coin arcing along corridors into wallet markers (respects prefers-reduced-motion).
   let coin = null;
   let trail = null;
-  if (legs.length) {
+  if (!reduce && legs.length) {
     const safePos = Number.isFinite(coinPos) && coinPos >= 0 ? coinPos : 0;
     const seg = Math.max(0, Math.min(Math.floor(safePos), legs.length - 1));
     const leg = legs[seg];
@@ -141,12 +141,15 @@ export default function Globe({
       const t = Math.max(0, Math.min(safePos - seg, 1));
       const pt = leg.interp(t);
       const xy = project(pt);
-      if (xy) coin = { x: xy[0], y: xy[1], seg };
+      // Parabolic arc lift peaking mid-corridor and landing smoothly into the wallet marker
+      const arcLift = Math.sin(t * Math.PI) * 10;
+      if (xy) coin = { x: xy[0], y: xy[1] - arcLift, seg };
 
-      const tTrail = Math.max(0, t - 0.12);
+      const tTrail = Math.max(0, t - 0.11);
       const ptTrail = leg.interp(tTrail);
       const xyTrail = project(ptTrail);
-      if (xyTrail) trail = { x: xyTrail[0], y: xyTrail[1] };
+      const trailLift = Math.sin(tTrail * Math.PI) * 10;
+      if (xyTrail) trail = { x: xyTrail[0], y: xyTrail[1] - trailLift };
     }
   }
 
@@ -279,7 +282,7 @@ export default function Globe({
                   e.stopPropagation();
                   if (onSelectStop) {
                     vibrate(6);
-                    onSelectStop(m.idx);
+                    onSelectStop(m.idx, m.stop);
                   }
                 }}
                 style={{ cursor: onSelectStop ? "pointer" : "default" }}
@@ -291,18 +294,22 @@ export default function Globe({
                   fill={isOrigin ? COLORS.labour : COLORS.coral}
                   opacity={0.25}
                 >
-                  <animate
-                    attributeName="r"
-                    values={isFocused ? "7;15;7" : "5;11;5"}
-                    dur="2s"
-                    repeatCount="indefinite"
-                  />
-                  <animate
-                    attributeName="opacity"
-                    values="0.45;0.05;0.45"
-                    dur="2s"
-                    repeatCount="indefinite"
-                  />
+                  {!reduce && (
+                    <>
+                      <animate
+                        attributeName="r"
+                        values={isFocused ? "7;15;7" : "5;11;5"}
+                        dur="2s"
+                        repeatCount="indefinite"
+                      />
+                      <animate
+                        attributeName="opacity"
+                        values="0.45;0.05;0.45"
+                        dur="2s"
+                        repeatCount="indefinite"
+                      />
+                    </>
+                  )}
                 </circle>
                 <circle
                   cx={m.x}

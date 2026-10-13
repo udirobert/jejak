@@ -146,7 +146,7 @@ export default function StageSidebars() {
                 {formatMoney(workerTotal, currency)}
               </p>
               <p className="text-[10px] font-semibold text-jejak-navy/55">
-                Maker value mapped
+                Est. labour split
               </p>
             </div>
           </div>

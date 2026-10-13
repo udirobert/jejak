@@ -93,7 +93,7 @@ export default function MoneySplit() {
       // Use existing anchored provenance record if already anchored on Journey, else anchor estimate memo
       let stellar_tx_hash =
         provenanceRecord?.txHash ||
-        "976dc854593180c819797b3606963c4ecbccd83ae8cbec0b9ca47db5c1407ff3";
+        "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
       let stellar_memo = `EST:${product.id.toUpperCase().slice(0, 8)}:${originCountry.slice(0, 6).toUpperCase()}:${labour.pct.mid}%`;
       if (!provenanceRecord?.txHash) {
         try {
