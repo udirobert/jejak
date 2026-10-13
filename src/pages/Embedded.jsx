@@ -3,20 +3,18 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
-import { computeSplit, formatMoney, getRoute } from "@/lib/money";
+import { computeSplit } from "@/lib/money";
+import { CANONICAL_PASSKEY_RP_ID } from "@/lib/stellarConfig";
 import ScreenShell from "@/components/ScreenShell";
 import Logo from "@/components/Logo";
 import CurrencySwitch from "@/components/CurrencySwitch";
-import JejakPassportCard from "@/components/JejakPassportCard";
-import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
-import OriginFlagChip from "@/components/explore/OriginFlagChip";
-import PersonalOriginMapHeader from "@/components/explore/PersonalOriginMapHeader";
+import BankMergedHeroCard from "@/components/bank/BankMergedHeroCard";
+import BankTransactionsSheet from "@/components/bank/BankTransactionsSheet";
+import JejakPassportSheet from "@/components/JejakPassportSheet";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
-import { ArrowDownLeft, Info, Landmark, X } from "lucide-react";
+import { Info, Landmark, X } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 
-// Each traced purchase has its own distinct canonical provenance record,
-// SHA-256 hash, and Stellar Testnet transaction hash.
 const FEED = [
   {
     id: "bank-coffee",
@@ -143,19 +141,12 @@ const FEED = [
 ];
 
 const WEEK_ORIGINS = ["Ethiopia", "Bangladesh", "Vietnam", "China"];
-const WEEK_ALL_COUNTRIES = [
-  "Ethiopia",
-  "Bangladesh",
-  "Vietnam",
-  "China",
-  "India",
-  "Netherlands",
-];
 
 export default function Embedded() {
   const {
     currency,
     market,
+    walletSession,
     setProduct,
     setScreen,
     setCustomPrice,
@@ -165,10 +156,12 @@ export default function Embedded() {
   const navigate = useNavigate();
   const reduce = useReducedMotion();
 
-  // In-memory state only ("Without Jejak | With Jejak" toggle, default With)
   const [withJejak, setWithJejak] = useState(true);
+  const [sheetSnap, setSheetSnap] = useState("half"); // 'peek' | 'half' | 'full'
   const [selectedScan, setSelectedScan] = useState(null);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
+  const [passportSheetOpen, setPassportSheetOpen] = useState(false);
+  const [passportPromptReason, setPassportPromptReason] = useState(null);
 
   const fxMult = currency === "SGD" ? 1.72 : 1;
   const displayBalance = +(2144.51 * fxMult).toFixed(2);
@@ -215,12 +208,17 @@ export default function Embedded() {
     navigate("/");
   };
 
+  const handleOpenPassport = (reason = null) => {
+    setPassportPromptReason(reason);
+    setPassportSheetOpen(true);
+  };
+
   return (
     <ScreenShell variant="host-bank" header={false}>
-      <div className="flex flex-1 flex-col px-5 pt-5 pb-6 space-y-3.5">
-        {/* Fictional "Demo Bank" Host Header + Single Merged "Embedded concept ⓘ" Badge */}
-        <header className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5">
+      <div className="relative h-[100dvh] w-full overflow-hidden flex flex-col px-5 pt-4">
+        {/* Header: Demo Bank + Currency Toggle + Small (i) Icon */}
+        <header className="flex items-center justify-between gap-2 shrink-0">
+          <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
               <Landmark size={16} strokeWidth={2.2} />
             </div>
@@ -237,20 +235,19 @@ export default function Embedded() {
                 vibrate(5);
                 setShowInfoSheet(true);
               }}
-              aria-label="About embedded concept"
-              className="min-h-[44px] inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm hover:bg-slate-50 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+              aria-label="About embedded bank concept"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white border border-slate-200 text-slate-600 shadow-sm hover:bg-slate-50 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             >
-              <span>Concept</span>
-              <Info size={13} className="text-slate-500" />
+              <Info size={15} />
             </button>
           </div>
         </header>
 
-        {/* "Without Jejak | With Jejak" Toggle (in-memory state only, default With) */}
+        {/* Without / With Jejak Toggle directly under header */}
         <div
           role="group"
           aria-label="Jejak integration toggle"
-          className="grid grid-cols-2 gap-1 rounded-2xl bg-slate-200/75 p-1 border border-slate-200"
+          className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-slate-200/75 p-1 border border-slate-200 shrink-0"
         >
           <button
             type="button"
@@ -285,164 +282,46 @@ export default function Embedded() {
           </button>
         </div>
 
-        {/* Neutral Host Bank Balance Card + Personal Origin-Arc Map Header (when With Jejak) */}
-        <div className="rounded-3xl bg-white border border-slate-200/90 p-5 shadow-sm">
-          <div className="flex items-baseline justify-between gap-2">
-            <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-                Current account
-              </p>
-              <p className="mt-0.5 text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 tabular-nums">
-                {formatMoney(displayBalance, currency)}
-              </p>
-            </div>
-            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-500">
-              {market === "SG" ? "Demo SG · 000-000" : "Demo UK · 00-00-00"}
-            </span>
-          </div>
-
-          <AnimatePresence initial={false}>
-            {withJejak && (
-              <PersonalOriginMapHeader
-                key="personal-map"
-                origins={WEEK_ORIGINS}
-                allCountries={WEEK_ALL_COUNTRIES}
-                homeCountry={
-                  market === "SG" ? "Singapore" : "United Kingdom"
-                }
-                reduce={reduce}
-              />
-            )}
-          </AnimatePresence>
+        {/* Single Merged Balance + World-Map Hero Card */}
+        <div className="mt-3 shrink-0">
+          <BankMergedHeroCard
+            displayBalance={displayBalance}
+            currency={currency}
+            market={market}
+            withJejak={withJejak}
+            origins={WEEK_ORIGINS}
+            countryCount={6}
+            walletSession={walletSession}
+            onOpenPassport={() => handleOpenPassport(null)}
+            onTriggerSpendCap={() =>
+              handleOpenPassport(
+                walletSession ? null : "Unlock spending limits with Face ID"
+              )
+            }
+            isCompact={sheetSnap === "full"}
+            reduce={reduce}
+          />
         </div>
 
-        {/* Passkey Smart Account ("Jejak Passport") for Bank controls & spending-limit policy */}
-        <JejakPassportCard variant="bank" />
+        {/* Draggable Transactions Bottom Sheet */}
+        <BankTransactionsSheet
+          snap={sheetSnap}
+          setSnap={setSheetSnap}
+          feed={FEED}
+          withJejak={withJejak}
+          currency={currency}
+          market={market}
+          fxMult={fxMult}
+          onSelectTx={openDetailForTx}
+          reduce={reduce}
+        />
 
-        {/* Host Bank Transaction Feed */}
-        <div className="rounded-3xl bg-white border border-slate-200/90 overflow-hidden shadow-sm divide-y divide-slate-100">
-          {FEED.map((tx, rowIdx) => {
-            const prod = tx.productId ? getProduct(tx.productId) : null;
-            const rawPrice = +(Math.abs(tx.amount) * fxMult).toFixed(2);
-            const route = prod ? getRoute(prod, market) : [];
-            const routeFlags = prod
-              ? Array.from(
-                  new Set([
-                    tx.origin || route[0]?.country,
-                    ...route.slice(1, -1).map((r) => r.country),
-                  ])
-                )
-                  .filter(Boolean)
-                  .slice(0, 2)
-              : [];
-
-            const isInteractive = Boolean(prod && withJejak);
-
-            return (
-              <div
-                key={tx.id}
-                role={isInteractive ? "button" : undefined}
-                tabIndex={isInteractive ? 0 : undefined}
-                onClick={() => {
-                  if (isInteractive) openDetailForTx(tx);
-                }}
-                onKeyDown={(e) => {
-                  if (isInteractive && (e.key === "Enter" || e.key === " ")) {
-                    e.preventDefault();
-                    openDetailForTx(tx);
-                  }
-                }}
-                className={`px-4 py-3.5 transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${
-                  isInteractive
-                    ? "cursor-pointer hover:bg-slate-50/90 active:bg-slate-100/70"
-                    : ""
-                }`}
-              >
-                <div className="flex items-center justify-between gap-2.5">
-                  {/* Left: Shared ProductIllustrationIcon or neutral merchant avatar */}
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {prod ? (
-                      <ProductIllustrationIcon
-                        productId={prod.id}
-                        size="sm"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-200/70 text-emerald-600">
-                        <ArrowDownLeft size={17} strokeWidth={2.4} />
-                      </div>
-                    )}
-
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-900 truncate">
-                        {tx.merchant}
-                      </p>
-                      <p className="text-[11px] font-medium text-slate-400 truncate">
-                        {tx.date} · {tx.cat}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Right: Hero Jejak "Trace" Chip (animates in row-by-row when With Jejak) + Amount */}
-                  <div className="flex items-center gap-2.5 shrink-0">
-                    <AnimatePresence>
-                      {prod && withJejak && (
-                        <motion.div
-                          key={`chip-${tx.id}`}
-                          initial={
-                            reduce
-                              ? false
-                              : { opacity: 0, scale: 0.82, x: 8 }
-                          }
-                          animate={
-                            reduce
-                              ? { opacity: 1, scale: 1, x: 0 }
-                              : {
-                                  opacity: 1,
-                                  scale: [0.85, 1.06, 1],
-                                  x: 0,
-                                }
-                          }
-                          exit={
-                            reduce
-                              ? undefined
-                              : { opacity: 0, scale: 0.85, x: 6 }
-                          }
-                          transition={{
-                            duration: reduce ? 0 : 0.38,
-                            delay: reduce ? 0 : rowIdx * 0.08,
-                            ease: "easeOut",
-                          }}
-                        >
-                          <OriginFlagChip
-                            countries={routeFlags}
-                            variant="jejak-hero"
-                            size="md"
-                            labelOverride="Trace"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openDetailForTx(tx);
-                            }}
-                          />
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <span
-                      className={`text-sm font-extrabold tabular-nums ${
-                        tx.amount > 0
-                          ? "text-emerald-600"
-                          : "text-slate-900"
-                      }`}
-                    >
-                      {tx.amount > 0 ? "+" : "-"}
-                      {formatMoney(rawPrice, currency)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        {/* On-Demand Jejak Passport Bottom Sheet */}
+        <JejakPassportSheet
+          open={passportSheetOpen}
+          onClose={() => setPassportSheetOpen(false)}
+          pendingActionLabel={passportPromptReason}
+        />
 
         {/* Shared Trace Detail Bottom Sheet */}
         <TraceDetailSheet
@@ -452,7 +331,7 @@ export default function Embedded() {
           reduce={reduce}
         />
 
-        {/* Single-sentence ⓘ Concept Preview Sheet */}
+        {/* (i) Concept & Technical Info Sheet (holds RP ID out of main UI) */}
         <AnimatePresence>
           {showInfoSheet && (
             <motion.div
@@ -487,6 +366,9 @@ export default function Embedded() {
                 <p className="mt-2.5 text-xs font-medium leading-relaxed text-slate-600">
                   Concept preview with a fictional bank. Not a live bank
                   connection.
+                </p>
+                <p className="mt-2 font-mono text-[10px] text-slate-400">
+                  Passkey RP ID: {CANONICAL_PASSKEY_RP_ID} · Stellar Testnet
                 </p>
               </motion.div>
             </motion.div>
