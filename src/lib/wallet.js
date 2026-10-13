@@ -82,68 +82,14 @@ async function checkSorobanRpcHealth() {
   return true;
 }
 
-/**
- * Create a new passkey-backed OpenZeppelin Smart Account ("Jejak passport")
- * with fee sponsorship handled by the isolated server-side `stellarFeeRelayer`.
- */
-export async function createWallet({ displayName = "Jejak Shopper" } = {}) {
-  if (!isPasskeySupported()) {
-    const err = new Error(
-      "This browser or device does not support WebAuthn passkeys."
-    );
-    err.code = "UNSUPPORTED_BROWSER";
-    throw err;
-  }
-
-  await checkSorobanRpcHealth();
-
-  const rpId = getEffectiveRpId();
-  const userId = crypto.getRandomValues(new Uint8Array(16));
-  const challenge = crypto.getRandomValues(new Uint8Array(32));
-
-  let cred;
-  try {
-    cred = await navigator.credentials.create({
-      publicKey: {
-        challenge,
-        rp: {
-          name: "Jejak Provenance Passport",
-          id: rpId,
-        },
-        user: {
-          id: userId,
-          name: `passport-${Date.now()}@${rpId}`,
-          displayName,
-        },
-        // secp256r1 (ES256, -7) for OpenZeppelin WebAuthn verifier
-        pubKeyCredParams: [
-          { type: "public-key", alg: -7 },
-          { type: "public-key", alg: -8 },
-        ],
-        authenticatorSelection: {
-          authenticatorAttachment: "platform",
-          userVerification: "required",
-          residentKey: "preferred",
-        },
-        timeout: 60000,
-        attestation: "none",
-      },
-    });
-  } catch (e) {
-    const err = new Error(
-      e?.name === "SecurityError"
-        ? "Passkey prompts are blocked inside an embedded preview iframe. Open in a top-level browser tab or use Connect existing wallet."
-        : "Biometric prompt was cancelled before creating your Jejak passport."
-    );
-    err.code =
-      e?.name === "SecurityError" ? "IFRAME_BLOCKED" : "PASSKEY_CANCELLED";
-    throw err;
-  }
-
-  const credentialId = bytesToBase64Url(cred.rawId);
+async function deploySmartAccountSession({
+  credentialId,
+  rpId,
+  simulatedPasskey = false,
+}) {
   const contractId = await deriveSmartAccountAddress(credentialId);
+  const nowIso = new Date().toISOString();
 
-  // Sponsor smart-account deployment via the dedicated relayer function
   const relayRes = await base44.functions
     .invoke("stellarFeeRelayer", {
       action: "deploy_smart_account",
@@ -167,6 +113,7 @@ export async function createWallet({ displayName = "Jejak Shopper" } = {}) {
     address: contractId,
     credentialId,
     rpId,
+    simulatedPasskey,
     network: STELLAR_NETWORK,
     networkLabel: STELLAR_NETWORK_LABEL,
     accountWasmHash: OZ_SMART_ACCOUNT_TESTNET.accountWasmHash,
@@ -175,24 +122,120 @@ export async function createWallet({ displayName = "Jejak Shopper" } = {}) {
       OZ_SMART_ACCOUNT_TESTNET.spendingLimitPolicyContract,
     spendingLimit: {
       dailyCapAmount: 25,
+      category: "All categories",
       active: true,
     },
     signers: [
       {
         id: credentialId.slice(0, 10),
         type: "passkey_secp256r1",
-        label: "Primary device passkey",
-        addedAt: new Date().toISOString(),
+        label: simulatedPasskey
+          ? "Preview P-256 passkey"
+          : "Primary device passkey",
+        addedAt: nowIso,
+      },
+    ],
+    passportActions: [
+      {
+        id: `act-create-${Date.now()}`,
+        type: "Passport created",
+        detail: simulatedPasskey
+          ? "Smart account deployed (preview key)"
+          : "Smart account deployed with passkey",
+        hash: relayRes.data.hash,
+        ledger: relayRes.data.ledger,
+        explorerUrl: relayRes.data.explorerUrl,
+        createdAt: nowIso,
+        simulated: false,
       },
     ],
     sponsoredTxHash: relayRes.data.hash,
     sponsoredLedger: relayRes.data.ledger,
     explorerUrl: relayRes.data.explorerUrl,
-    createdAt: new Date().toISOString(),
+    createdAt: nowIso,
   };
 
   saveStoredSession(session);
   return session;
+}
+
+/**
+ * Create a new passkey-backed OpenZeppelin Smart Account ("Jejak passport")
+ * with fee sponsorship handled by the isolated server-side `stellarFeeRelayer`.
+ */
+export async function createWallet({
+  displayName = "Jejak Shopper",
+  allowPreviewFallback = false,
+} = {}) {
+  const rpId = getEffectiveRpId();
+
+  if (allowPreviewFallback) {
+    const rawKey = crypto.getRandomValues(new Uint8Array(24));
+    const credentialId = bytesToBase64Url(rawKey);
+    return deploySmartAccountSession({
+      credentialId,
+      rpId,
+      simulatedPasskey: true,
+    });
+  }
+
+  if (!isPasskeySupported()) {
+    const err = new Error(
+      "This browser or device does not support WebAuthn passkeys."
+    );
+    err.code = "UNSUPPORTED_BROWSER";
+    throw err;
+  }
+
+  await checkSorobanRpcHealth();
+
+  const userId = crypto.getRandomValues(new Uint8Array(16));
+  const challenge = crypto.getRandomValues(new Uint8Array(32));
+
+  let cred;
+  try {
+    cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: {
+          name: "Jejak Provenance Passport",
+          id: rpId,
+        },
+        user: {
+          id: userId,
+          name: `passport-${Date.now()}@${rpId}`,
+          displayName,
+        },
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },
+          { type: "public-key", alg: -8 },
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required",
+          residentKey: "preferred",
+        },
+        timeout: 60000,
+        attestation: "none",
+      },
+    });
+  } catch (e) {
+    const err = new Error(
+      e?.name === "SecurityError"
+        ? "Passkey prompts are blocked inside an embedded preview iframe."
+        : "Biometric prompt was cancelled or unavailable."
+    );
+    err.code =
+      e?.name === "SecurityError" ? "IFRAME_BLOCKED" : "PASSKEY_CANCELLED";
+    throw err;
+  }
+
+  const credentialId = bytesToBase64Url(cred.rawId);
+  return deploySmartAccountSession({
+    credentialId,
+    rpId,
+    simulatedPasskey: false,
+  });
 }
 
 /**
@@ -203,23 +246,38 @@ export async function connect({
   externalAddress = "",
 } = {}) {
   if (mode === "external") {
-    // Check for injected Freighter / Stellar Wallets Kit provider first
     if (typeof window !== "undefined" && window.freighterApi) {
       try {
         const pubObj = await window.freighterApi.getAddress();
         const address =
           typeof pubObj === "string" ? pubObj : pubObj?.address || "";
         if (address) {
+          const nowIso = new Date().toISOString();
           const session = {
             provider: "stellar-wallets-kit",
             walletName: "Freighter",
             address,
             network: STELLAR_NETWORK,
             networkLabel: STELLAR_NETWORK_LABEL,
+            spendingLimit: {
+              dailyCapAmount: 25,
+              category: "All categories",
+              active: true,
+            },
             signers: [
               { id: "ext-1", type: "ed25519", label: "Freighter extension" },
             ],
-            createdAt: new Date().toISOString(),
+            passportActions: [
+              {
+                id: `act-connect-${Date.now()}`,
+                type: "Passport connected",
+                detail: "Freighter wallet linked",
+                hash: "",
+                explorerUrl: `https://stellar.expert/explorer/testnet/account/${address}`,
+                createdAt: nowIso,
+              },
+            ],
+            createdAt: nowIso,
           };
           saveStoredSession(session);
           return session;
@@ -243,12 +301,30 @@ export async function connect({
       throw err;
     }
 
+    const nowIso = new Date().toISOString();
+    const contractId = cleaned.startsWith("C")
+      ? cleaned
+      : `C${cleaned.slice(1)}`;
+    const relayRes = await base44.functions
+      .invoke("stellarFeeRelayer", {
+        action: "deploy_smart_account",
+        contractId,
+        targetContract: OZ_SMART_ACCOUNT_TESTNET.ed25519VerifierContract,
+        meta: `ext:${cleaned.slice(0, 10)}`,
+      })
+      .catch(() => null);
+
     const session = {
       provider: "stellar-wallets-kit",
       walletName: "External Stellar Wallet",
       address: cleaned,
       network: STELLAR_NETWORK,
       networkLabel: STELLAR_NETWORK_LABEL,
+      spendingLimit: {
+        dailyCapAmount: 25,
+        category: "All categories",
+        active: true,
+      },
       signers: [
         {
           id: cleaned.slice(0, 8),
@@ -256,13 +332,30 @@ export async function connect({
           label: "External wallet signer",
         },
       ],
-      createdAt: new Date().toISOString(),
+      passportActions: [
+        {
+          id: `act-ext-${Date.now()}`,
+          type: "Passport created",
+          detail: "External signer registered",
+          hash: relayRes?.data?.hash || "",
+          ledger: relayRes?.data?.ledger || 0,
+          explorerUrl:
+            relayRes?.data?.explorerUrl ||
+            `https://stellar.expert/explorer/testnet/account/${cleaned}`,
+          createdAt: nowIso,
+        },
+      ],
+      sponsoredTxHash: relayRes?.data?.hash || "",
+      sponsoredLedger: relayRes?.data?.ledger || 0,
+      explorerUrl:
+        relayRes?.data?.explorerUrl ||
+        `https://stellar.expert/explorer/testnet/account/${cleaned}`,
+      createdAt: nowIso,
     };
     saveStoredSession(session);
     return session;
   }
 
-  // Passkey discovery / assertion flow
   if (!isPasskeySupported()) {
     const err = new Error(
       "This browser or device does not support WebAuthn passkeys."
@@ -291,35 +384,19 @@ export async function connect({
       },
     });
     const credentialId = bytesToBase64Url(assertion.rawId);
-    const contractId = await deriveSmartAccountAddress(credentialId);
-    const session = existing || {
-      provider: "smart-account-kit",
-      address: contractId,
+    if (existing) {
+      saveStoredSession(existing);
+      return existing;
+    }
+    return deploySmartAccountSession({
       credentialId,
       rpId: getEffectiveRpId(),
-      network: STELLAR_NETWORK,
-      networkLabel: STELLAR_NETWORK_LABEL,
-      accountWasmHash: OZ_SMART_ACCOUNT_TESTNET.accountWasmHash,
-      verifierContract: OZ_SMART_ACCOUNT_TESTNET.webauthnVerifierContract,
-      spendingPolicyContract:
-        OZ_SMART_ACCOUNT_TESTNET.spendingLimitPolicyContract,
-      spendingLimit: { dailyCapAmount: 25, active: true },
-      signers: [
-        {
-          id: credentialId.slice(0, 10),
-          type: "passkey_secp256r1",
-          label: "Primary device passkey",
-          addedAt: new Date().toISOString(),
-        },
-      ],
-      createdAt: new Date().toISOString(),
-    };
-    saveStoredSession(session);
-    return session;
+      simulatedPasskey: false,
+    });
   } catch (e) {
     const err = new Error(
       e?.name === "SecurityError"
-        ? "Passkey prompts are blocked inside an embedded preview iframe. Open in a top-level browser tab."
+        ? "Passkey prompts are blocked inside an embedded preview iframe."
         : "Passkey sign-in was cancelled."
     );
     err.code =
@@ -339,7 +416,11 @@ export async function sign(payloadSummary = "verify_context_rule") {
     throw err;
   }
 
-  if (session.provider === "smart-account-kit" && isPasskeySupported()) {
+  if (
+    session.provider === "smart-account-kit" &&
+    !session.simulatedPasskey &&
+    isPasskeySupported()
+  ) {
     try {
       const challenge = new Uint8Array(
         await crypto.subtle.digest(
@@ -366,7 +447,7 @@ export async function sign(payloadSummary = "verify_context_rule") {
     } catch (e) {
       const err = new Error(
         e?.name === "SecurityError"
-          ? "Passkey signing is blocked inside an embedded iframe. Open the app in a top-level browser tab."
+          ? "Passkey signing is blocked inside an embedded iframe."
           : "Biometric signature was cancelled."
       );
       err.code =
@@ -398,8 +479,7 @@ export async function sign(payloadSummary = "verify_context_rule") {
 }
 
 /**
- * Add a secondary recovery signer (backup device key or Ed25519 recovery signer)
- * to the OpenZeppelin threshold policy so the user is never locked out if their device is lost.
+ * Add a secondary recovery signer to the OpenZeppelin threshold policy.
  */
 export async function addRecoverySigner(label = "Recovery backup key") {
   const session = loadStoredSession();
@@ -427,6 +507,18 @@ export async function addRecoverySigner(label = "Recovery backup key") {
     throw err;
   }
 
+  const nowIso = new Date().toISOString();
+  const actionEntry = {
+    id: `act-rec-${Date.now()}`,
+    type: "Recovery signer added",
+    detail: label,
+    hash: relayRes.data.hash,
+    ledger: relayRes.data.ledger,
+    explorerUrl: relayRes.data.explorerUrl,
+    createdAt: nowIso,
+    simulated: false,
+  };
+
   const updated = {
     ...session,
     signers: [
@@ -436,9 +528,10 @@ export async function addRecoverySigner(label = "Recovery backup key") {
         type: "ed25519_recovery",
         label,
         txHash: relayRes.data.hash,
-        addedAt: new Date().toISOString(),
+        addedAt: nowIso,
       },
     ],
+    passportActions: [actionEntry, ...(session.passportActions || [])],
     lastSponsoredTx: relayRes.data,
   };
   saveStoredSession(updated);
@@ -447,12 +540,27 @@ export async function addRecoverySigner(label = "Recovery backup key") {
 
 /**
  * Update the OpenZeppelin smart-account spending-limit policy (`CABXBYJNZ...`)
- * as a demo of smart-account context rules in the Bank view.
+ * with amount + category, write it to Stellar Testnet via the fee relayer,
+ * and append it to `passportActions` under "Your passport".
  */
-export async function updateSpendingLimitPolicy(dailyCapAmount) {
+export async function updateSpendingLimitPolicy(input) {
   const session = loadStoredSession();
   if (!session) throw new Error("Create your Jejak passport first.");
 
+  const dailyCapAmount =
+    typeof input === "object" && input !== null
+      ? Number(input.dailyCapAmount) || 25
+      : Number(input) || 25;
+  const category =
+    typeof input === "object" && input !== null && input.category
+      ? String(input.category)
+      : session.spendingLimit?.category || "All categories";
+  const currency =
+    typeof input === "object" && input !== null && input.currency
+      ? String(input.currency)
+      : "GBP";
+
+  const catShort = category.replace(/[^a-zA-Z]/g, "").slice(0, 8) || "All";
   const relayRes = await base44.functions
     .invoke("stellarFeeRelayer", {
       action: "set_spending_policy",
@@ -460,7 +568,7 @@ export async function updateSpendingLimitPolicy(dailyCapAmount) {
         ? session.address
         : `C${session.address.slice(1)}`,
       targetContract: OZ_SMART_ACCOUNT_TESTNET.spendingLimitPolicyContract,
-      meta: `cap:${dailyCapAmount}`,
+      meta: `cap:${dailyCapAmount}:${catShort}`,
     })
     .catch((e) => ({ data: { ok: false, error: e?.message } }));
 
@@ -472,14 +580,35 @@ export async function updateSpendingLimitPolicy(dailyCapAmount) {
     throw err;
   }
 
+  const nowIso = new Date().toISOString();
+  const sym = currency === "SGD" ? "S$" : "£";
+  const actionEntry = {
+    id: `act-limit-${Date.now()}`,
+    type: "Limit set",
+    detail: `${sym}${dailyCapAmount}/day · ${category}`,
+    amount: dailyCapAmount,
+    category,
+    currency,
+    hash: relayRes.data.hash,
+    ledger: relayRes.data.ledger,
+    explorerUrl: relayRes.data.explorerUrl,
+    createdAt: nowIso,
+    simulated: false,
+  };
+
   const updated = {
     ...session,
     spendingLimit: {
-      dailyCapAmount: Number(dailyCapAmount) || 25,
+      dailyCapAmount,
+      category,
+      currency,
       active: true,
       txHash: relayRes.data.hash,
+      ledger: relayRes.data.ledger,
       explorerUrl: relayRes.data.explorerUrl,
+      updatedAt: nowIso,
     },
+    passportActions: [actionEntry, ...(session.passportActions || [])],
     lastSponsoredTx: relayRes.data,
   };
   saveStoredSession(updated);

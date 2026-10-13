@@ -9,7 +9,7 @@ import StageIllustration from "@/components/StageIllustration";
 import TodaySnapPulse from "@/components/TodaySnapPulse";
 import CoachmarkPill from "@/components/CoachmarkPill";
 import LabelScanCard from "@/components/LabelScanCard";
-import ProvenanceAnchorCard from "@/components/ProvenanceAnchorCard";
+import StellarTraceReceiptCard from "@/components/StellarTraceReceiptCard";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
@@ -240,8 +240,8 @@ export default function Journey() {
         {/* Step 3: Care / Made-in Label Scan (Provenance Evidence) */}
         <LabelScanCard />
 
-        {/* Step 4: Core Stellar Feature — On-Chain Provenance Record (MEMO_HASH + Verify) */}
-        <ProvenanceAnchorCard />
+        {/* Step 4: End-to-End Stellar Trace Receipt (Tracing -> Anchoring -> Anchored + Verify) */}
+        <StellarTraceReceiptCard autoAnchor={true} />
 
         {/* Step 6: "Others traced this" + Privacy / Community choice (default Private) */}
         <div className="mt-2.5">

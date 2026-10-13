@@ -9,10 +9,7 @@ import {
   updateSpendingLimitPolicy,
   disconnect,
 } from "@/lib/wallet";
-import {
-  CANONICAL_PASSKEY_RP_ID,
-  isEmbeddedPreviewIframe,
-} from "@/lib/stellarConfig";
+import { isEmbeddedPreviewIframe } from "@/lib/stellarConfig";
 import Logo from "@/components/Logo";
 import { vibrate, coinClink } from "@/lib/haptics";
 import {
@@ -20,7 +17,6 @@ import {
   Check,
   X,
   Loader2,
-  ExternalLink,
   RotateCcw,
   ShieldCheck,
   Plus,
@@ -56,6 +52,7 @@ function shortErrorMessage(code) {
 export default function JejakPassportSheet({
   open,
   onClose,
+  onCreated = null,
   pendingActionLabel = null,
 }) {
   const { currency, walletSession, setWalletSession } = useApp();
@@ -68,30 +65,33 @@ export default function JejakPassportSheet({
   const [externalInput, setExternalInput] = useState("");
   const [celebrating, setCelebrating] = useState(false);
 
-  const topLevelUrl = `https://${CANONICAL_PASSKEY_RP_ID}/embedded`;
-
   const triggerSuccessDelight = (newSession) => {
     setWalletSession(newSession);
     vibrate([0, 12, 35, 18]);
     coinClink();
     if (reduce) {
       onClose?.();
+      onCreated?.(newSession);
       return;
     }
     setCelebrating(true);
     setTimeout(() => {
       setCelebrating(false);
       onClose?.();
-    }, 850);
+      onCreated?.(newSession);
+    }, 650);
   };
 
-  const handleCreate = async () => {
+  const handleCreate = async (allowPreviewFallback = false) => {
     vibrate(8);
     setLastAttempt("create");
     setBusyAction("create");
     setErrorState(null);
     try {
-      const sess = await createWallet({ displayName: "Jejak Passport" });
+      const sess = await createWallet({
+        displayName: "Jejak Passport",
+        allowPreviewFallback,
+      });
       triggerSuccessDelight(sess);
     } catch (err) {
       const code =
@@ -269,7 +269,7 @@ export default function JejakPassportSheet({
                 <button
                   type="button"
                   disabled={Boolean(busyAction)}
-                  onClick={handleCreate}
+                  onClick={() => handleCreate(false)}
                   className="mt-4 w-full min-h-[46px] inline-flex items-center justify-center gap-2 rounded-2xl bg-jejak-navy px-4 py-3 text-xs font-extrabold text-amber-300 shadow-sm hover:opacity-95 disabled:opacity-60 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy"
                 >
                   {busyAction === "create" ? (
@@ -441,17 +441,21 @@ export default function JejakPassportSheet({
                   </div>
 
                   {(errorState.code === "IFRAME_BLOCKED" ||
+                    errorState.code === "PASSKEY_CANCELLED" ||
+                    errorState.code === "UNSUPPORTED_BROWSER" ||
                     isEmbeddedPreviewIframe()) && (
-                    <div className="flex items-center justify-between gap-2 rounded-xl bg-amber-50 border border-amber-200/80 px-3 py-1.5 text-[11px] font-semibold text-amber-900">
-                      <span>Passkeys work best in a top-level tab.</span>
-                      <a
-                        href={topLevelUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="shrink-0 inline-flex items-center gap-1 font-extrabold text-jejak-navy underline"
+                    <div className="flex items-center justify-between gap-2 rounded-xl bg-amber-50 border border-amber-200/80 px-3 py-2 text-[11px] font-semibold text-amber-900">
+                      <span>
+                        In preview/iframe? Deploy on Testnet with a preview passkey:
+                      </span>
+                      <button
+                        type="button"
+                        disabled={Boolean(busyAction)}
+                        onClick={() => handleCreate(true)}
+                        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-jejak-navy px-2.5 py-1 text-[11px] font-extrabold text-amber-300 no-tap"
                       >
-                        Open tab <ExternalLink size={10} />
-                      </a>
+                        Use preview passkey
+                      </button>
                     </div>
                   )}
                 </motion.div>

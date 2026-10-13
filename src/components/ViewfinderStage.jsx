@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useApp } from "@/lib/AppContext";
 import ShutterButton from "./ShutterButton";
+import StellarExplainerSheet from "./StellarExplainerSheet";
 import { CATEGORIES } from "@/lib/tokens";
 import { DEMO_CHIPS, getProduct } from "@/data";
 import { formatMoney, getRoute } from "@/lib/money";
@@ -22,8 +24,8 @@ const PREVIEW_SPLIT = [
   { key: "retail", label: "Retail", pct: 35, color: CATEGORIES[4].color },
 ];
 
-// Direct-on-gradient J coin hero with warm gold glow, slim dark-glass legend strip
-// below the coin, and shared-price sample product buttons above the fold.
+// Direct-on-gradient J coin hero with warm gold glow, live Stellar anchor status
+// + (i) explainer sheet, and shared-price sample product buttons above the fold.
 export default function ViewfinderStage({
   market,
   currency,
@@ -32,7 +34,19 @@ export default function ViewfinderStage({
   onPickSample,
   onOpenFallback,
 }) {
-  const [showTechDetail, setShowTechDetail] = useState(false);
+  const { anchoredRecords = [], provenanceRecord } = useApp();
+  const [explainerOpen, setExplainerOpen] = useState(false);
+
+  // Honest live status count: number of anchored trace records in this user's history/session
+  const anchoredCount = Math.max(
+    anchoredRecords.length,
+    provenanceRecord?.txHash ? 1 : 0
+  );
+
+  const statusText =
+    anchoredCount > 0
+      ? `Anchored: ${anchoredCount} ${anchoredCount === 1 ? "record" : "records"}`
+      : "Records anchor on Stellar";
 
   return (
     <motion.div
@@ -66,23 +80,34 @@ export default function ViewfinderStage({
         </button>
       </div>
 
-      {/* Slim Origin / Care label / Cost split preview strip below the coin */}
+      {/* Slim Origin / Care label / Cost split preview strip with live Stellar status + (i) Explainer sheet */}
       <div className="rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md px-3.5 py-2.5 text-white">
         <div className="flex items-center justify-between gap-2 text-[11px] font-extrabold">
           <span className="text-white/90">Origin · Care label · Cost split</span>
-          <button
-            type="button"
-            onClick={() => {
-              vibrate(4);
-              setShowTechDetail((v) => !v);
-            }}
-            aria-expanded={showTechDetail}
-            className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 border border-emerald-400/35 px-2 py-0.5 text-[10px] font-extrabold text-emerald-300 hover:bg-emerald-400/25 no-tap"
-          >
-            <ShieldCheck size={11} />
-            <span>Verified on Stellar</span>
-            <Info size={10} className="text-white/70" />
-          </button>
+          <div className="inline-flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => {
+                vibrate(4);
+                setExplainerOpen(true);
+              }}
+              className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 border border-emerald-400/35 px-2.5 py-0.5 text-[10px] font-extrabold text-emerald-300 hover:bg-emerald-400/25 no-tap"
+            >
+              <ShieldCheck size={11} />
+              <span>{statusText}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                vibrate(4);
+                setExplainerOpen(true);
+              }}
+              aria-label="How Stellar anchoring works"
+              className="flex h-5 w-5 items-center justify-center rounded-full bg-white/15 hover:bg-white/25 text-white/90 no-tap"
+            >
+              <Info size={11} />
+            </button>
+          </div>
         </div>
 
         <div
@@ -110,20 +135,6 @@ export default function ViewfinderStage({
             </span>
           ))}
         </div>
-
-        <AnimatePresence>
-          {showTechDetail && (
-            <motion.p
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="mt-1.5 pt-1.5 border-t border-white/15 text-[10px] font-semibold text-white/80 overflow-hidden"
-            >
-              Each trace hashes its canonical JSON (SHA-256) on Stellar Testnet
-              with no wallet required.
-            </motion.p>
-          )}
-        </AnimatePresence>
       </div>
 
       {/* Above-the-fold Sample Items using shared product names & prices */}
@@ -181,6 +192,11 @@ export default function ViewfinderStage({
           })}
         </div>
       </div>
+
+      <StellarExplainerSheet
+        open={explainerOpen}
+        onClose={() => setExplainerOpen(false)}
+      />
     </motion.div>
   );
 }

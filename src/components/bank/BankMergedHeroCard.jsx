@@ -310,11 +310,11 @@ export default function BankMergedHeroCard({
           >
             <Sliders size={11} className="text-amber-300" />
             <span>
-              {walletSession?.spendingLimit?.dailyCapAmount
+              {walletSession?.spendingLimit?.txHash
                 ? `Limit ${formatMoney(
                     walletSession.spendingLimit.dailyCapAmount,
                     currency
-                  )}/d`
+                  )}/d · ${walletSession.spendingLimit.category || "All"}`
                 : "Set limit"}
             </span>
           </button>

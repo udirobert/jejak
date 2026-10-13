@@ -7,32 +7,16 @@ import causes from "@/data/causes.json";
 import { getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
 import Globe from "@/components/Globe";
-import JejakPassportCard from "@/components/JejakPassportCard";
+import ImpactOnChainView from "@/components/ImpactOnChainView";
+import StellarExplainerSheet from "@/components/StellarExplainerSheet";
 import { VectorFlagSvg } from "@/components/explore/OriginFlagChip";
 import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
 import { vibrate } from "@/lib/haptics";
-import { TAP } from "@/lib/motion";
 import {
   ExternalLink,
-  X,
   ChevronDown,
-  CheckCircle2,
-  ShieldCheck,
-  Loader2,
-  Sparkles,
   RefreshCw,
 } from "lucide-react";
-
-const CANONICAL_SAMPLE_JSON =
-  '{"schema_version":"jejak.provenance.v1","record_type":"anchored_record_of_an_estimate","disclaimer":"Anchored record of a supply-chain estimate and any label-read evidence — not verified fact.","product_category":"hoodie","product_name":"Everyday Hoodie","market":"GB","timestamp":"2026-10-13T22:40:00Z","label_evidence":{"country_of_manufacture":"Bangladesh","fibre_composition":"80% cotton, 20% recycled polyester","care_or_brand_text":"Wash cold 30C","basis":"Read from label","confidence":"high"}}';
-
-async function sha256HexBrowser(str) {
-  const bytes = new TextEncoder().encode(str);
-  const buf = await crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(buf))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
 
 function relativeTime(iso) {
   if (!iso) return "just now";
@@ -86,6 +70,7 @@ export default function Impact() {
     market,
     currency,
     provenanceRecord,
+    anchoredRecords = [],
     lastStellarTx,
   } = useApp();
   const reduce = useReducedMotion();
@@ -97,10 +82,6 @@ export default function Impact() {
   const [showWalletBalance, setShowWalletBalance] = useState(false);
   const [vaults, setVaults] = useState([]);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
-  const [showAllOnChain, setShowAllOnChain] = useState(false);
-  const [expandedTxHash, setExpandedTxHash] = useState(null);
-  const [verifyState, setVerifyState] = useState(null);
-  const [verifying, setVerifying] = useState(false);
 
   const activeProduct = getProduct(activeProductId) || getProduct("hoodie");
 
@@ -154,44 +135,42 @@ export default function Impact() {
     };
   }, []);
 
-  // Flatten and sort Horizon anchored records newest-first for the On-chain tab
-  const onChainRecords = useMemo(() => {
-    const list = [];
-    if (provenanceRecord?.txHash) {
-      list.push({
+  // Trace records anchored by Jejak's server account (session anchoredRecords + latest provenanceRecord)
+  const traceRecordsList = useMemo(() => {
+    const list = [...anchoredRecords];
+    if (
+      provenanceRecord?.txHash &&
+      !list.some((r) => (r.txHash || r.hash) === provenanceRecord.txHash)
+    ) {
+      list.unshift({
+        id: `trace-${provenanceRecord.txHash.slice(0, 10)}`,
+        type: `Trace · ${
+          provenanceRecord.record?.product_name || activeProduct.name
+        } (${activeRoute[0]?.country || "Bangladesh"})`,
+        txHash: provenanceRecord.txHash,
         hash: provenanceRecord.txHash,
         ledger: provenanceRecord.ledger,
-        memoType: "hash",
-        rawMemo: provenanceRecord.recordHashHex,
-        memo: `SHA256:${provenanceRecord.recordHashHex.slice(0, 12)}…`,
-        productLabel: activeProduct.name,
+        recordHashHex: provenanceRecord.recordHashHex,
+        canonicalJson: provenanceRecord.canonicalJson,
+        productName:
+          provenanceRecord.record?.product_name || activeProduct.name,
         origin: activeRoute[0]?.country || "Bangladesh",
         createdAt:
-          provenanceRecord.record?.timestamp || new Date().toISOString(),
-        canonicalJson: provenanceRecord.canonicalJson,
+          provenanceRecord.anchoredAt ||
+          provenanceRecord.record?.timestamp ||
+          new Date().toISOString(),
         explorerUrl: provenanceRecord.explorerUrl,
-        isSessionReal: true,
+        simulated: Boolean(provenanceRecord.cachedFallback),
       });
     }
-    vaults.forEach((v) => {
-      (v.recentTxs || []).forEach((t) => {
-        if (!list.some((existing) => existing.hash === t.hash)) {
-          list.push(t);
-        }
-      });
-    });
-    return list.sort(
-      (a, b) =>
-        new Date(b.createdAt || 0).getTime() -
-        new Date(a.createdAt || 0).getTime()
-    );
-  }, [vaults, provenanceRecord, activeProduct.name, activeRoute]);
+    return list;
+  }, [anchoredRecords, provenanceRecord, activeProduct.name, activeRoute]);
 
-  // Consistent scope across all 3 floating hero counters: "this session" (real values only, zero seeded counts)
+  // Consistent scope across all 3 floating hero counters: "this session" (real values only)
   const sessionProductsTraced = traces;
   const sessionKmMapped = distanceTotal;
   const sessionRecordsAnchored =
-    (provenanceRecord?.txHash ? 1 : 0) +
+    traceRecordsList.length +
     (lastStellarTx?.hash && !lastStellarTx?.cachedFallback ? 1 : 0);
 
   const animTraced = useCountUp(sessionProductsTraced, 800, reduce);
@@ -228,43 +207,6 @@ export default function Impact() {
     }
     return "No testnet donations or anchors recorded in this session yet";
   }, [matchedVault, provenanceRecord, selectedStop, activeRoute]);
-
-  const handleVerifyRecord = async (rec) => {
-    vibrate(6);
-    setVerifying(true);
-    try {
-      const jsonToHash =
-        rec.canonicalJson ||
-        provenanceRecord?.canonicalJson ||
-        CANONICAL_SAMPLE_JSON;
-      const recomputedHex = await sha256HexBrowser(jsonToHash);
-      const res = await base44.functions.invoke("stellarMakerPayout", {
-        action: "verify_provenance",
-        txHash: rec.hash,
-        expectedHashHex: recomputedHex,
-      });
-      const onChainHex =
-        res?.data?.onChainHashHex || rec.rawMemo || recomputedHex;
-      setVerifyState({
-        txHash: rec.hash,
-        recomputedHex,
-        onChainHex,
-        matched: recomputedHex === onChainHex,
-      });
-    } catch {
-      const recomputedHex = await sha256HexBrowser(CANONICAL_SAMPLE_JSON);
-      setVerifyState({
-        txHash: rec.hash,
-        recomputedHex,
-        onChainHex: rec.rawMemo || recomputedHex,
-        matched: true,
-      });
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const latestRecord = onChainRecords[0] || null;
 
   return (
     <ScreenShell variant="soft">
@@ -490,247 +432,20 @@ export default function Impact() {
             </motion.div>
           )}
 
-          {/* VIEW 2: ON-CHAIN — Jejak Passport + Latest anchored record + See all */}
+          {/* VIEW 2: ON-CHAIN — Separated into "Trace records" and "Your passport" */}
           {activeTab === "onchain" && (
-            <motion.div
-              key="onchain"
-              initial={reduce ? false : { opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={reduce ? { duration: 0 } : { duration: 0.2 }}
-              className="space-y-2.5"
-            >
-              <JejakPassportCard variant="impact" />
-              {latestRecord ? (
-                <>
-                  <div className="flex items-center justify-between gap-2">
-                    <motion.button
-                      type="button"
-                      whileTap={reduce ? undefined : TAP}
-                      onClick={() => {
-                        vibrate(5);
-                        setExpandedTxHash((prev) =>
-                          prev === latestRecord.hash ? null : latestRecord.hash
-                        );
-                      }}
-                      className="flex-1 flex items-center justify-between gap-2 rounded-2xl bg-jejak-navy px-3.5 py-3 text-left text-white shadow-md border border-amber-300/40 no-tap"
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <span
-                          className={`h-2 w-2 shrink-0 rounded-full bg-jejak-materials ${
-                            reduce ? "" : "animate-pulse"
-                          }`}
-                        />
-                        <span className="truncate text-xs font-extrabold">
-                          {latestRecord.productLabel || "Hoodie"} ·{" "}
-                          {latestRecord.origin} · anchored{" "}
-                          {relativeTime(latestRecord.createdAt)}
-                        </span>
-                      </div>
-                      <ChevronDown
-                        size={14}
-                        className={`shrink-0 text-amber-300 transition-transform ${
-                          expandedTxHash === latestRecord.hash
-                            ? "rotate-180"
-                            : ""
-                        }`}
-                      />
-                    </motion.button>
-
-                    {onChainRecords.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          vibrate(5);
-                          setShowAllOnChain((v) => !v);
-                        }}
-                        className="shrink-0 rounded-2xl frosted-strong border border-white/85 px-3 py-3 text-xs font-extrabold text-jejak-navy no-tap"
-                      >
-                        {showAllOnChain
-                          ? "Hide"
-                          : `See all (${onChainRecords.length})`}
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Expanded raw memo/hash + live SHA-256 recompute verification */}
-                  <AnimatePresence>
-                    {expandedTxHash && (
-                      <motion.div
-                        initial={reduce ? false : { opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={reduce ? undefined : { opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        {(() => {
-                          const rec =
-                            onChainRecords.find(
-                              (r) => r.hash === expandedTxHash
-                            ) || latestRecord;
-                          const vMatch =
-                            verifyState && verifyState.txHash === rec.hash
-                              ? verifyState
-                              : null;
-                          return (
-                            <div className="rounded-2xl frosted-strong border border-white/85 p-3.5 text-xs space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="font-extrabold text-jejak-navy">
-                                  Ledger #{rec.ledger} (
-                                  {rec.memoType === "hash"
-                                    ? "MEMO_HASH · SHA-256"
-                                    : "MEMO_TEXT"}
-                                  )
-                                </span>
-                                <a
-                                  href={rec.explorerUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1 font-extrabold text-jejak-freight hover:underline"
-                                >
-                                  View on Stellar <ExternalLink size={11} />
-                                </a>
-                              </div>
-                              <div className="rounded-xl bg-jejak-navy/6 p-2 font-mono text-[10px] text-jejak-navy/80 space-y-0.5">
-                                <p className="truncate">
-                                  <span className="text-jejak-navy/50">
-                                    Raw memo/hash:
-                                  </span>{" "}
-                                  {rec.rawMemo}
-                                </p>
-                                <p className="truncate">
-                                  <span className="text-jejak-navy/50">
-                                    TX hash:
-                                  </span>{" "}
-                                  {rec.hash}
-                                </p>
-                              </div>
-
-                              {rec.memoType === "hash" && (
-                                <div className="flex items-center justify-between gap-2 pt-1">
-                                  <button
-                                    type="button"
-                                    disabled={verifying}
-                                    onClick={() => handleVerifyRecord(rec)}
-                                    className="inline-flex items-center gap-1.5 rounded-xl bg-jejak-navy px-3 py-1.5 text-[11px] font-extrabold text-amber-300 no-tap disabled:opacity-60"
-                                  >
-                                    {verifying ? (
-                                      <Loader2
-                                        size={12}
-                                        className="animate-spin"
-                                      />
-                                    ) : (
-                                      <ShieldCheck size={12} />
-                                    )}
-                                    Recompute & verify SHA-256
-                                  </button>
-                                  {vMatch && (
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-materials">
-                                      <CheckCircle2 size={13} /> Verified match
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-
-                  {/* See all list */}
-                  <AnimatePresence>
-                    {showAllOnChain && (
-                      <motion.div
-                        initial={reduce ? false : { opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={reduce ? undefined : { opacity: 0, height: 0 }}
-                        className="overflow-hidden space-y-1.5"
-                      >
-                        {onChainRecords.slice(1).map((rec) => (
-                          <button
-                            key={rec.hash}
-                            type="button"
-                            onClick={() => {
-                              vibrate(5);
-                              setExpandedTxHash(rec.hash);
-                            }}
-                            className="flex w-full items-center justify-between rounded-2xl frosted border border-white/80 px-3.5 py-2.5 text-left text-xs no-tap hover:bg-white/90"
-                          >
-                            <span className="font-extrabold text-jejak-navy truncate">
-                              {rec.productLabel} · {rec.origin} ·{" "}
-                              <span className="font-semibold text-jejak-navy/60">
-                                {rec.actionLabel || "anchored"}{" "}
-                                {relativeTime(rec.createdAt)}
-                              </span>
-                            </span>
-                            <span className="ml-2 shrink-0 font-mono text-[10px] font-bold text-jejak-freight">
-                              #{rec.ledger}
-                            </span>
-                          </button>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <div className="rounded-3xl frosted-strong border border-white/85 p-4 text-center">
-                  <p className="text-xs font-extrabold text-jejak-navy">
-                    Loading latest Stellar Testnet record…
-                  </p>
-                </div>
-              )}
-            </motion.div>
+            <ImpactOnChainView
+              traceRecords={traceRecordsList}
+              reduce={reduce}
+            />
           )}
         </div>
 
-        {/* Short ⓘ Disclaimer Sheet */}
-        <AnimatePresence>
-          {showInfoSheet && (
-            <motion.div
-              className="fixed inset-0 z-[60] flex items-end justify-center"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <div
-                className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm"
-                onClick={() => setShowInfoSheet(false)}
-              />
-              <motion.div
-                className="relative w-full max-w-[420px] rounded-t-3xl frosted-strong p-5 pb-8"
-                initial={reduce ? { opacity: 0 } : { y: "100%" }}
-                animate={reduce ? { opacity: 1 } : { y: 0 }}
-                exit={reduce ? { opacity: 0 } : { y: "100%" }}
-                transition={{ type: "spring", stiffness: 360, damping: 34 }}
-              >
-                <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-jejak-navy">
-                    <Sparkles size={13} className="text-jejak-coral" /> About
-                    this view
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setShowInfoSheet(false)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-jejak-navy/10 text-jejak-navy no-tap"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-                <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  All wallets shown are <strong>Demo cause (testnet)</strong>{" "}
-                  accounts on Stellar Testnet with no real-world disbursement;
-                  partnering with a vetted charity that accepts Stellar USDC is
-                  a future roadmap step.
-                </p>
-                <p className="mt-2 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  Provenance records hash the canonical JSON trace (
-                  <code>jejak.provenance.v1</code>) via SHA-256 (
-                  <code>MEMO_HASH</code>), and the three floating counters
-                  report real values from this session only.
-                </p>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Stellar Proof Explainer Sheet */}
+        <StellarExplainerSheet
+          open={showInfoSheet}
+          onClose={() => setShowInfoSheet(false)}
+        />
       </div>
     </ScreenShell>
   );

@@ -12,11 +12,24 @@ import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
 import MakerBridgeCard from "@/components/MakerBridgeCard";
 import CoachmarkPill from "@/components/CoachmarkPill";
+import StellarTraceReceiptCard from "@/components/StellarTraceReceiptCard";
 import { buildCanonicalProvenanceRecord } from "@/components/ProvenanceAnchorCard";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
-import { ArrowLeft, Camera, Sliders, Coins, GitBranch, Sparkles, HelpCircle } from "lucide-react";
+import {
+  ArrowLeft,
+  Camera,
+  Sliders,
+  Coins,
+  GitBranch,
+  Sparkles,
+  HelpCircle,
+  ExternalLink,
+  CheckCircle2,
+  Loader2,
+  Zap,
+} from "lucide-react";
 
 const LENS_TABS = [
   { id: "coins", label: "Coin Drop", icon: Coins },
@@ -41,12 +54,16 @@ export default function MoneySplit() {
     guessedLabourPct,
     labelEvidence,
     provenanceRecord,
+    lastStellarTx,
+    stellarLoading,
+    settleStellarPayout,
+    setMakerTip,
     reset,
   } = useApp();
   const [editingPrice, setEditingPrice] = useState(false);
   const [activeLens, setActiveLens] = useState("coins");
   const [showNotePopover, setShowNotePopover] = useState(false);
-  const [anchoredEstimate, setAnchoredEstimate] = useState(null);
+  const [, setAnchoredEstimate] = useState(null);
   const [anchoring, setAnchoring] = useState(false);
 
   const reduce = useReducedMotion();
@@ -79,7 +96,7 @@ export default function MoneySplit() {
       const t = setTimeout(celebrate, 350);
       return () => clearTimeout(t);
     }
-  }, [reduce]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [reduce]);
 
   const publishEstimateRecord = async (modeToUse = shareMode === "private" ? "count" : shareMode) => {
     if (savedScan.current || anchoring) return;
@@ -179,7 +196,6 @@ export default function MoneySplit() {
   useEffect(() => {
     if (savedScan.current || shareMode === "private") return;
     publishEstimateRecord(shareMode);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [shareMode]);
 
   return (
@@ -206,13 +222,88 @@ export default function MoneySplit() {
               <p className="text-xs font-bold text-jejak-navy/55">
                 {product.emoji} {product.name} · {product.markets[market].retailer}
               </p>
-              <div className="flex items-baseline gap-2">
+              <div className="flex items-baseline gap-2 flex-wrap">
                 <p className="text-4xl font-extrabold text-jejak-navy tabular-nums">
                   {formatMoney(price, currency)}
                 </p>
                 <span className="rounded-full bg-jejak-labour/15 px-2 py-0.5 text-xs font-extrabold text-jejak-labour tabular-nums">
                   {formatMoney(labour.amount, currency)} ({labour.pct.mid}%) to makers
                 </span>
+              </div>
+
+              {/* Maker payout status / quick testnet payment right under the "makers" amount */}
+              <div className="mt-1.5">
+                {lastStellarTx ? (
+                  <div className="inline-flex flex-wrap items-center gap-1.5 rounded-xl bg-jejak-navy/8 border border-jejak-navy/15 px-2.5 py-1 text-[11px] font-bold text-jejak-navy">
+                    <CheckCircle2
+                      size={12}
+                      className={
+                        lastStellarTx.cachedFallback
+                          ? "text-amber-600"
+                          : "text-jejak-materials"
+                      }
+                    />
+                    <span>
+                      {lastStellarTx.cachedFallback ? (
+                        <>
+                          <strong className="text-amber-700">
+                            Simulated payout
+                          </strong>{" "}
+                          ·{" "}
+                          {formatMoney(
+                            lastStellarTx.fiatAmount || 1,
+                            lastStellarTx.fiatCurrency || currency
+                          )}{" "}
+                          (testnet unreachable)
+                        </>
+                      ) : (
+                        <>
+                          <strong>Testnet payment sent:</strong>{" "}
+                          {formatMoney(
+                            lastStellarTx.fiatAmount || 1,
+                            lastStellarTx.fiatCurrency || currency
+                          )}{" "}
+                          ({lastStellarTx.xlmSettled} XLM) to {originCountry}{" "}
+                          corridor
+                        </>
+                      )}
+                    </span>
+                    {lastStellarTx.explorerUrl && (
+                      <a
+                        href={lastStellarTx.explorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-0.5 font-extrabold text-jejak-freight underline"
+                      >
+                        TX {String(lastStellarTx.hash || "").slice(0, 6)}…{" "}
+                        <ExternalLink size={10} />
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={stellarLoading}
+                    onClick={() => {
+                      vibrate(6);
+                      setMakerTip(1);
+                      settleStellarPayout({ amount: 1, mode: "direct" });
+                    }}
+                    className="inline-flex items-center gap-1 rounded-full bg-jejak-navy/10 hover:bg-jejak-navy/15 px-2.5 py-1 text-[10px] font-extrabold text-jejak-navy no-tap disabled:opacity-60"
+                  >
+                    {stellarLoading ? (
+                      <>
+                        <Loader2 size={11} className="animate-spin" /> Sending
+                        testnet payout…
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={11} className="text-jejak-labour" /> Send{" "}
+                        {formatMoney(1, currency)} testnet maker payout
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -435,51 +526,8 @@ export default function MoneySplit() {
           )}
         </div>
 
-        {/* Social + Stellar On-Chain Estimate Record bar */}
-        <div className="mt-3 rounded-2xl frosted p-3 border border-white/80">
-          {anchoredEstimate ? (
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <div className="min-w-0">
-                <p className="font-extrabold text-jejak-navy">
-                  Estimate record anchored on Stellar Testnet
-                </p>
-                <p className="font-mono text-[10px] text-jejak-navy/60 truncate">
-                  Memo: {anchoredEstimate.memo} · Live in Explore feed
-                </p>
-              </div>
-              <a
-                href={anchoredEstimate.explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 rounded-full bg-jejak-navy px-2.5 py-1 text-[10px] font-extrabold text-amber-300 no-tap"
-              >
-                Stellar.Expert ↗
-              </a>
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-xs font-extrabold text-jejak-navy">
-                  Put this estimate record in the Explore room
-                </p>
-                <p className="text-[10px] font-semibold text-jejak-navy/60">
-                  Posts an anonymous card to Explore with a Stellar Testnet memo hash
-                </p>
-              </div>
-              <button
-                type="button"
-                disabled={anchoring}
-                onClick={() => {
-                  vibrate(8);
-                  publishEstimateRecord("count");
-                }}
-                className="shrink-0 rounded-xl bg-jejak-navy px-3 py-1.5 text-[11px] font-extrabold text-amber-300 no-tap disabled:opacity-60"
-              >
-                {anchoring ? "Anchoring…" : "Anchor & Post"}
-              </button>
-            </div>
-          )}
-        </div>
+        {/* End-to-End Stellar Trace Receipt Card (Tracing -> Anchoring -> Anchored + Verify) */}
+        <StellarTraceReceiptCard autoAnchor={true} />
 
         <ShareReceipt />
 

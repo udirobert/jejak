@@ -10,6 +10,7 @@ import Logo from "@/components/Logo";
 import CurrencySwitch from "@/components/CurrencySwitch";
 import BankMergedHeroCard from "@/components/bank/BankMergedHeroCard";
 import BankTransactionsSheet from "@/components/bank/BankTransactionsSheet";
+import BankSpendLimitSheet from "@/components/bank/BankSpendLimitSheet";
 import JejakPassportSheet from "@/components/JejakPassportSheet";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
 import { Info, Landmark, X } from "lucide-react";
@@ -162,6 +163,8 @@ export default function Embedded() {
   const [showInfoSheet, setShowInfoSheet] = useState(false);
   const [passportSheetOpen, setPassportSheetOpen] = useState(false);
   const [passportPromptReason, setPassportPromptReason] = useState(null);
+  const [spendLimitSheetOpen, setSpendLimitSheetOpen] = useState(false);
+  const [openLimitAfterPassport, setOpenLimitAfterPassport] = useState(false);
 
   const fxMult = currency === "SGD" ? 1.72 : 1;
   const displayBalance = +(2144.51 * fxMult).toFixed(2);
@@ -207,8 +210,21 @@ export default function Embedded() {
   };
 
   const handleOpenPassport = (reason = null) => {
+    setOpenLimitAfterPassport(false);
     setPassportPromptReason(reason);
     setPassportSheetOpen(true);
+  };
+
+  const handleTriggerSpendCap = () => {
+    if (walletSession) {
+      setSpendLimitSheetOpen(true);
+    } else {
+      setOpenLimitAfterPassport(true);
+      setPassportPromptReason(
+        "Create your passport first to set an on-chain spending limit"
+      );
+      setPassportSheetOpen(true);
+    }
   };
 
   return (
@@ -291,11 +307,7 @@ export default function Embedded() {
             countryCount={6}
             walletSession={walletSession}
             onOpenPassport={() => handleOpenPassport(null)}
-            onTriggerSpendCap={() =>
-              handleOpenPassport(
-                walletSession ? null : "Unlock spending limits with Face ID"
-              )
-            }
+            onTriggerSpendCap={handleTriggerSpendCap}
             isCompact={sheetSnap === "full"}
             reduce={reduce}
           />
@@ -318,7 +330,19 @@ export default function Embedded() {
         <JejakPassportSheet
           open={passportSheetOpen}
           onClose={() => setPassportSheetOpen(false)}
+          onCreated={() => {
+            if (openLimitAfterPassport) {
+              setOpenLimitAfterPassport(false);
+              setSpendLimitSheetOpen(true);
+            }
+          }}
           pendingActionLabel={passportPromptReason}
+        />
+
+        {/* Real Smart-Account Spending Limit Policy Sheet (Amount + Category -> Passkey -> Stellar) */}
+        <BankSpendLimitSheet
+          open={spendLimitSheetOpen}
+          onClose={() => setSpendLimitSheetOpen(false)}
         />
 
         {/* Shared Trace Detail Bottom Sheet */}

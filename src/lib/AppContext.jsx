@@ -6,6 +6,18 @@ import { getWalletSession } from "./wallet";
 
 const AppContext = createContext(null);
 const STREAK_STORAGE_KEY = "jejak_streak_v1";
+const ANCHORED_RECORDS_KEY = "jejak_anchored_records_v1";
+
+function loadSavedAnchoredRecords() {
+  try {
+    const raw = localStorage.getItem(ANCHORED_RECORDS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 function loadSavedStreak() {
   try {
@@ -56,7 +68,22 @@ export function AppProvider({ children }) {
   const [stellarError, setStellarError] = useState(null);
   const [labelEvidence, setLabelEvidence] = useState(null); // extracted care/Made-in label facts
   const [provenanceRecord, setProvenanceRecord] = useState(null); // anchored SHA-256 provenance record
+  const [anchoredRecords, setAnchoredRecords] = useState(() =>
+    loadSavedAnchoredRecords()
+  );
   const [walletSession, setWalletSession] = useState(() => getWalletSession());
+
+  const recordAnchoredTrace = useCallback((rec) => {
+    if (!rec || !rec.txHash) return;
+    setAnchoredRecords((prev) => {
+      const filtered = prev.filter((item) => item.txHash !== rec.txHash);
+      const next = [rec, ...filtered].slice(0, 30);
+      try {
+        localStorage.setItem(ANCHORED_RECORDS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  }, []);
 
   const settleStellarPayout = useCallback(
     async ({
@@ -220,6 +247,8 @@ export function AppProvider({ children }) {
     setLabelEvidence,
     provenanceRecord,
     setProvenanceRecord,
+    anchoredRecords,
+    recordAnchoredTrace,
     walletSession,
     setWalletSession,
     addTrace,
