@@ -93,10 +93,10 @@ export default function Globe({
         }
         return { lng: prev.lng + 0.22, lat: prev.lat };
       });
-      // Continuous looping coin along all legs
+      // Continuous looping coin along all legs (always non-negative)
       const totalLen = Math.max(1, legs.length);
       const segDur = 1.35;
-      const p = (elapsed / segDur) % totalLen;
+      const p = Math.max(0, elapsed / segDur) % totalLen;
       setCoinPos(p);
       setDashOffset((d) => (d - 0.6) % 24);
       raf.current = requestAnimationFrame(loop);
@@ -134,16 +134,20 @@ export default function Globe({
   let coin = null;
   let trail = null;
   if (legs.length) {
-    const seg = Math.min(Math.floor(coinPos), legs.length - 1);
-    const t = Math.min(coinPos - seg, 1);
-    const pt = legs[seg].interp(t);
-    const xy = project(pt);
-    if (xy) coin = { x: xy[0], y: xy[1], seg };
+    const safePos = Number.isFinite(coinPos) && coinPos >= 0 ? coinPos : 0;
+    const seg = Math.max(0, Math.min(Math.floor(safePos), legs.length - 1));
+    const leg = legs[seg];
+    if (leg && leg.interp) {
+      const t = Math.max(0, Math.min(safePos - seg, 1));
+      const pt = leg.interp(t);
+      const xy = project(pt);
+      if (xy) coin = { x: xy[0], y: xy[1], seg };
 
-    const tTrail = Math.max(0, t - 0.12);
-    const ptTrail = legs[seg].interp(tTrail);
-    const xyTrail = project(ptTrail);
-    if (xyTrail) trail = { x: xyTrail[0], y: xyTrail[1] };
+      const tTrail = Math.max(0, t - 0.12);
+      const ptTrail = leg.interp(tTrail);
+      const xyTrail = project(ptTrail);
+      if (xyTrail) trail = { x: xyTrail[0], y: xyTrail[1] };
+    }
   }
 
   // Stop markers with country label + stage info.
