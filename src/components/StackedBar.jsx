@@ -14,6 +14,12 @@ export default function StackedBar({ split, currency, onInspectCategory }) {
 
   return (
     <div className="w-full">
+      <div className="mb-1 flex items-center justify-between px-0.5 text-[10px] font-bold text-jejak-navy/60">
+        <span>Where your money goes (tap any block):</span>
+        <span className="font-extrabold text-jejak-navy">
+          Selected: {active.label} ({active.pct.mid}%)
+        </span>
+      </div>
       <div
         className="flex h-11 w-full overflow-hidden rounded-2xl frosted border border-white/80 p-1 gap-0.5"
         role="group"
@@ -102,10 +108,10 @@ export default function StackedBar({ split, currency, onInspectCategory }) {
               }}
               className="flex shrink-0 items-center gap-1 rounded-full bg-white/90 border border-white px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy shadow-sm no-tap"
             >
+              <span>Why</span>
               <span className="tabular-nums" style={{ color: active.color }}>
                 {formatMoney(active.amount, currency)}
               </span>
-              <span className="text-jejak-navy/50 tabular-nums">({active.pct.mid}%)</span>
               <ChevronRight size={12} className="text-jejak-navy/50" />
             </motion.button>
           </AnimatePresence>

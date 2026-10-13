@@ -90,14 +90,18 @@ export default function Embedded() {
         style={{ maxWidth: 420 }}
       >
         {/* Minimal top bar */}
-        <header className="flex items-center justify-between px-5 pt-5 pb-2">
+        <header className="flex items-center justify-between px-5 pt-5 pb-1">
           <Link to="/" className="flex items-center gap-1 text-xs font-bold text-white/70 hover:text-white no-tap">
             <ChevronLeft size={16} /> Scanner
           </Link>
           <span className="rounded-full bg-amber-300/15 border border-amber-300/35 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
-            Embedded Bank API
+            Embedded Bank Preview
           </span>
         </header>
+
+        <p className="px-5 pb-2 text-[11px] font-semibold text-white/65">
+          See how Jejak plugs into a banking app: tap any purchase to see its cost split or round up £1 to the makers.
+        </p>
 
         {/* Unified Visual Bank Card: Balance + Animated Ring Gauge + 1-Tap Auto-Roundup */}
         <div className="px-5 pt-1">

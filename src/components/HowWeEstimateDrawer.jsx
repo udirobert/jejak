@@ -5,7 +5,7 @@ import { BASIS_LABELS } from "@/lib/tokens";
 
 // "How we estimate this" — methodology drawer, accessible from every screen.
 export default function HowWeEstimateDrawer() {
-  const { showHowTo, setShowHowTo } = useApp();
+  const { showHowTo, setShowHowTo, startGuidedTour } = useApp();
   return (
     <AnimatePresence>
       {showHowTo && (
@@ -60,6 +60,16 @@ export default function HowWeEstimateDrawer() {
             >
               Report an error (mock)
             </a>
+            <button
+              type="button"
+              onClick={() => {
+                setShowHowTo(false);
+                startGuidedTour();
+              }}
+              className="mt-2 w-full rounded-xl bg-sunrise py-3 text-sm font-extrabold text-white shadow-sm no-tap"
+            >
+              Launch 15-second Guided Tour
+            </button>
             <button
               type="button"
               onClick={() => setShowHowTo(false)}

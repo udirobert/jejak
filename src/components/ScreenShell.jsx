@@ -8,7 +8,7 @@ import { HelpCircle } from "lucide-react";
 // Shared shell: phone-width column, lilac-to-peach background, header with
 // logo, currency switch and a "how we estimate" link. Used on every screen.
 export default function ScreenShell({ children, variant = "soft", header = true, maxWidth = 420 }) {
-  const { setShowHowTo } = useApp();
+  const { setShowHowTo, startGuidedTour } = useApp();
   return (
     <div className="min-h-screen w-full flex justify-center bg-lilac-peach">
       <StageSidebars />
@@ -22,7 +22,14 @@ export default function ScreenShell({ children, variant = "soft", header = true,
               <Logo size={34} />
               <span className="text-lg font-extrabold tracking-tight text-jejak-navy">Jejak</span>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={startGuidedTour}
+                className="rounded-full frosted border border-white/60 px-2.5 py-1.5 text-[11px] font-extrabold text-jejak-navy hover:bg-white/90 no-tap"
+              >
+                Tour
+              </button>
               <CurrencySwitch />
               <button
                 type="button"

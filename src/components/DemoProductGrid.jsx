@@ -17,11 +17,11 @@ export default function DemoProductGrid({
   return (
     <div className="mt-4 rounded-3xl frosted-strong border border-white/80 p-4">
       <div className="mb-2.5 flex items-center justify-between">
-        <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-jejak-navy/65">
-          <Sparkles size={13} className="text-jejak-goldDeep" /> Instant demo traces
+        <p className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-jejak-navy/75">
+          <Sparkles size={13} className="text-jejak-goldDeep" /> No item handy? Tap a sample
         </p>
-        <span className="text-[10px] font-bold text-jejak-navy/45">
-          Tap for route · ↗ for receipt
+        <span className="rounded-full bg-jejak-navy/8 px-2 py-0.5 text-[10px] font-extrabold text-jejak-navy/65">
+          Try the £45 Hoodie ↓
         </span>
       </div>
 

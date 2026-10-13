@@ -11,6 +11,7 @@ import ConfidenceBadge from "@/components/ConfidenceBadge";
 import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
 import MakerBridgeCard from "@/components/MakerBridgeCard";
+import CoachmarkPill from "@/components/CoachmarkPill";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
@@ -212,6 +213,12 @@ export default function MoneySplit() {
             )}
           </AnimatePresence>
         </motion.div>
+
+        <CoachmarkPill
+          id="split_receipt"
+          stepBadge="Step 3 of 3"
+          text="Tap any colour block below to see who keeps what — or tap 'Flow & Boost' to tip the makers."
+        />
 
         {/* Interactive Scrubbable 5-Category Bar (always visible anchor) */}
         <div className="mt-3">

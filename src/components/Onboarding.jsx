@@ -38,11 +38,11 @@ export function hasOnboarded() {
 }
 
 export default function Onboarding() {
-  const { reset } = useApp();
+  const { reset, startGuidedTour } = useApp();
   const [idx, setIdx] = useState(0);
   const [open, setOpen] = useState(() => !hasOnboarded());
 
-  const finish = () => {
+  const finish = (launchTour = false) => {
     try {
       localStorage.setItem(STORAGE_KEY, "1");
     } catch {
@@ -51,6 +51,9 @@ export default function Onboarding() {
     vibrate(12);
     setOpen(false);
     reset();
+    if (launchTour) {
+      startGuidedTour();
+    }
   };
 
   const next = () => {
@@ -117,18 +120,27 @@ export default function Onboarding() {
             <button
               type="button"
               onClick={next}
-              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-extrabold text-jejak-navy no-tap"
+              className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-white py-3.5 text-sm font-extrabold text-jejak-navy no-tap shadow-md"
             >
               {idx < SLIDES.length - 1 ? "Continue" : "Start tracing"}
               <ArrowRight size={16} />
             </button>
-            <button
-              type="button"
-              onClick={finish}
-              className="mt-2 w-full py-2 text-xs font-semibold text-white/70 no-tap"
-            >
-              Skip
-            </button>
+            <div className="mt-2 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => finish(true)}
+                className="flex-1 rounded-xl bg-white/20 py-2 text-xs font-extrabold text-white hover:bg-white/30 no-tap"
+              >
+                Try 15s interactive demo
+              </button>
+              <button
+                type="button"
+                onClick={() => finish(false)}
+                className="px-4 py-2 text-xs font-semibold text-white/80 hover:text-white no-tap"
+              >
+                Skip to app
+              </button>
+            </div>
           </div>
         </motion.div>
       )}

@@ -48,6 +48,17 @@ export function AppProvider({ children }) {
   const [customPrice, setCustomPrice] = useState(null); // optional user-adjusted shelf price
   const [makerTip, setMakerTip] = useState(0); // optional direct maker boost on current receipt
   const [guessedLabourPct, setGuessedLabourPct] = useState(null); // pre-reveal user guess
+  const [tourStep, setTourStep] = useState(null); // null | 0..3 interactive guided tour
+
+  const startGuidedTour = useCallback(() => {
+    setScreen("home");
+    setShowHowTo(false);
+    setTourStep(0);
+  }, []);
+
+  const endGuidedTour = useCallback(() => {
+    setTourStep(null);
+  }, []);
 
   useEffect(() => {
     try {
@@ -118,6 +129,10 @@ export function AppProvider({ children }) {
     setMakerTip,
     guessedLabourPct,
     setGuessedLabourPct,
+    tourStep,
+    setTourStep,
+    startGuidedTour,
+    endGuidedTour,
     addTrace,
     addToWorkerFund,
     setCurrency: switchCurrency,

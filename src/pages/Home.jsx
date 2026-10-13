@@ -8,6 +8,7 @@ import ProductPicker from "@/components/ProductPicker";
 import StreakPill from "@/components/StreakPill";
 import ViewfinderStage from "@/components/ViewfinderStage";
 import DemoProductGrid from "@/components/DemoProductGrid";
+import HowItWorksStrip from "@/components/HowItWorksStrip";
 import { vibrate } from "@/lib/haptics";
 
 export default function Home() {
@@ -22,6 +23,7 @@ export default function Home() {
     setLowConfidence,
     setCustomPrice,
     setMakerTip,
+    startGuidedTour,
   } = useApp();
   const cameraRef = useRef(null);
   const libraryRef = useRef(null);
@@ -116,6 +118,8 @@ export default function Home() {
             Scan any product.<br />See where your money goes.
           </h1>
         </motion.div>
+
+        <HowItWorksStrip onStartGuidedDemo={startGuidedTour} />
 
         <ViewfinderStage
           onPickCamera={onPickCamera}

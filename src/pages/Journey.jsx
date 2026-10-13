@@ -7,6 +7,7 @@ import ScreenShell from "@/components/ScreenShell";
 import Globe from "@/components/Globe";
 import StageIllustration from "@/components/StageIllustration";
 import TodaySnapPulse from "@/components/TodaySnapPulse";
+import CoachmarkPill from "@/components/CoachmarkPill";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
 import { ArrowRight, MapPin, Compass, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
@@ -66,6 +67,13 @@ export default function Journey() {
             {product.emoji} {product.name} · {formatMoney(price, currency)}
           </h1>
         </motion.div>
+
+        <CoachmarkPill
+          id="journey_globe"
+          stepBadge="Step 2 of 3"
+          text="Spin the 3D globe or tap any numbered country below to inspect each factory stage."
+          variant="dark"
+        />
 
         {/* Interactive 3D Globe */}
         <div className="relative mt-1.5 flex flex-col items-center justify-center">
