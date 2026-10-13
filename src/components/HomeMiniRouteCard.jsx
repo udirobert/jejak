@@ -22,7 +22,8 @@ export default function HomeMiniRouteCard({
   const destCountry =
     route[route.length - 1]?.country ||
     (market === "SG" ? "Singapore" : "United Kingdom");
-  const price = product.markets[market].price;
+  const price =
+    product?.markets?.[market]?.price ?? product?.markets?.GB?.price ?? 45;
   const split = computeSplit(product, market, "split", price);
   const labour = split.find((s) => s.key === "labour");
 

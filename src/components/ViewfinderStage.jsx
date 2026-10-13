@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ShutterButton from "./ShutterButton";
 import { CATEGORIES } from "@/lib/tokens";
 import { DEMO_CHIPS, getProduct } from "@/data";
-import { formatMoney } from "@/lib/money";
+import { formatMoney, getRoute } from "@/lib/money";
 import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
 import { vibrate } from "@/lib/haptics";
 import {
@@ -142,8 +142,10 @@ export default function ViewfinderStage({
         <div className="grid grid-cols-2 gap-2">
           {DEMO_CHIPS.map((c, idx) => {
             const prod = getProduct(c.id);
-            const price = prod.markets[market].price;
+            const mkt = prod?.markets?.[market] ? market : "GB";
+            const price = prod?.markets?.[mkt]?.price ?? 0;
             const formatted = formatMoney(price, currency);
+            const route = getRoute(prod, mkt);
             return (
               <button
                 key={c.id}
@@ -171,8 +173,8 @@ export default function ViewfinderStage({
                       idx === 0 ? "text-amber-300" : "text-jejak-navy/60"
                     }`}
                   >
-                    {prod.routes[market]?.[0]?.country} →{" "}
-                    {market === "SG" ? "SG" : "UK"}
+                    {route[0]?.country || "Origin"} →{" "}
+                    {mkt === "SG" ? "SG" : "UK"}
                   </p>
                 </div>
               </button>
