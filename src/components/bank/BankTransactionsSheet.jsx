@@ -9,8 +9,8 @@ import { vibrate } from "@/lib/haptics";
 
 export const BANK_SNAP_HEIGHTS = {
   peek: 64,
-  half: 315,
-  full: 510,
+  half: 424,
+  full: 540,
 };
 
 const SNAP_ORDER = ["peek", "half", "full"];
@@ -78,7 +78,7 @@ export default function BankTransactionsSheet({
       }}
       className="pointer-events-auto absolute left-0 right-0 z-30 w-full rounded-t-3xl bg-white border-t border-slate-200/90 shadow-[0_-10px_30px_rgba(15,23,42,0.12)] flex flex-col overflow-hidden"
     >
-      {/* Sheet Drag Handle + One-Line Header (same pattern as Explore) */}
+      {/* Sheet Drag Handle + One-Line Header */}
       <div
         role="button"
         tabIndex={0}
@@ -89,7 +89,7 @@ export default function BankTransactionsSheet({
             handleHeaderTap();
           }
         }}
-        className="shrink-0 pt-2.5 pb-2.5 px-5 cursor-grab active:cursor-grabbing select-none no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
+        className="shrink-0 pt-2.5 pb-2 px-5 cursor-grab active:cursor-grabbing select-none no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400"
       >
         <div className="mx-auto h-1.5 w-10 rounded-full bg-slate-200" />
         <div className="mt-2 flex items-center justify-between gap-2">
@@ -110,13 +110,17 @@ export default function BankTransactionsSheet({
         </div>
       </div>
 
-      {/* Scrollable Transactions List */}
+      {/* Scrollable Transactions List using shared product names & market prices */}
       {snap !== "peek" && (
-        <div className="relative flex-1 overflow-y-auto px-3 pb-10 scrollbar-hide divide-y divide-slate-100">
+        <div className="relative flex-1 overflow-y-auto px-3 pb-12 scrollbar-hide divide-y divide-slate-100">
           {feed.map((tx, rowIdx) => {
             const prod = tx.productId ? getProduct(tx.productId) : null;
-            const rawPrice = +(Math.abs(tx.amount) * fxMult).toFixed(2);
-            const route = prod ? getRoute(prod, market) : [];
+            const mkt = prod?.markets?.[market] ? market : "GB";
+            const rawPrice = prod
+              ? prod.markets[mkt].price
+              : +(Math.abs(tx.amount) * fxMult).toFixed(2);
+            const displayTitle = prod ? prod.name : tx.merchant;
+            const route = prod ? getRoute(prod, mkt) : [];
             const routeFlags = prod
               ? Array.from(
                   new Set([
@@ -144,7 +148,7 @@ export default function BankTransactionsSheet({
                     onSelectTx(tx);
                   }
                 }}
-                className={`px-2.5 py-3 rounded-2xl transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${
+                className={`px-2.5 py-2.5 rounded-2xl transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-400 ${
                   isInteractive
                     ? "cursor-pointer hover:bg-slate-50 active:bg-slate-100/80"
                     : ""
@@ -162,7 +166,7 @@ export default function BankTransactionsSheet({
 
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-bold text-slate-900 truncate">
-                        {tx.merchant}
+                        {displayTitle}
                       </p>
                       <p className="text-[11px] font-medium text-slate-400 truncate">
                         {tx.date} · {tx.cat}
@@ -170,7 +174,7 @@ export default function BankTransactionsSheet({
                     </div>
                   </div>
 
-                  {/* Right: Animated Jejak Trace chip + Amount */}
+                  {/* Right: Animated Jejak Trace chip + Shared Market Amount */}
                   <div className="flex items-center gap-2.5 shrink-0">
                     <AnimatePresence>
                       {prod && withJejak && (
@@ -222,7 +226,7 @@ export default function BankTransactionsSheet({
         </div>
       )}
 
-      {/* Subtle bottom fade so the floating tab bar never crowds content */}
+      {/* Subtle bottom fade so the floating tab bar never covers content */}
       {snap !== "peek" && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-6 bg-gradient-to-t from-white to-transparent" />
       )}

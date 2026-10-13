@@ -7,7 +7,6 @@ import ScreenShell from "@/components/ScreenShell";
 import ProductPicker from "@/components/ProductPicker";
 import StreakPill from "@/components/StreakPill";
 import ViewfinderStage from "@/components/ViewfinderStage";
-import HowItWorksStrip from "@/components/HowItWorksStrip";
 import HomeMiniRouteCard from "@/components/HomeMiniRouteCard";
 import { vibrate } from "@/lib/haptics";
 
@@ -44,8 +43,6 @@ export default function Home() {
     setCustomPrice(null);
     setMakerTip(0);
     setScreen("identifying");
-    // Upload privately, then mint a short-lived signed URL the vision model
-    // can fetch for one-time recognition (stored privately).
     try {
       setUploading(true);
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({
@@ -102,23 +99,19 @@ export default function Home() {
       <div className="flex flex-1 flex-col px-5 pb-28">
         <StreakPill />
 
-        {/* High-contrast hero copy over dark plum/navy top gradient (WCAG AA > 8:1) */}
         <motion.div
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 24 }}
-          className="mt-3"
+          className="mt-2.5 text-center"
         >
-          <h1 className="text-[23px] font-extrabold leading-[1.15] tracking-tight text-white">
+          <h1 className="text-[22px] font-extrabold leading-[1.15] tracking-tight text-white">
             Know the story behind what you buy.
           </h1>
-          <p className="mt-1 text-xs font-bold leading-relaxed text-amber-100">
-            Snap any item or care tag to map its supply-chain route and follow
-            where your money goes.
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-white/75">
+            Snap any item or care tag to see its route and where your money goes.
           </p>
         </motion.div>
-
-        <HowItWorksStrip />
 
         <ViewfinderStage
           market={market}
@@ -129,7 +122,6 @@ export default function Home() {
           onOpenFallback={() => setPickerOpen(true)}
         />
 
-        {/* Live mini corridor route card (latest trace or preview before first trace) */}
         <HomeMiniRouteCard
           product={product}
           market={market}

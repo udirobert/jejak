@@ -34,7 +34,7 @@ export default function Globe({
   const currency = currencyProp || appCtx?.currency || "GBP";
   const coinSymbol = currencySymbolOf(currency);
   const reduce = useReducedMotion();
-  const R = Math.round(size * 0.465);
+  const R = Math.round(size * 0.425);
 
   // Dedupe route stops by country so each country appears only once on the globe
   const uniqueRoute = useMemo(() => {
@@ -319,113 +319,6 @@ export default function Globe({
             </g>
           ))}
 
-          {/* Stop markers: short flag-only pill until selected; full untruncated country name when selected */}
-          {markers.map((m) => {
-            const isFocused = focusedIdx === m.idx;
-            const isOrigin = m.idx === 0;
-            const isFinal = m.idx === uniqueRoute.length - 1;
-            const labelText = displayCountryName(m.stop.country);
-            const pillWidth = isFocused
-              ? Math.max(54, Math.round(labelText.length * 5.8 + 28))
-              : 24;
-            const pillHeight = isFocused ? 16 : 14;
-
-            return (
-              <g
-                key={`m-${m.stop.country}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (onSelectStop) {
-                    vibrate(6);
-                    const offset = {
-                      x: Math.round((m.x - size / 2) * 0.35),
-                      y: Math.round((m.y - size) * 0.25),
-                    };
-                    onSelectStop(m.idx, m.stop, offset);
-                  }
-                }}
-                style={{ cursor: onSelectStop ? "pointer" : "default" }}
-              >
-                <circle
-                  cx={m.x}
-                  cy={m.y}
-                  r={isFocused ? 12 : 8}
-                  fill={isOrigin ? COLORS.labour : COLORS.coral}
-                  opacity={0.25}
-                >
-                  {!reduce && (
-                    <>
-                      <animate
-                        attributeName="r"
-                        values={isFocused ? "8;16;8" : "5;11;5"}
-                        dur="2s"
-                        repeatCount="indefinite"
-                      />
-                      <animate
-                        attributeName="opacity"
-                        values="0.45;0.05;0.45"
-                        dur="2s"
-                        repeatCount="indefinite"
-                      />
-                    </>
-                  )}
-                </circle>
-                <circle
-                  cx={m.x}
-                  cy={m.y}
-                  r={isFocused ? 6.5 : 4.8}
-                  fill={isOrigin ? COLORS.labour : isFinal ? COLORS.materials : COLORS.coral}
-                  stroke="#fff"
-                  strokeWidth="1.8"
-                />
-
-                {/* Callout pill: flag-only until selected, full country name when selected */}
-                <g transform={`translate(${m.x}, ${m.y - 11})`}>
-                  <rect
-                    x={-pillWidth / 2}
-                    y={-pillHeight}
-                    width={pillWidth}
-                    height={pillHeight}
-                    rx={pillHeight / 2}
-                    fill={isFocused ? "#1B1B3A" : "rgba(27,27,58,0.84)"}
-                    stroke={isFocused ? "#FFC24B" : "rgba(255,255,255,0.65)"}
-                    strokeWidth={isFocused ? 1.2 : 0.7}
-                  />
-                  {isFocused ? (
-                    <>
-                      <MapSvgFlag
-                        country={m.stop.country}
-                        x={-pillWidth / 2 + 11}
-                        y={-pillHeight / 2}
-                        width={12}
-                        height={8.5}
-                      />
-                      <text
-                        x={6}
-                        y={-pillHeight / 2 + 2.8}
-                        textAnchor="middle"
-                        fill="#ffffff"
-                        fontSize="8"
-                        fontWeight="800"
-                        fontFamily="Plus Jakarta Sans, sans-serif"
-                      >
-                        {labelText}
-                      </text>
-                    </>
-                  ) : (
-                    <MapSvgFlag
-                      country={m.stop.country}
-                      x={0}
-                      y={-pillHeight / 2}
-                      width={13}
-                      height={9}
-                    />
-                  )}
-                </g>
-              </g>
-            );
-          })}
-
           {/* Coin wake trail */}
           {trail && (
             <circle cx={trail.x} cy={trail.y} r={3.5} fill="#FFC24B" opacity="0.55" />
@@ -475,6 +368,117 @@ export default function Globe({
           strokeWidth="1.5"
           opacity="0.75"
         />
+
+        {/* Stop markers rendered above the globe clip path with clamped callout pills so top/left stops never clip */}
+        {markers.map((m) => {
+          const isFocused = focusedIdx === m.idx;
+          const isOrigin = m.idx === 0;
+          const isFinal = m.idx === uniqueRoute.length - 1;
+          const labelText = displayCountryName(m.stop.country);
+          const pillWidth = isFocused
+            ? Math.max(54, Math.round(labelText.length * 5.8 + 28))
+            : 24;
+          const pillHeight = isFocused ? 16 : 14;
+          const pillX = Math.max(
+            pillWidth / 2 + 4,
+            Math.min(size - pillWidth / 2 - 4, m.x)
+          );
+          const pillY = Math.max(pillHeight + 4, Math.min(size - 4, m.y - 10));
+
+          return (
+            <g
+              key={`m-${m.stop.country}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onSelectStop) {
+                  vibrate(6);
+                  const offset = {
+                    x: Math.round((m.x - size / 2) * 0.35),
+                    y: Math.round((m.y - size) * 0.25),
+                  };
+                  onSelectStop(m.idx, m.stop, offset);
+                }
+              }}
+              style={{ cursor: onSelectStop ? "pointer" : "default" }}
+            >
+              <circle
+                cx={m.x}
+                cy={m.y}
+                r={isFocused ? 12 : 8}
+                fill={isOrigin ? COLORS.labour : COLORS.coral}
+                opacity={0.25}
+              >
+                {!reduce && (
+                  <>
+                    <animate
+                      attributeName="r"
+                      values={isFocused ? "8;16;8" : "5;11;5"}
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.45;0.05;0.45"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                  </>
+                )}
+              </circle>
+              <circle
+                cx={m.x}
+                cy={m.y}
+                r={isFocused ? 6.5 : 4.8}
+                fill={isOrigin ? COLORS.labour : isFinal ? COLORS.materials : COLORS.coral}
+                stroke="#fff"
+                strokeWidth="1.8"
+              />
+
+              <g transform={`translate(${pillX}, ${pillY})`}>
+                <rect
+                  x={-pillWidth / 2}
+                  y={-pillHeight}
+                  width={pillWidth}
+                  height={pillHeight}
+                  rx={pillHeight / 2}
+                  fill={isFocused ? "#1B1B3A" : "rgba(27,27,58,0.86)"}
+                  stroke={isFocused ? "#FFC24B" : "rgba(255,255,255,0.75)"}
+                  strokeWidth={isFocused ? 1.2 : 0.7}
+                />
+                {isFocused ? (
+                  <>
+                    <MapSvgFlag
+                      country={m.stop.country}
+                      x={-pillWidth / 2 + 11}
+                      y={-pillHeight / 2}
+                      width={12}
+                      height={8.5}
+                    />
+                    <text
+                      x={6}
+                      y={-pillHeight / 2 + 2.8}
+                      textAnchor="middle"
+                      fill="#ffffff"
+                      fontSize="8"
+                      fontWeight="800"
+                      fontFamily="Plus Jakarta Sans, sans-serif"
+                    >
+                      {labelText}
+                    </text>
+                  </>
+                ) : (
+                  <MapSvgFlag
+                    country={m.stop.country}
+                    x={0}
+                    y={-pillHeight / 2}
+                    width={13}
+                    height={9}
+                  />
+                )}
+              </g>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );

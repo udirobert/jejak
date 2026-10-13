@@ -6,8 +6,8 @@ import { vibrate } from "@/lib/haptics";
 import { TAP, SPRING, SPRING_SNAP } from "@/lib/motion";
 
 // Bottom tab bar — rounded, frosted-glass floating dock with safe-area padding.
-// Uses :focus-visible ONLY on the inner pill for keyboard users so mouse/touch taps
-// and active tabs never show a double outline.
+// Uses :focus-visible ONLY on the inner pill for keyboard users, matching the pill's
+// rounded-full border-radius and brand gold palette.
 const TABS = [
   { to: "/", label: "Trace", icon: Crosshair },
   { to: "/explore", label: "Explore", icon: Compass },
@@ -35,13 +35,10 @@ export default function TabBar() {
                 key={to}
                 to={to}
                 end={to === "/"}
-                onClick={(e) => {
-                  vibrate(6);
-                  e.currentTarget.blur();
-                }}
-                style={{ outline: "none", boxShadow: "none" }}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => vibrate(6)}
                 className={({ isActive }) =>
-                  `group relative min-h-[44px] flex flex-1 flex-col items-center justify-center rounded-2xl py-1 no-tap transition-colors outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 ${
+                  `tab-nav-link group relative min-h-[44px] flex flex-1 flex-col items-center justify-center rounded-full py-1 no-tap transition-colors ${
                     isActive
                       ? "text-jejak-navy"
                       : "text-jejak-navy/55 hover:text-jejak-navy"
@@ -53,7 +50,7 @@ export default function TabBar() {
                     whileTap={TAP}
                     className="relative flex flex-col items-center gap-0.5"
                   >
-                    <span className="relative flex h-8 w-11 items-center justify-center rounded-full group-focus-visible:ring-2 group-focus-visible:ring-amber-400">
+                    <span className="tab-pill relative flex h-8 w-11 items-center justify-center rounded-full">
                       {isActive && (
                         <motion.span
                           layoutId="tabPill"

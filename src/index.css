@@ -50,6 +50,16 @@
   }
   *:focus:not(:focus-visible) {
     outline: none !important;
+    box-shadow: none !important;
+  }
+  .tab-nav-link,
+  .tab-nav-link:focus,
+  .tab-nav-link:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+  .tab-nav-link:focus-visible .tab-pill {
+    box-shadow: 0 0 0 2px #FFC24B !important;
   }
   body {
     @apply bg-background text-foreground font-body antialiased;

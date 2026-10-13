@@ -22,9 +22,8 @@ const PREVIEW_SPLIT = [
   { key: "retail", label: "Retail", pct: 35, color: CATEGORIES[4].color },
 ];
 
-// Frosted camera viewfinder card with single hero J coin button, demoted library link,
-// plain-English "Verified on Stellar" badge (technical detail 1 tap deeper), labeled
-// cost-split bar, and above-the-fold sample product chips that follow active currency.
+// Direct-on-gradient J coin hero with warm gold glow, slim dark-glass legend strip
+// below the coin, and shared-price sample product buttons above the fold.
 export default function ViewfinderStage({
   market,
   currency,
@@ -37,15 +36,40 @@ export default function ViewfinderStage({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 240, damping: 24 }}
-      className="relative mt-3 rounded-3xl frosted-strong border border-white/85 p-4 shadow-xl overflow-hidden"
+      className="mt-2 flex flex-col"
     >
-      {/* Top provenance & labeled cost-split preview strip */}
-      <div className="rounded-2xl bg-white/90 border border-white px-3 py-2.5 shadow-sm">
-        <div className="flex items-center justify-between gap-2 text-[11px] font-extrabold text-jejak-navy">
-          <span>Origin · Care label · Cost split</span>
+      {/* Hero J Coin directly on the navy-indigo gradient with a warm gold glow behind it */}
+      <div className="relative py-3 flex flex-col items-center justify-center text-center">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute h-40 w-40 rounded-full blur-2xl"
+          style={{
+            background:
+              "radial-gradient(circle, rgba(255,194,75,0.42) 0%, rgba(232,146,26,0.16) 52%, rgba(27,27,58,0) 75%)",
+          }}
+        />
+        <ShutterButton onPick={onPickCamera} />
+        <p className="relative z-10 mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-white">
+          <Camera size={14} className="text-amber-300" /> Tap the J coin to scan
+          any item
+        </p>
+
+        <button
+          type="button"
+          onClick={onPickLibrary}
+          className="relative z-10 mt-0.5 min-h-[38px] inline-flex items-center gap-1.5 px-3 py-1 text-xs font-bold text-white/75 hover:text-white underline underline-offset-4 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 rounded-lg"
+        >
+          <ImageIcon size={13} /> Or upload from photo library
+        </button>
+      </div>
+
+      {/* Slim Origin / Care label / Cost split preview strip below the coin */}
+      <div className="rounded-2xl bg-white/10 border border-white/20 backdrop-blur-md px-3.5 py-2.5 text-white">
+        <div className="flex items-center justify-between gap-2 text-[11px] font-extrabold">
+          <span className="text-white/90">Origin · Care label · Cost split</span>
           <button
             type="button"
             onClick={() => {
@@ -53,17 +77,16 @@ export default function ViewfinderStage({
               setShowTechDetail((v) => !v);
             }}
             aria-expanded={showTechDetail}
-            className="inline-flex items-center gap-1 rounded-full bg-jejak-materials/15 px-2 py-0.5 text-[10px] font-extrabold text-jejak-navy hover:bg-jejak-materials/25 no-tap"
+            className="inline-flex items-center gap-1 rounded-full bg-emerald-400/15 border border-emerald-400/35 px-2 py-0.5 text-[10px] font-extrabold text-emerald-300 hover:bg-emerald-400/25 no-tap"
           >
-            <ShieldCheck size={11} className="text-jejak-materials" />
+            <ShieldCheck size={11} />
             <span>Verified on Stellar</span>
-            <Info size={10} className="text-jejak-navy/60" />
+            <Info size={10} className="text-white/70" />
           </button>
         </div>
 
-        {/* Labeled 5-category rainbow bar */}
         <div
-          className="mt-2 flex h-2 w-full overflow-hidden rounded-full bg-jejak-navy/10"
+          className="mt-1.5 flex h-1.5 w-full overflow-hidden rounded-full bg-white/15"
           role="img"
           aria-label="5-part shelf price breakdown: Materials, Makers, Freight, Brand, Retail"
         >
@@ -76,7 +99,7 @@ export default function ViewfinderStage({
           ))}
         </div>
 
-        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[9px] font-bold text-jejak-navy/70">
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-0.5 text-[9px] font-bold text-white/75">
           {PREVIEW_SPLIT.map((seg) => (
             <span key={seg.key} className="inline-flex items-center gap-1">
               <span
@@ -88,52 +111,31 @@ export default function ViewfinderStage({
           ))}
         </div>
 
-        {/* One-tap-deeper technical detail */}
         <AnimatePresence>
           {showTechDetail && (
             <motion.p
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-1.5 pt-1.5 border-t border-jejak-navy/10 text-[10px] font-semibold text-jejak-navy/75 overflow-hidden"
+              className="mt-1.5 pt-1.5 border-t border-white/15 text-[10px] font-semibold text-white/80 overflow-hidden"
             >
-              Each trace hashes its canonical JSON (`SHA-256`) into a Stellar
-              Testnet `MEMO_HASH` from a server account — instant, with no
-              wallet prompt required.
+              Each trace hashes its canonical JSON (SHA-256) on Stellar Testnet
+              with no wallet required.
             </motion.p>
           )}
         </AnimatePresence>
       </div>
 
-      {/* Single Primary Hero CTA: The Gold J Coin Button */}
-      <div className="my-4 flex flex-col items-center justify-center text-center">
-        <ShutterButton onPick={onPickCamera} />
-        <p className="mt-2.5 flex items-center gap-1.5 text-xs font-extrabold text-jejak-navy">
-          <Camera size={14} className="text-jejak-coral" /> Tap the J coin to
-          scan any item
-        </p>
-
-        {/* Demoted secondary text-link action */}
-        <button
-          type="button"
-          onClick={onPickLibrary}
-          className="mt-1 min-h-[44px] inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-jejak-navy/70 hover:text-jejak-navy underline underline-offset-4 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy rounded-lg"
-        >
-          <ImageIcon size={13} /> Or upload from photo library
-        </button>
-      </div>
-
-      {/* Above-the-fold Sample Chips (dynamically following active currency £ / S$) */}
-      <div className="pt-2.5 border-t border-jejak-navy/10">
-        <div className="flex items-center justify-between gap-2 mb-2">
-          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-jejak-navy/70">
-            <Sparkles size={11} className="text-jejak-goldDeep" /> No item
-            handy? Try a sample
+      {/* Above-the-fold Sample Items using shared product names & prices */}
+      <div className="mt-3">
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider text-amber-300">
+            <Sparkles size={11} /> Try a sample trace
           </span>
           <button
             type="button"
             onClick={onOpenFallback}
-            className="text-[10px] font-bold text-jejak-navy/60 hover:text-jejak-navy underline no-tap"
+            className="text-[10px] font-bold text-white/70 hover:text-white underline no-tap"
           >
             All categories
           </button>
@@ -151,10 +153,10 @@ export default function ViewfinderStage({
                 key={c.id}
                 type="button"
                 onClick={() => onPickSample(c.id)}
-                className={`min-h-[44px] flex items-center gap-2 rounded-2xl border px-2.5 py-1.5 text-left transition-all no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy ${
+                className={`min-h-[44px] flex items-center gap-2 rounded-2xl border px-2.5 py-1.5 text-left transition-all no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300 ${
                   idx === 0
-                    ? "bg-jejak-navy text-white border-jejak-navy shadow-sm"
-                    : "bg-white/90 text-jejak-navy border-white hover:bg-white"
+                    ? "bg-amber-300 text-jejak-navy border-amber-200 shadow-md"
+                    : "bg-white/12 text-white border-white/20 hover:bg-white/20 backdrop-blur-md"
                 }`}
               >
                 <ProductIllustrationIcon
@@ -164,17 +166,14 @@ export default function ViewfinderStage({
                 />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[11px] font-extrabold leading-tight">
-                    {idx === 0
-                      ? `Try ${formatted} ${c.label}`
-                      : `${formatted} ${c.label}`}
+                    {prod?.name || c.label}
                   </p>
                   <p
-                    className={`truncate text-[9px] font-semibold ${
-                      idx === 0 ? "text-amber-300" : "text-jejak-navy/60"
+                    className={`truncate text-[10px] font-bold ${
+                      idx === 0 ? "text-jejak-navy/80" : "text-amber-300"
                     }`}
                   >
-                    {route[0]?.country || "Origin"} →{" "}
-                    {mkt === "SG" ? "SG" : "UK"}
+                    {formatted} · {route[0]?.country || "Origin"}
                   </p>
                 </div>
               </button>

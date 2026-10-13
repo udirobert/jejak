@@ -170,8 +170,9 @@ export default function Embedded() {
     const prod = tx.productId ? getProduct(tx.productId) : null;
     if (!prod || !withJejak) return;
     vibrate(6);
-    const price = +(Math.abs(tx.amount) * fxMult).toFixed(2);
-    const split = computeSplit(prod, market, "split", price);
+    const mkt = prod?.markets?.[market] ? market : "GB";
+    const price = prod.markets[mkt].price;
+    const split = computeSplit(prod, mkt, "split", price);
     const labour = split.find((s) => s.key === "labour");
 
     setSelectedScan({
@@ -182,7 +183,7 @@ export default function Embedded() {
       labour_pct: labour?.pct?.mid || 7.5,
       price,
       currency,
-      market,
+      market: mkt,
       basis: tx.basis,
       label_materials: tx.label_materials,
       created_date: tx.created_date,
@@ -197,11 +198,8 @@ export default function Embedded() {
   const handleTraceProduct = (productId) => {
     vibrate(8);
     const prod = getProduct(productId) || getProduct("hoodie");
-    const matchingTx = FEED.find((t) => t.productId === productId);
     setProduct(prod);
-    if (matchingTx) {
-      setCustomPrice(+(Math.abs(matchingTx.amount) * fxMult).toFixed(2));
-    }
+    setCustomPrice(null);
     setCompareMode(false);
     setLowConfidence(false);
     setScreen("journey");

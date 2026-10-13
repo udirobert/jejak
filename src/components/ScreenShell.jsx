@@ -5,14 +5,13 @@ import CurrencySwitch from "./CurrencySwitch";
 import StageSidebars from "./StageSidebars";
 import { HelpCircle } from "lucide-react";
 
-// Shared shell: phone-width column, lilac-to-peach background, header with
-// logo, optional currency switch and a "how we estimate" link.
-// For variant="map", the map fills 100% of the column height behind the header, sheet, and tab bar.
+// Shared shell: phone-width column, header with logo, optional currency switch
+// (kept on Impact and money views; omitted on Home/sunrise and Explore/map).
 export default function ScreenShell({
   children,
   variant = "soft",
   header = true,
-  showCurrency = variant !== "sunrise",
+  showCurrency = variant !== "sunrise" && variant !== "map",
   maxWidth = 420,
 }) {
   const { setShowHowTo, startGuidedTour, tourStep } = useApp();
@@ -35,7 +34,7 @@ export default function ScreenShell({
         style={{
           maxWidth,
           background: isSunrise
-            ? "linear-gradient(165deg, #1B1B3A 0%, #351E47 32%, #C84B31 74%, #E8921A 100%)"
+            ? "linear-gradient(175deg, #0F172A 0%, #1B1B3A 52%, #1E295B 100%)"
             : isMap
             ? "#153963"
             : isHostBank
@@ -45,14 +44,14 @@ export default function ScreenShell({
       >
         {header && !isHostBank && (
           <header
-            className={`flex items-center justify-between px-5 pt-4 pb-2.5 ${
+            className={`flex items-center justify-between px-5 pt-3.5 pb-2 ${
               isMap
                 ? "absolute inset-x-0 top-0 z-20 bg-transparent pointer-events-none"
                 : ""
             }`}
           >
             <div className="pointer-events-auto flex items-center gap-2">
-              <Logo size={34} />
+              <Logo size={32} />
               <span
                 className={`text-lg font-extrabold tracking-tight ${
                   isMap || isSunrise
@@ -68,7 +67,7 @@ export default function ScreenShell({
                 type="button"
                 onClick={startGuidedTour}
                 aria-label="Start interactive guided tour"
-                className="min-h-[44px] rounded-full frosted border border-white/60 px-3.5 py-1.5 text-xs font-extrabold text-jejak-navy hover:bg-white/90 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="min-h-[38px] rounded-full frosted border border-white/60 px-3 py-1 text-xs font-extrabold text-jejak-navy hover:bg-white/90 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               >
                 Tour
               </button>
@@ -77,9 +76,9 @@ export default function ScreenShell({
                 type="button"
                 onClick={() => setShowHowTo(true)}
                 aria-label="How we estimate this"
-                className="flex h-11 w-11 items-center justify-center rounded-full frosted border border-white/60 text-jejak-navy no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-9 w-9 items-center justify-center rounded-full frosted border border-white/60 text-jejak-navy no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
               >
-                <HelpCircle size={18} />
+                <HelpCircle size={17} />
               </button>
             </div>
           </header>
@@ -88,7 +87,7 @@ export default function ScreenShell({
           className={`flex-1 flex flex-col ${
             isMap
               ? "relative h-full w-full overflow-hidden"
-              : "pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))]"
+              : "pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
           }`}
         >
           {children}

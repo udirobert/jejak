@@ -268,10 +268,10 @@ export default function Impact() {
 
   return (
     <ScreenShell variant="soft">
-      <div className="flex flex-1 flex-col pb-28">
-        {/* Globe Hero with 3 Floating Real-Value Session Counters */}
-        <div className="relative w-full overflow-hidden pt-2 pb-3">
-          {/* Top hero bar: single non-wrapping Change Product control + single-line ⓘ Info chip */}
+      <div className="flex flex-1 flex-col pb-24">
+        {/* Compact Globe Hero with 3 Short Stat Chips */}
+        <div className="relative w-full overflow-hidden pt-1 pb-1.5">
+          {/* Top hero bar: Change Product control + price + Info chip */}
           <div className="flex items-center justify-between gap-2 px-5">
             <button
               type="button"
@@ -304,53 +304,35 @@ export default function Impact() {
             </button>
           </div>
 
-          {/* Non-overlapping stat chips row (safe at 375px, hides 0 anchored zero-state) */}
-          <div className="mt-2.5 px-5 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex-1 min-w-[110px] rounded-2xl frosted-strong border border-white/85 px-3 py-2 shadow-sm">
-              <p className="text-lg font-extrabold leading-none text-jejak-navy tabular-nums">
-                {animTraced.toLocaleString()}
-              </p>
-              <p className="mt-0.5 text-[10px] font-bold text-jejak-navy/65">
-                traced · this session
+          {/* Short stat chips row ("2 traced", "62,254 km", "6 stops") */}
+          <div className="mt-2 px-5 grid grid-cols-3 gap-2">
+            <div className="rounded-2xl frosted-strong border border-white/85 px-3 py-1.5 text-center shadow-sm">
+              <p className="text-xs font-extrabold text-jejak-navy tabular-nums whitespace-nowrap">
+                {animTraced.toLocaleString()} traced
               </p>
             </div>
 
-            <div className="flex-1 min-w-[110px] rounded-2xl frosted-strong border border-white/85 px-3 py-2 shadow-sm">
-              <p className="text-lg font-extrabold leading-none text-jejak-freight tabular-nums">
-                {animKm.toLocaleString()}
-              </p>
-              <p className="mt-0.5 text-[10px] font-bold text-jejak-navy/65">
-                km mapped · this session
+            <div className="rounded-2xl frosted-strong border border-white/85 px-3 py-1.5 text-center shadow-sm">
+              <p className="text-xs font-extrabold text-jejak-freight tabular-nums whitespace-nowrap">
+                {animKm.toLocaleString()} km
               </p>
             </div>
 
-            {sessionRecordsAnchored > 0 ? (
-              <div className="flex-1 min-w-[110px] rounded-2xl bg-jejak-navy border border-amber-300/40 px-3 py-2 text-white shadow-sm">
-                <p className="text-lg font-extrabold leading-none text-amber-300 tabular-nums">
-                  {animAnchored.toLocaleString()}
-                </p>
-                <p className="mt-0.5 text-[10px] font-bold text-white/75">
-                  anchored · this session
-                </p>
-              </div>
-            ) : (
-              <div className="flex-1 min-w-[110px] rounded-2xl bg-jejak-navy/90 border border-white/20 px-3 py-2 text-white shadow-sm">
-                <p className="text-lg font-extrabold leading-none text-amber-300 tabular-nums">
-                  {activeRoute.length} stops
-                </p>
-                <p className="mt-0.5 text-[10px] font-bold text-white/75">
-                  active corridor
-                </p>
-              </div>
-            )}
+            <div className="rounded-2xl bg-jejak-navy border border-white/20 px-3 py-1.5 text-center text-white shadow-sm">
+              <p className="text-xs font-extrabold text-amber-300 tabular-nums whitespace-nowrap">
+                {sessionRecordsAnchored > 0
+                  ? `${animAnchored.toLocaleString()} anchored`
+                  : `${activeRoute.length} stops`}
+              </p>
+            </div>
           </div>
 
-          {/* Interactive globe stage (tap any stop to select it; no overlapping chips at 375px) */}
-          <div className="relative mt-1 flex items-center justify-center">
+          {/* Reduced-height globe so tabs + corridor card fit above nav without scrolling */}
+          <div className="relative mt-0.5 flex items-center justify-center">
             <Globe
               route={activeRoute}
               activeStop={activeRoute.length}
-              size={296}
+              size={212}
               focusedIdx={safeStopIdx}
               currency={currency}
               onSelectStop={(idx, _stop, offset) => {
@@ -362,7 +344,7 @@ export default function Impact() {
             />
           </div>
 
-          <p className="px-5 text-center text-[11px] font-bold text-jejak-navy/65">
+          <p className="px-5 text-center text-[10px] font-bold text-jejak-navy/65">
             Tap any stop on the globe · Illustrative routes, not live tracking
           </p>
         </div>
@@ -408,7 +390,7 @@ export default function Impact() {
         </div>
 
         {/* Active View Stage */}
-        <div className="mt-3 px-5">
+        <div className="mt-2 px-5">
           {/* VIEW 1: CORRIDORS — One detail card that follows the selected stop */}
           {activeTab === "corridors" && (
             <motion.div
@@ -429,7 +411,7 @@ export default function Impact() {
                   ? { duration: 0 }
                   : { type: "spring", stiffness: 340, damping: 28 }
               }
-              className="rounded-3xl frosted-strong border border-white/85 p-4 shadow-md"
+              className="rounded-3xl frosted-strong border border-white/85 p-3.5 shadow-md"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
@@ -444,8 +426,8 @@ export default function Impact() {
                       <h2 className="text-base font-extrabold text-jejak-navy">
                         {selectedStop?.country || matchedCause.region}
                       </h2>
-                      <span className="rounded-full bg-jejak-navy px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-300 whitespace-nowrap">
-                        Demo wallet (testnet)
+                      <span className="rounded-full bg-jejak-navy/8 px-2 py-0.5 text-[9px] font-semibold text-jejak-navy/60 whitespace-nowrap">
+                        Demo wallet · testnet
                       </span>
                     </div>
                     <p className="mt-1 text-xs font-semibold leading-snug text-jejak-navy/75 break-words">

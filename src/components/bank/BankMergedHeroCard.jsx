@@ -11,14 +11,12 @@ import { Fingerprint, Check, Sliders } from "lucide-react";
 
 const worldGeo = feature(worldTopo, worldTopo.objects.countries);
 const W = 380;
-const H = 185;
+const H = 196;
 
 // Single merged Hero Card for Bank:
-// - Dimmed world map is the card background with animated route arcs (when With Jejak is on)
-// - Balance is overlaid on top
-// - "6 countries" is a single pill chip on the map (no separate flags row or caption)
-// - Slim Passport chip sits directly under the balance ("Passport · Set up" or "G…XXXX ✓")
-// - Shrinks smoothly when the transactions sheet rises to full height
+// - Left ~58% holds CURRENT ACCOUNT, balance, and Passport chip over a protective dark gradient scrim
+// - Right ~42% holds the world map with all origins + visible destination marker (UK or SG)
+// - Arcs curve cleanly into the visible destination marker without passing behind the left text
 export default function BankMergedHeroCard({
   displayBalance,
   currency,
@@ -33,13 +31,17 @@ export default function BankMergedHeroCard({
   reduce = false,
 }) {
   const homeCountry = market === "SG" ? "Singapore" : "United Kingdom";
+  const destLabel = market === "SG" ? "SG" : "UK";
 
+  // Centered on 55°E and shifted into the right half of the card so UK (-1°E)
+  // sits at x ≈ 205, y ≈ 64 and China (113°E) sits at x ≈ 352, y ≈ 98 — keeping
+  // all origins and both UK/SG destinations 100% visible in the right window.
   const projection = useMemo(
     () =>
       geoNaturalEarth1()
-        .rotate([-50, 0])
-        .scale(84)
-        .translate([W * 0.48, H * 0.58]),
+        .rotate([-55, 0])
+        .scale(82)
+        .translate([W * 0.72, H * 0.65]),
     []
   );
 
@@ -51,14 +53,19 @@ export default function BankMergedHeroCard({
         key: idx,
         d: pathGen(f),
         isActive: origins.includes(f.properties.name),
+        isHome: f.properties.name === homeCountry,
       })),
-    [pathGen, origins]
+    [pathGen, origins, homeCountry]
   );
 
   const homeXY = useMemo(() => {
     const coords =
       ORIGIN_COORDS[homeCountry] || ORIGIN_COORDS["United Kingdom"];
-    return projection(coords) || [W * 0.24, H * 0.28];
+    const raw = projection(coords) || [W * 0.56, H * 0.34];
+    return [
+      Math.max(W * 0.53, Math.min(W - 24, raw[0])),
+      Math.max(46, Math.min(H - 36, raw[1])),
+    ];
   }, [projection, homeCountry]);
 
   const arcs = useMemo(
@@ -69,10 +76,12 @@ export default function BankMergedHeroCard({
           if (!coords) return null;
           const xy = projection(coords);
           if (!xy) return null;
-          const [sx, sy] = xy;
+          const sx = Math.max(W * 0.56, Math.min(W - 18, xy[0]));
+          const sy = Math.max(44, Math.min(H - 30, xy[1]));
           const [ex, ey] = homeXY;
-          const cx = (sx + ex) / 2;
-          const cy = Math.min(sy, ey) - 26;
+          // Keep control point strictly in the right half so arcs never cross behind left text
+          const cx = Math.max(W * 0.55, (sx + ex) / 2);
+          const cy = Math.max(28, Math.min(sy, ey) - 22);
           return {
             origin: orig,
             sx,
@@ -91,16 +100,16 @@ export default function BankMergedHeroCard({
   return (
     <motion.div
       animate={{
-        height: isCompact ? 116 : 178,
+        height: isCompact ? 116 : 196,
       }}
       transition={
         reduce
           ? { duration: 0 }
           : { type: "spring", stiffness: 340, damping: 32 }
       }
-      className="relative w-full overflow-hidden rounded-3xl bg-[#122847] border border-slate-800/40 shadow-md text-white select-none"
+      className="relative w-full overflow-hidden rounded-3xl bg-[#0E213B] border border-slate-800/40 shadow-md text-white select-none"
     >
-      {/* Dimmed world map background */}
+      {/* World map background shifted to the right with protective left scrim */}
       <svg
         viewBox={`0 0 ${W} ${H}`}
         preserveAspectRatio="xMidYMid slice"
@@ -108,16 +117,18 @@ export default function BankMergedHeroCard({
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="bankHeroArc" x1="0%" y1="0%" x2="100%" y2="0%">
+          <linearGradient id="bankHeroArc" x1="100%" y1="50%" x2="0%" y2="0%">
             <stop offset="0%" stopColor="#FFC24B" />
             <stop offset="55%" stopColor="#FF8A65" />
             <stop offset="100%" stopColor="#2FBF71" />
           </linearGradient>
-          <radialGradient id="bankMapVignette" cx="30%" cy="40%" r="80%">
-            <stop offset="0%" stopColor="#0E213B" stopOpacity="0.68" />
-            <stop offset="65%" stopColor="#0E213B" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#0B1A30" stopOpacity="0.78" />
-          </radialGradient>
+          {/* Strong left scrim protecting CURRENT ACCOUNT & balance in the left ~58% */}
+          <linearGradient id="bankLeftScrim" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#0D1F38" stopOpacity="0.98" />
+            <stop offset="46%" stopColor="#0D1F38" stopOpacity="0.94" />
+            <stop offset="62%" stopColor="#0D1F38" stopOpacity="0.55" />
+            <stop offset="100%" stopColor="#0D1F38" stopOpacity="0.08" />
+          </linearGradient>
         </defs>
 
         {/* Continents */}
@@ -125,18 +136,29 @@ export default function BankMergedHeroCard({
           <path
             key={c.key}
             d={c.d}
-            fill={withJejak && c.isActive ? "#FF9F5A" : "#244772"}
-            fillOpacity={withJejak && c.isActive ? 0.58 : 0.42}
+            fill={
+              withJejak && c.isHome
+                ? "#2FBF71"
+                : withJejak && c.isActive
+                ? "#FF9F5A"
+                : "#244772"
+            }
+            fillOpacity={
+              withJejak && (c.isActive || c.isHome) ? 0.62 : 0.38
+            }
             stroke="#366296"
-            strokeWidth="0.35"
+            strokeWidth="0.4"
           />
         ))}
 
-        {/* Route arcs fade in/out smoothly when With Jejak is toggled */}
+        {/* Left gradient scrim */}
+        <rect width={W} height={H} fill="url(#bankLeftScrim)" />
+
+        {/* Route arcs & visible destination marker in the right half */}
         <AnimatePresence>
           {withJejak && (
             <motion.g
-              key="hero-arcs"
+              key={`hero-arcs-${market}`}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -148,7 +170,7 @@ export default function BankMergedHeroCard({
                     d={arc.d}
                     fill="none"
                     stroke="url(#bankHeroArc)"
-                    strokeWidth="2"
+                    strokeWidth="2.1"
                     strokeLinecap="round"
                     initial={reduce ? { pathLength: 1 } : { pathLength: 0 }}
                     animate={{ pathLength: 1 }}
@@ -164,34 +186,68 @@ export default function BankMergedHeroCard({
                     r="3.2"
                     fill="#FFC24B"
                     stroke="#FFFFFF"
-                    strokeWidth="1"
+                    strokeWidth="1.1"
                   />
                 </g>
               ))}
 
+              {/* Visible destination marker (UK or SG) */}
               <g transform={`translate(${homeXY[0]}, ${homeXY[1]})`}>
+                {!reduce && (
+                  <circle r="8" fill="#2FBF71" opacity="0.35">
+                    <animate
+                      attributeName="r"
+                      values="5;10;5"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                    <animate
+                      attributeName="opacity"
+                      values="0.45;0.1;0.45"
+                      dur="2s"
+                      repeatCount="indefinite"
+                    />
+                  </circle>
+                )}
                 <circle
-                  r="4.2"
+                  r="4.5"
                   fill="#2FBF71"
                   stroke="#FFFFFF"
-                  strokeWidth="1.4"
+                  strokeWidth="1.5"
                 />
+                <rect
+                  x="-11"
+                  y="-19"
+                  width="22"
+                  height="12"
+                  rx="6"
+                  fill="#0D1F38"
+                  stroke="#2FBF71"
+                  strokeWidth="1"
+                />
+                <text
+                  x="0"
+                  y="-10.5"
+                  textAnchor="middle"
+                  fill="#FFFFFF"
+                  fontSize="7.5"
+                  fontWeight="800"
+                  fontFamily="Plus Jakarta Sans, sans-serif"
+                >
+                  {destLabel}
+                </text>
               </g>
             </motion.g>
           )}
         </AnimatePresence>
-
-        {/* Soft dark scrim so overlaid balance is crisp */}
-        <rect width={W} height={H} fill="url(#bankMapVignette)" />
       </svg>
 
       {/* Overlaid Foreground Content */}
       <div className="relative z-10 flex h-full flex-col justify-between p-4">
         <div className="flex items-start justify-between gap-2">
-          <div>
-            <p className="text-[10px] font-extrabold uppercase tracking-wider text-white/65">
-              Current account ·{" "}
-              {market === "SG" ? "Demo SG · 000-000" : "Demo UK · 00-00-00"}
+          <div className="max-w-[60%]">
+            <p className="text-[10px] font-extrabold uppercase tracking-wider text-white/70">
+              Current account
             </p>
             <p
               className={`mt-0.5 font-extrabold tracking-tight text-white tabular-nums transition-all ${
@@ -202,7 +258,7 @@ export default function BankMergedHeroCard({
             </p>
           </div>
 
-          {/* Single "6 countries" chip on the map (fades with toggle) */}
+          {/* Single "6 countries" chip on the map */}
           <AnimatePresence>
             {withJejak && (
               <motion.span
@@ -211,7 +267,7 @@ export default function BankMergedHeroCard({
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: reduce ? 0 : 0.22 }}
-                className="shrink-0 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-amber-300"
+                className="shrink-0 rounded-full bg-[#0D1F38]/85 backdrop-blur-md border border-white/25 px-2.5 py-1 text-[11px] font-extrabold text-amber-300 shadow-sm"
               >
                 {countryCount} countries
               </motion.span>
@@ -244,14 +300,13 @@ export default function BankMergedHeroCard({
             )}
           </button>
 
-          {/* Action that requires a wallet: opens Passport sheet just-in-time if not set up */}
           <button
             type="button"
             onClick={() => {
               vibrate(5);
               onTriggerSpendCap();
             }}
-            className="inline-flex items-center gap-1 rounded-full bg-black/25 hover:bg-black/35 backdrop-blur-md border border-white/15 px-2.5 py-1 text-[11px] font-bold text-white/85 transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
+            className="inline-flex items-center gap-1 rounded-full bg-[#0D1F38]/80 hover:bg-[#0D1F38] backdrop-blur-md border border-white/20 px-2.5 py-1 text-[11px] font-bold text-white/90 transition-colors no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
           >
             <Sliders size={11} className="text-amber-300" />
             <span>
