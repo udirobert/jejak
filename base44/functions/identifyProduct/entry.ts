@@ -27,7 +27,9 @@ export default async function(req) {
         "- \"trainers\": sneakers or running shoes\n" +
         "- \"coffee\": a bag or cup of coffee (beans or ground)\n" +
         "- \"phone_case\": a phone case\n" +
-        "Return the matching id, a short human label (max 3 words), and your confidence. " +
+        "Return the matching id, a short human label (max 3 words), your confidence, and the " +
+        "visual attributes you can detect from the photo: the dominant colour, the likely material, " +
+        "the product category, and the likely region of origin. Keep each attribute to 1-3 words. " +
         "If the photo is unclear or matches none of these, return product_id \"unknown\" with confidence \"low\".",
       file_urls: [fileUrl],
       response_json_schema: {
@@ -36,6 +38,15 @@ export default async function(req) {
           product_id: { type: "string", enum: [...VALID_IDS, "unknown"] },
           label: { type: "string" },
           confidence: { type: "string", enum: ["high", "medium", "low"] },
+          attributes: {
+            type: "object",
+            properties: {
+              colour: { type: "string" },
+              material: { type: "string" },
+              category: { type: "string" },
+              likely_origin: { type: "string" },
+            },
+          },
         },
         required: ["product_id", "label", "confidence"],
       },
