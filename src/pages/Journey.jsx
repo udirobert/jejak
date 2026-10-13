@@ -4,10 +4,11 @@ import { useApp } from "@/lib/AppContext";
 import { getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
 import Globe from "@/components/Globe";
+import TodaySnapPulse from "@/components/TodaySnapPulse";
 import { RotateCcw, ArrowRight, MapPin } from "lucide-react";
 
 export default function Journey() {
-  const { product, market, setScreen, shareToFeed, setShareToFeed } = useApp();
+  const { product, market, setScreen, shareMode, setShareMode } = useApp();
   const reduce = useReducedMotion();
   const route = getRoute(product, market);
   const [revealed, setRevealed] = useState(0);
@@ -66,27 +67,13 @@ export default function Journey() {
           </AnimatePresence>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setShareToFeed(!shareToFeed)}
-          aria-pressed={shareToFeed}
-          className="mt-4 flex items-center justify-between rounded-2xl frosted p-3.5 no-tap"
-        >
-          <div className="text-left pr-3">
-            <p className="text-sm font-extrabold text-jejak-navy">Share to community feed</p>
-            <p className="text-[11px] text-jejak-navy/55">Off by default. Turn on so others in the room see what you snapped.</p>
-          </div>
-          <span
-            className="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-            style={{ background: shareToFeed ? "#2FBF71" : "#D9DBE8" }}
-          >
-            <motion.span
-              className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
-              animate={{ left: shareToFeed ? 22 : 2 }}
-              transition={{ type: "spring", stiffness: 500, damping: 32 }}
-            />
-          </span>
-        </button>
+        <div className="mt-4">
+          <TodaySnapPulse
+            product={product}
+            shareMode={shareMode}
+            setShareMode={setShareMode}
+          />
+        </div>
 
         <div className="mt-5 flex items-center gap-3">
           <button

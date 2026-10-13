@@ -10,13 +10,14 @@ import StackedBar from "@/components/StackedBar";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
+import TodaySnapPulse from "@/components/TodaySnapPulse";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
 import { ArrowLeft, Info, Camera } from "lucide-react";
 
 export default function MoneySplit() {
-  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace, photoFile, shareToFeed, reset } = useApp();
+  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace, photoFile, shareMode, setShareMode, reset } = useApp();
   const reduce = useReducedMotion();
   const price = product.markets[market].price;
   const split = computeSplit(product, market, compareMode ? "transparent" : "split");
@@ -47,17 +48,18 @@ export default function MoneySplit() {
     }
   }, [reduce]);
 
-  // Persist this trace to the community feed (opt-in). The photo is uploaded
-  // publicly only when sharing is on; chip picks share an emoji card instead.
+  // Persist this trace to the community feed/tally when opted in ('count' or 'feed').
+  // In 'count' mode, no photo is uploaded — only an anonymous product count is recorded.
+  // In 'feed' mode, the photo is uploaded publicly when available.
   const savedScan = useRef(false);
   useEffect(() => {
-    if (savedScan.current || !shareToFeed) return;
+    if (savedScan.current || shareMode === "private") return;
     savedScan.current = true;
     let cancelled = false;
     (async () => {
       try {
         let photo_url = "";
-        if (photoFile) {
+        if (shareMode === "feed" && photoFile) {
           const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: photoFile });
           photo_url = file_url;
         }
@@ -79,7 +81,7 @@ export default function MoneySplit() {
     })();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [shareMode]);
 
   return (
     <ScreenShell variant="soft">
@@ -100,6 +102,14 @@ export default function MoneySplit() {
           <p className="text-4xl font-extrabold text-jejak-navy">{formatMoney(price, currency)}</p>
           <p className="text-xs text-jejak-navy/50">Estimated · shown as a range · 100 coins = 100% of the price</p>
         </motion.div>
+
+        <div className="mt-3">
+          <TodaySnapPulse
+            product={product}
+            shareMode={shareMode}
+            setShareMode={setShareMode}
+          />
+        </div>
 
         {/* Compare toggle */}
         <motion.button

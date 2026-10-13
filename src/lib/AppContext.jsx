@@ -1,8 +1,24 @@
-import React, { createContext, useContext, useState, useCallback } from "react";
+import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { hoodie } from "@/data/hoodie";
 import { marketForCurrency } from "./money";
 
 const AppContext = createContext(null);
+const STREAK_STORAGE_KEY = "jejak_streak_v1";
+
+function loadSavedStreak() {
+  try {
+    const raw = localStorage.getItem(STREAK_STORAGE_KEY);
+    if (!raw) return { traces: 0, workerTotal: 0, distanceTotal: 0 };
+    const parsed = JSON.parse(raw);
+    return {
+      traces: Number(parsed.traces) || 0,
+      workerTotal: Number(parsed.workerTotal) || 0,
+      distanceTotal: Number(parsed.distanceTotal) || 0,
+    };
+  } catch {
+    return { traces: 0, workerTotal: 0, distanceTotal: 0 };
+  }
+}
 
 export function AppProvider({ children }) {
   const [currency, setCurrency] = useState("GBP"); // 'GBP' | 'SGD'
@@ -16,11 +32,26 @@ export function AppProvider({ children }) {
   const [detailCategory, setDetailCategory] = useState(null); // category key
   const [showHowTo, setShowHowTo] = useState(false);
   const [lowConfidence, setLowConfidence] = useState(false);
-  const [shareToFeed, setShareToFeed] = useState(false); // opt-in community feed (off by default)
+  // Privacy-first sharing mode: 'private' (default) | 'count' (anonymous tally only) | 'feed' (card + photo)
+  const [shareMode, setShareMode] = useState("private");
+  const shareToFeed = shareMode !== "private";
+  const setShareToFeed = useCallback((val) => {
+    setShareMode(val ? "feed" : "private");
+  }, []);
   const [immersive, setImmersive] = useState(false); // hide tab bar during the trace flow
-  const [traces, setTraces] = useState(0);
-  const [workerTotal, setWorkerTotal] = useState(0);
-  const [distanceTotal, setDistanceTotal] = useState(0);
+  const initialStreak = loadSavedStreak();
+  const [traces, setTraces] = useState(initialStreak.traces);
+  const [workerTotal, setWorkerTotal] = useState(initialStreak.workerTotal);
+  const [distanceTotal, setDistanceTotal] = useState(initialStreak.distanceTotal);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        STREAK_STORAGE_KEY,
+        JSON.stringify({ traces, workerTotal, distanceTotal })
+      );
+    } catch {}
+  }, [traces, workerTotal, distanceTotal]);
 
   const switchCurrency = useCallback((cur) => {
     setCurrency(cur);
@@ -56,6 +87,8 @@ export function AppProvider({ children }) {
     detailCategory,
     showHowTo,
     lowConfidence,
+    shareMode,
+    setShareMode,
     shareToFeed,
     immersive,
     setImmersive,
