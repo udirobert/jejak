@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import ScreenShell from "@/components/ScreenShell";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
@@ -7,7 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { Image as ContentImage } from "@/components/ui/image";
 import { useNavigate } from "react-router-dom";
 import { vibrate } from "@/lib/haptics";
-import { RefreshCw, Users, MapPin, Radio, Camera } from "lucide-react";
+import { RefreshCw, Users, MapPin, Radio, Camera, SlidersHorizontal, X } from "lucide-react";
 
 const LABOUR_FILTERS = [
   { label: "Any", min: 0 },
@@ -54,22 +54,20 @@ function ScanCard({ scan }) {
         ) : (
           <div className="flex h-full w-full items-center justify-center text-5xl">{scan.emoji}</div>
         )}
-        <span className="absolute left-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-extrabold text-jejak-navy">
-          {scan.emoji} {scan.product_name}
+        <span className="absolute right-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/70">
+          {timeAgo(scan.created_date)}
         </span>
       </div>
       <div className="p-2.5">
-        <div className="flex items-center gap-1 text-[11px] font-semibold text-jejak-navy/60">
+        <p className="truncate text-sm font-extrabold text-jejak-navy">{scan.product_name}</p>
+        <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-jejak-navy/60">
           <MapPin size={10} /> {scan.origin}
         </div>
-        <div className="mt-1 flex items-end justify-between">
+        <div className="mt-1.5 flex items-end justify-between">
           <span className="text-lg font-extrabold text-jejak-labour">{scan.labour_pct}%</span>
-          <span className="text-[11px] font-semibold text-jejak-navy/50">to workers</span>
-        </div>
-        <div className="mt-1 flex items-center justify-between">
           <span className="text-xs font-bold text-jejak-navy">{formatMoney(scan.price, scan.currency)}</span>
-          <span className="text-[10px] text-jejak-navy/40">{timeAgo(scan.created_date)}</span>
         </div>
+        <p className="text-[10px] font-semibold text-jejak-navy/45">to workers</p>
       </div>
     </motion.div>
   );
@@ -83,7 +81,10 @@ export default function Explore() {
   const [loading, setLoading] = useState(true);
   const [count, setCount] = useState(0);
   const [products, setProducts] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   const navigate = useNavigate();
+  const activeCount = (origin !== "All" ? 1 : 0) + (minLabour > 0 ? 1 : 0);
+  const clearFilters = () => { vibrate(6); setOrigin("All"); setMinLabour(0); };
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -148,6 +149,18 @@ export default function Explore() {
             </span>
             <button
               type="button"
+              onClick={() => { vibrate(6); setShowFilters((s) => !s); }}
+              className="relative flex h-10 items-center gap-1.5 rounded-full frosted border border-white/60 px-3 text-xs font-extrabold text-jejak-navy no-tap"
+            >
+              <SlidersHorizontal size={14} /> Filter
+              {activeCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-jejak-navy text-[9px] font-bold text-white">
+                  {activeCount}
+                </span>
+              )}
+            </button>
+            <button
+              type="button"
               onClick={() => { vibrate(8); navigate("/"); }}
               className="flex h-10 items-center gap-1.5 rounded-full bg-jejak-navy px-3 text-xs font-extrabold text-white no-tap"
             >
@@ -164,26 +177,61 @@ export default function Explore() {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="mt-4 space-y-3">
-          <div>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-jejak-navy/50">Origin</p>
-            <div className="flex flex-wrap gap-1.5">
-              <Chip active={origin === "All"} onClick={() => setOrigin("All")}>All</Chip>
-              {origins.map((o) => (
-                <Chip key={o} active={origin === o} onClick={() => setOrigin(o)}>{o}</Chip>
-              ))}
-            </div>
-          </div>
-          <div>
-            <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-jejak-navy/50">Min labour share</p>
-            <div className="flex flex-wrap gap-1.5">
-              {LABOUR_FILTERS.map((f) => (
-                <Chip key={f.label} active={minLabour === f.min} onClick={() => setMinLabour(f.min)}>{f.label}</Chip>
-              ))}
-            </div>
-          </div>
-        </div>
+        {/* Active filter summary (when collapsed) */}
+        {activeCount > 0 && !showFilters && (
+          <button
+            type="button"
+            onClick={() => { vibrate(6); setShowFilters(true); }}
+            className="mt-3 flex items-center gap-2 self-start rounded-full bg-jejak-navy/8 px-3 py-1.5 text-xs font-bold text-jejak-navy no-tap"
+          >
+            {origin !== "All" && <span>{origin}</span>}
+            {minLabour > 0 && <span>≥{minLabour}% labour</span>}
+            <X
+              size={13}
+              className="text-jejak-navy/50"
+              onClick={(e) => { e.stopPropagation(); clearFilters(); }}
+            />
+          </button>
+        )}
+
+        {/* Filters (collapsible, progressive disclosure) */}
+        <AnimatePresence>
+          {showFilters && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-4 space-y-3">
+                <div>
+                  <div className="mb-1.5 flex items-center justify-between">
+                    <p className="text-[11px] font-bold uppercase tracking-wide text-jejak-navy/50">Origin</p>
+                    {activeCount > 0 && (
+                      <button type="button" onClick={clearFilters} className="text-[11px] font-bold text-jejak-navy/50 no-tap">
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    <Chip active={origin === "All"} onClick={() => setOrigin("All")}>All</Chip>
+                    {origins.map((o) => (
+                      <Chip key={o} active={origin === o} onClick={() => setOrigin(o)}>{o}</Chip>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-jejak-navy/50">Min labour share</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {LABOUR_FILTERS.map((f) => (
+                      <Chip key={f.label} active={minLabour === f.min} onClick={() => setMinLabour(f.min)}>{f.label}</Chip>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Feed */}
         <div className="mt-5 flex-1">
