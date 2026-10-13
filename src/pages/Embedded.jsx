@@ -1,35 +1,38 @@
 import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
+import { getProduct } from "@/data";
 import { computeSplit, formatMoney, getRoute } from "@/lib/money";
 import Logo from "@/components/Logo";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { ArrowUpRight, ArrowDownRight, ChevronLeft } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 // Concept screen: a generic mock banking-app feed. No real brand logos.
 // The hoodie transaction has a "Trace" chip that opens the Jejak receipt
 // as a bottom sheet. Clearly labelled as a concept, not a real integration.
 const FEED = [
-  { id: 1, merchant: "Coffee Club", amount: -4.5, cur: "GBP", date: "Today", cat: "Food" },
-  { id: 2, merchant: "Everyday Hoodie", amount: -120, cur: "GBP", date: "Today", cat: "Shopping", trace: true, productId: "hoodie" },
-  { id: 3, merchant: "Tube top-up", amount: -20, cur: "GBP", date: "Yesterday", cat: "Transport" },
-  { id: 4, merchant: "Salary", amount: 2400, cur: "GBP", date: "2 days ago", cat: "Income" },
-  { id: 5, merchant: "Streaming", amount: -10.99, cur: "GBP", date: "3 days ago", cat: "Subs" },
+  { id: 1, merchant: "Coffee Club", amount: -4.5, date: "Today", cat: "Food" },
+  { id: 2, merchant: "Everyday Hoodie", amount: -120, date: "Today", cat: "Shopping", trace: true },
+  { id: 3, merchant: "Tube top-up", amount: -20, date: "Yesterday", cat: "Transport" },
+  { id: 4, merchant: "Salary", amount: 2400, date: "2 days ago", cat: "Income" },
+  { id: 5, merchant: "Streaming", amount: -10.99, date: "3 days ago", cat: "Subs" },
 ];
 
 export default function Embedded() {
   const { setProduct, setScreen } = useApp();
-  const [sheet, setSheet] = useState(null);
+  const navigate = useNavigate();
+  const [sheet, setSheet] = useState(false);
 
-  const openTrace = (tx) => {
-    setSheet(tx);
+  const goFullTrace = () => {
+    setProduct(getProduct("hoodie"));
+    setScreen("split");
+    navigate("/");
   };
 
   return (
     <div className="min-h-screen w-full flex justify-center bg-jejak-navy">
       <div className="relative w-full min-h-screen flex flex-col bg-[#0E1230] text-white" style={{ maxWidth: 420 }}>
-        {/* fake bank header */}
         <header className="flex items-center justify-between px-5 pt-6 pb-4">
           <Link to="/" className="flex items-center gap-2 text-sm text-white/60">
             <ChevronLeft size={18} /> Back to Jejak
@@ -65,7 +68,7 @@ export default function Embedded() {
                   {tx.trace && (
                     <button
                       type="button"
-                      onClick={() => openTrace(tx)}
+                      onClick={() => setSheet(true)}
                       className="mt-1 inline-flex items-center gap-1 rounded-full bg-jejak-navy px-2.5 py-1 text-[11px] font-bold text-amber-300 no-tap"
                     >
                       <Logo size={14} glow={false} /> Trace
@@ -84,8 +87,8 @@ export default function Embedded() {
       <AnimatePresence>
         {sheet && (
           <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-jejak-navy/50 backdrop-blur-sm" onClick={() => setSheet(null)} />
-            <ReceiptSheet tx={sheet} onClose={() => setSheet(null)} onFullTrace={() => { setProduct({ id: "hoodie" }); setScreen("split"); }} />
+            <div className="absolute inset-0 bg-jejak-navy/50 backdrop-blur-sm" onClick={() => setSheet(false)} />
+            <ReceiptSheet onClose={() => setSheet(false)} onFullTrace={goFullTrace} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -93,14 +96,7 @@ export default function Embedded() {
   );
 }
 
-function ReceiptSheet({ tx, onClose, onFullTrace }) {
-  const { getProduct } = require("@/data");
-  const { market, currency } = require("@/lib/AppContext").useAppStatic?.() || { market: "GB", currency: "GBP" };
-  // useApp via context
-  return <ReceiptSheetInner tx={tx} onClose={onClose} onFullTrace={onFullTrace} />;
-}
-
-function ReceiptSheetInner({ tx, onClose, onFullTrace }) {
+function ReceiptSheet({ onClose, onFullTrace }) {
   const { currency, market } = useApp();
   const product = getProduct("hoodie");
   const split = computeSplit(product, market, "split");

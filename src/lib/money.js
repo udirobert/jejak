@@ -51,14 +51,12 @@ export function formatMoney(amount, currency, opts = {}) {
   return nf.format(amount);
 }
 
-// Compact money for small amounts (e.g. 7.5p).
+// Compact money for small amounts (e.g. 7.5p per £1). Keeps one decimal
+// where needed so 7.5% renders as "7.5p", not a rounded "8p".
 export function formatSmallMoney(amount, currency) {
-  if (currency === "GBP") {
-    const p = Math.round(amount * 100);
-    return `${p}p`;
-  }
-  const c = Math.round(amount * 100);
-  return `${c}¢`;
+  const units = Math.round(amount * 1000) / 10; // pence/cents, 1 decimal
+  const label = Number.isInteger(units) ? `${units}` : units.toFixed(1);
+  return currency === "GBP" ? `${label}p` : `${label}¢`;
 }
 
 export function currencySymbolOf(currency) {

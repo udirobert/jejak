@@ -1,62 +1,89 @@
-# Base44 Project
+# Jejak — Trace what you pay for
 
-Use this repository to run and edit the app locally, then publish changes back through Base44.
+A photo-first **receipt for the physical supply chain**. Photograph a product (or pick a demo chip) and Jejak shows (1) its likely route across the world on a rotating globe and (2) how your payment splits into **materials, labour, freight & duties, brand margin and retail margin**.
 
-Any change pushed to the repo will also be reflected in the Base44 Builder.
+Built for the Fintech Hackathon London (13 Oct 2026, Payments track).
 
-## Prerequisites
+> Tagline: _"Trace what you pay for."_
 
-1. Clone the repository using the project's Git URL.
-2. Navigate to the project directory.
-3. Install dependencies: `npm install`.
-4. Install the Base44 CLI: `npm install -g base44@latest`.
-5. Install [Deno](https://docs.deno.com/runtime/getting_started/installation/) — the local Base44 backend runs on it.
+Currency-agnostic: each product carries its own price and split per market — **Singapore dollars (S$)** and **British pounds (£)**, switchable in the header. We never convert via an exchange rate.
 
-Run `base44 --help` (or see the [CLI reference](https://docs.base44.com/developers/references/cli/commands/introduction)) for the full command surface.
+---
 
-## Run Locally
+## What's real vs mocked
 
-Three commands, from the project root:
+**Real (the working app):**
+- The full demo flow: Home/Camera → Identifying → Journey → Money split → detail drawers → Compare mode.
+- Currency handling and per-market pricing (GBP & SGD via `Intl.NumberFormat`).
+- The rotating orthographic globe (d3-geo + world-atlas/topojson, no API keys), route arcs, travelling coin.
+- The 100-coin money split, stacked bar, compare-mode reflow, and all motion.
+- The embedded banking-feed **concept** screen (clearly labelled as a concept).
+- Trust/labelling: every figure is "Estimated", shown as a range, with a confidence badge and a basis label.
 
-```bash
-base44 login   # one-time per machine
-base44 link    # one-time per clone
-base44 dev     # local backend + frontend together
-```
+**Mocked (illustrative, not fact):**
+- **Supply-chain data** — all percentages, routes, countries and context notes are curated estimates for the demo. They are labelled "Estimated" and carry confidence badges. They are **not** sourced from specific factories or suppliers.
+- **Product matching** — the camera/file path currently routes to the chosen demo product (photo → hoodie unless another chip is picked). Optional AI recognition is stubbed behind a flag (see below).
+- The banking feed is a generic mock with no real bank logos or integration.
 
-Open the frontend URL that `base44 dev` prints (typically `http://localhost:5173`).
-
-Notes:
-
-- **Every fresh clone needs `base44 link`.** It writes `base44/.app.jsonc` (the app-id pointer), which is deliberately gitignored. Your app id is in the Builder URL (`app.base44.com/apps/<id>/...`); `base44 link --help` shows the non-interactive flags.
-- **`base44 dev` runs the frontend for you** (via `site.serveCommand` in this repo's `base44/config.jsonc`) — never run `npm run dev` yourself: alone it serves a UI with no backend behind it (`[base44] Proxy not enabled`, every `/api` call fails), and alongside `base44 dev` the second Vite silently takes the next port and you end up looking at the wrong one.
-- **The app must be published at least once for the UI to load under `base44 dev`.** The frontend boots by fetching app settings from the hosted app; before the first publish that fails and every page redirects to login. The local API works regardless.
-- Entities, functions, and auth run locally — entity data is **in-memory only**, wiped when `base44 dev` restarts. Everything else (Core integrations, OAuth login) is forwarded to your deployed app. Full breakdown: [Local development overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview).
-
-## Frontend Only, Hosted Backend
-
-To work on just the frontend against your app's live hosted backend:
+## How to run locally
 
 ```bash
-base44 dev --remote
+npm install
+npm run dev      # Vite dev server
+npm run build    # production build
+node scripts/validate-data.mjs   # asserts every split sums to 100
 ```
 
-⚠️ In this mode writes go to your app's **production data** — plain `base44 dev` keeps everything local.
+### Environment variables
+None are required for the core demo. The optional AI recognition path would use a server-side `ANTHROPIC_API_KEY` (never exposed to the client); it is not wired in this prototype — the app gracefully falls back to the product picker, which is the default behaviour.
 
-## Publish Your Changes
+## Demo script (≈90s)
+1. **Home** — tap the gold shutter (or a "Hoodie" chip). Switch currency to £ or S$ in the header.
+2. **Identifying** — scanning overlay + rotating status text (~2.5s).
+3. **Journey** — globe spins, arcs draw stop by stop, coin travels the route, country chips pop in. Tap **Replay** or **See where your money went**.
+4. **Money split** — 100 coins drop into 5 columns; stacked bar; headline garment-worker share (e.g. 6–10p per £1). Tap any column → detail drawer.
+5. **Compare mode** — toggle "what if direct from a transparent brand?"; coins reflow, brand/retail shrink, labour/materials grow.
+6. **How we estimate this** — open from any screen (the ? in the header) for methodology, confidence meaning, basis types, and what we do **not** know.
+7. **Embedded concept** — open `/embedded` for the mock banking feed; tap the **Trace** chip on the hoodie transaction to open the Jejak receipt as a bottom sheet.
 
-After pushing your changes to git, open the Base44 dashboard and publish the app:
+---
 
-```bash
-base44 dashboard open
-```
+## Every number and its basis label
 
-This repo syncs to Base44 through git, so publish from the dashboard rather than `base44 deploy` — a CLI deploy ships your local tree directly, bypassing the sync, and the deployed state silently diverges from the repo.
+Basis labels come only from: `public price benchmark`, `published brand disclosure`, `trade data`, `AI inference`.
 
-## Docs & Support
+### Everyday Hoodie (GB £120 / SG S$100)
+| Category | Low–Mid–High % | Confidence | Basis |
+|---|---|---|---|
+| Materials | 12 / 15 / 18 | medium | public price benchmark |
+| Labour | 6 / 7.5 / 10 | medium | published brand disclosure |
+| Freight & duties | 7 / 9.5 / 11 | medium | trade data |
+| Brand margin | 24 / 28 / 32 | low | AI inference |
+| Retail margin | 36 / 40 / 44 | medium | public price benchmark |
 
-GitHub integration: [https://docs.base44.com/developers/app-code/local-development/github](https://docs.base44.com/developers/app-code/local-development/github)
+Transparent alternative (illustrative): Materials 22, Labour 18, Freight 10, Brand 20, Retail 30 — all `AI inference` except Freight `trade data`.
 
-Local development: [https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview](https://docs.base44.com/developers/backend/overview/local-dev/local-development-overview)
+### Running Trainers (GB £90 / SG S$110)
+Materials 25 (public price benchmark), Labour 8 (published brand disclosure), Freight 9 (trade data), Brand 30 (AI inference), Retail 28 (public price benchmark). Transparent: 30/18/10/22/20.
 
-Support: [https://app.base44.com/support](https://app.base44.com/support)
+### Coffee Bag (GB £6 / SG S$12)
+Materials 20, Labour 12, Freight 14, Brand 24, Retail 30. Transparent: 34/24/13/15/14.
+
+### Phone Case (GB £25 / SG S$32)
+Materials 18, Labour 10, Freight 12, Brand 30, Retail 30. Transparent: 28/22/14/20/16.
+
+All **mid** values sum to exactly 100 for every product and scenario (verified by `scripts/validate-data.mjs`).
+
+### Still needing a real source
+- Every percentage above is currently an estimate. None is backed by a named, verifiable source.
+- Country/stage assignments are illustrative; specific factory or supplier identities are deliberately **not** claimed.
+- When real sources are verified, add a `sources` array (title + url) to each product file with a TODO for the team to fill.
+
+---
+
+## Assumptions & what's not finished
+- **AI recognition** is not wired (optional, behind a flag in the spec). The camera path routes to the chosen demo product; any failure falls back to the product picker with a low-confidence badge, matching the spec's graceful-fallback requirement.
+- **No persistence / no localStorage** — state lives in React context, as specified.
+- **Tests**: a runnable validation script (`scripts/validate-data.mjs`) covers split sums and currency formatting. A full vitest suite was not added to avoid adding a dependency; the script gives the same guarantees.
+- The globe uses the 110m world atlas for performance; on very low-end devices it still renders (reduced-motion disables the spin).
+- Designed mobile-first at 390px; desktop shows the app in a phone-width column centred on a lilac-to-peach backdrop.
