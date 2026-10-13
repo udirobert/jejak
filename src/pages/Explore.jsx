@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import ScreenShell from "@/components/ScreenShell";
@@ -119,16 +119,21 @@ export default function Explore() {
     })();
   }, []);
 
-  // Live: prepend new scans as they land.
+  // Keep latest filters readable inside the stable subscribe handler.
+  const originRef = useRef(origin);
+  const minLabourRef = useRef(minLabour);
+  useEffect(() => { originRef.current = origin; }, [origin]);
+  useEffect(() => { minLabourRef.current = minLabour; }, [minLabour]);
+
+  // Live: prepend new scans as they land, but only when they match the active filters.
   useEffect(() => {
     const unsub = base44.entities.Scan.subscribe((event) => {
-      if (event.type === "create") {
-        setScans((prev) => {
-          if (prev.some((s) => s.id === event.data.id)) return prev;
-          return [event.data, ...prev];
-        });
-        setCount((n) => n + 1);
-      }
+      if (event.type !== "create") return;
+      const s = event.data;
+      if (originRef.current !== "All" && s.origin !== originRef.current) return;
+      if (minLabourRef.current > 0 && (s.labour_pct ?? 0) < minLabourRef.current) return;
+      setScans((prev) => (prev.some((p) => p.id === s.id) ? prev : [s, ...prev]));
+      setCount((n) => n + 1);
     });
     return unsub;
   }, []);
@@ -136,48 +141,46 @@ export default function Explore() {
   return (
     <ScreenShell variant="soft">
       <div className="flex flex-1 flex-col px-5 pb-28">
-        <div className="mt-2 flex items-start justify-between">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-jejak-navy/50">Community</p>
-            <h1 className="text-2xl font-extrabold text-jejak-navy">What people are tracing</h1>
-            <p className="mt-1 text-xs font-semibold text-jejak-navy/55">
-              {count} traces · {products} products · {origins.length} origins
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="flex items-center gap-1 rounded-full bg-jejak-materials/15 px-2 py-1 text-[10px] font-bold text-jejak-materials">
-              <Radio size={11} className="animate-pulse-soft" /> Live
-            </span>
-            <motion.button
-              type="button"
-              onClick={() => { vibrate(6); setShowFilters((s) => !s); }}
-              whileTap={TAP}
-              className="relative flex h-10 items-center gap-1.5 rounded-full frosted border border-white/60 px-3 text-xs font-extrabold text-jejak-navy no-tap"
-            >
-              <SlidersHorizontal size={14} /> Filter
-              {activeCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-jejak-navy text-[9px] font-bold text-white">
-                  {activeCount}
-                </span>
-              )}
-            </motion.button>
-            <motion.button
-              type="button"
-              onClick={() => { vibrate(8); navigate("/"); }}
-              whileTap={TAP}
-              className="flex h-10 items-center gap-1.5 rounded-full bg-jejak-navy px-3 text-xs font-extrabold text-white no-tap"
-            >
-              <Camera size={14} /> Trace
-            </motion.button>
-            <button
-              type="button"
-              onClick={load}
-              aria-label="Refresh"
-              className="flex h-10 w-10 items-center justify-center rounded-full frosted border border-white/60 no-tap"
-            >
-              <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-            </button>
-          </div>
+        <div className="mt-2 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-jejak-navy/50">Community</p>
+          <h1 className="text-2xl font-extrabold text-jejak-navy">What people are tracing</h1>
+          <p className="mt-1 text-xs font-semibold text-jejak-navy/55">
+            {count} traces · {products} products · {origins.length} origins
+          </p>
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          <span className="flex items-center gap-1 rounded-full bg-jejak-materials/15 px-2 py-1 text-[10px] font-bold text-jejak-materials">
+            <Radio size={11} className="animate-pulse-soft" /> Live
+          </span>
+          <motion.button
+            type="button"
+            onClick={() => { vibrate(6); setShowFilters((s) => !s); }}
+            whileTap={TAP}
+            className="relative flex h-10 items-center gap-1.5 rounded-full frosted border border-white/60 px-3 text-xs font-extrabold text-jejak-navy no-tap"
+          >
+            <SlidersHorizontal size={14} /> Filter
+            {activeCount > 0 && (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-jejak-navy text-[9px] font-bold text-white">
+                {activeCount}
+              </span>
+            )}
+          </motion.button>
+          <motion.button
+            type="button"
+            onClick={() => { vibrate(8); navigate("/"); }}
+            whileTap={TAP}
+            className="flex h-10 items-center gap-1.5 rounded-full bg-jejak-navy px-3 text-xs font-extrabold text-white no-tap"
+          >
+            <Camera size={14} /> Trace
+          </motion.button>
+          <button
+            type="button"
+            onClick={load}
+            aria-label="Refresh"
+            className="flex h-10 w-10 items-center justify-center rounded-full frosted border border-white/60 no-tap"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+          </button>
         </div>
 
         {/* Active filter summary (when collapsed) */}
