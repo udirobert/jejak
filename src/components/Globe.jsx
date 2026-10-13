@@ -5,6 +5,9 @@ import { feature } from "topojson-client";
 import worldTopo from "world-atlas/countries-110m.json";
 import { COLORS } from "@/lib/tokens";
 import { vibrate } from "@/lib/haptics";
+import { useApp } from "@/lib/AppContext";
+import { currencySymbolOf } from "@/lib/money";
+import { MapSvgFlag } from "@/components/explore/OriginFlagChip";
 
 // Convert the world-atlas TopoJSON to GeoJSON once.
 const worldGeo = feature(worldTopo, worldTopo.objects.countries);
@@ -14,25 +17,55 @@ function makeRouteSet(route) {
   return new Set(route.map((s) => s.country));
 }
 
+function displayCountryName(country) {
+  if (country === "United Kingdom") return "UK";
+  return country || "";
+}
+
 export default function Globe({
   route,
   activeStop = route.length,
   size = 300,
   focusedIdx = null,
   onSelectStop = null,
+  currency: currencyProp = null,
 }) {
+  const appCtx = useApp();
+  const currency = currencyProp || appCtx?.currency || "GBP";
+  const coinSymbol = currencySymbolOf(currency);
   const reduce = useReducedMotion();
   const R = Math.round(size * 0.465);
-  const routeSet = useMemo(() => makeRouteSet(route), [route]);
+
+  // Dedupe route stops by country so each country appears only once on the globe
+  const uniqueRoute = useMemo(() => {
+    const seen = new Map();
+    const list = [];
+    (route || []).slice(0, activeStop).forEach((s) => {
+      if (!seen.has(s.country)) {
+        const clone = { ...s };
+        seen.set(s.country, clone);
+        list.push(clone);
+      } else {
+        const existing = seen.get(s.country);
+        if (s.stage && existing.stage && !existing.stage.includes(s.stage)) {
+          existing.stage = `${existing.stage} · ${s.stage}`;
+        }
+        existing.value = Math.max(existing.value || 10, s.value || 10);
+      }
+    });
+    return list;
+  }, [route, activeStop]);
+
+  const routeSet = useMemo(() => makeRouteSet(uniqueRoute), [uniqueRoute]);
 
   // Centre the globe on the route centroid initially.
   const centroid = useMemo(() => {
-    const lngs = route.map((s) => s.lng);
-    const lats = route.map((s) => s.lat);
+    const lngs = uniqueRoute.map((s) => s.lng);
+    const lats = uniqueRoute.map((s) => s.lat);
     const lng = lngs.reduce((a, b) => a + b, 0) / (lngs.length || 1);
     const lat = lats.reduce((a, b) => a + b, 0) / (lats.length || 1);
     return [lng, lat];
-  }, [route]);
+  }, [uniqueRoute]);
 
   const [rot, setRot] = useState({ lng: -centroid[0], lat: -centroid[1] * 0.65 });
   const [coinPos, setCoinPos] = useState(0); // continuous 0..legs.length loop
@@ -45,33 +78,36 @@ export default function Globe({
 
   // When a stop is focused externally, smoothly rotate toward it.
   useEffect(() => {
-    if (focusedIdx != null && route[focusedIdx]) {
-      const s = route[focusedIdx];
+    if (focusedIdx != null && uniqueRoute[focusedIdx]) {
+      const s = uniqueRoute[focusedIdx];
       targetRot.current = { lng: -s.lng, lat: Math.max(-45, Math.min(45, -s.lat * 0.75)) };
     } else {
       targetRot.current = null;
     }
-  }, [focusedIdx, route]);
+  }, [focusedIdx, uniqueRoute]);
 
   // Precompute sphere interpolators for each leg (in [lng,lat] space).
   const legs = useMemo(() => {
     const list = [];
-    for (let i = 0; i < route.length - 1; i++) {
-      const a = [route[i].lng, route[i].lat];
-      const b = [route[i + 1].lng, route[i + 1].lat];
+    for (let i = 0; i < uniqueRoute.length - 1; i++) {
+      const a = [uniqueRoute[i].lng, uniqueRoute[i].lat];
+      const b = [uniqueRoute[i + 1].lng, uniqueRoute[i + 1].lat];
       list.push({
         interp: geoInterpolate(a, b),
         a,
         b,
-        value: route[i + 1].value || 10,
-        from: route[i],
-        to: route[i + 1],
+        value: uniqueRoute[i + 1].value || 10,
+        from: uniqueRoute[i],
+        to: uniqueRoute[i + 1],
       });
     }
     return list;
-  }, [route]);
+  }, [uniqueRoute]);
 
-  const maxVal = useMemo(() => Math.max(...route.map((s) => s.value || 10), 1), [route]);
+  const maxVal = useMemo(
+    () => Math.max(...uniqueRoute.map((s) => s.value || 10), 1),
+    [uniqueRoute]
+  );
 
   useEffect(() => {
     if (reduce) return;
@@ -141,7 +177,6 @@ export default function Globe({
       const t = Math.max(0, Math.min(safePos - seg, 1));
       const pt = leg.interp(t);
       const xy = project(pt);
-      // Parabolic arc lift peaking mid-corridor and landing smoothly into the wallet marker
       const arcLift = Math.sin(t * Math.PI) * 10;
       if (xy) coin = { x: xy[0], y: xy[1] - arcLift, seg };
 
@@ -153,23 +188,27 @@ export default function Globe({
     }
   }
 
-  // Stop markers with country label + stage info.
-  const markers = route
-    .slice(0, activeStop)
+  // Stop markers with country label + stage info (deduped so each country appears once).
+  const markers = uniqueRoute
     .map((s, idx) => {
       const xy = project([s.lng, s.lat]);
       return xy ? { x: xy[0], y: xy[1], stop: s, idx } : null;
     })
     .filter(Boolean);
 
-  const arcPaths = legs.slice(0, Math.max(0, activeStop - 1)).map((leg, idx) => {
+  const arcPaths = legs.map((leg, idx) => {
     const pts = [];
     for (let i = 0; i <= 36; i++) pts.push(leg.interp(i / 36));
     const line = { type: "LineString", coordinates: pts };
+    // Brighten dashed route connected to the selected stop
+    const isConnectedToFocused =
+      focusedIdx != null && (idx === focusedIdx - 1 || idx === focusedIdx);
     return {
       d: gen(line),
       w: 1.8 + (leg.value / maxVal) * 4,
       seg: idx,
+      bright: isConnectedToFocused,
+      dimmed: focusedIdx != null && !isConnectedToFocused,
     };
   });
 
@@ -248,41 +287,61 @@ export default function Globe({
           {/* Base route arcs */}
           {arcPaths.map((a, i) => (
             <g key={`arc-${i}`}>
+              {a.bright && (
+                <path
+                  d={a.d}
+                  fill="none"
+                  stroke="#FFC24B"
+                  strokeWidth={a.w + 3.2}
+                  strokeLinecap="round"
+                  opacity={0.55}
+                />
+              )}
               <path
                 d={a.d}
                 fill="none"
                 stroke={COLORS.freight}
-                strokeWidth={a.w}
+                strokeWidth={a.bright ? a.w + 0.8 : a.w}
                 strokeLinecap="round"
-                opacity={0.32}
+                opacity={a.bright ? 0.55 : a.dimmed ? 0.16 : 0.32}
               />
               {/* Animated flowing trade stream */}
               <path
                 d={a.d}
                 fill="none"
-                stroke={COLORS.freight}
-                strokeWidth={Math.max(1.8, a.w * 0.65)}
+                stroke={a.bright ? "#1B1B3A" : COLORS.freight}
+                strokeWidth={a.bright ? Math.max(2.4, a.w * 0.8) : Math.max(1.8, a.w * 0.65)}
                 strokeLinecap="round"
-                strokeDasharray="5 7"
+                strokeDasharray={a.bright ? "6 5" : "5 7"}
                 strokeDashoffset={dashOffset}
-                opacity={0.95}
+                opacity={a.bright ? 1 : a.dimmed ? 0.38 : 0.95}
               />
             </g>
           ))}
 
-          {/* Stop markers + pulsing rings + country callout pills */}
+          {/* Stop markers: short flag-only pill until selected; full untruncated country name when selected */}
           {markers.map((m) => {
             const isFocused = focusedIdx === m.idx;
             const isOrigin = m.idx === 0;
-            const isFinal = m.idx === route.length - 1;
+            const isFinal = m.idx === uniqueRoute.length - 1;
+            const labelText = displayCountryName(m.stop.country);
+            const pillWidth = isFocused
+              ? Math.max(54, Math.round(labelText.length * 5.8 + 28))
+              : 24;
+            const pillHeight = isFocused ? 16 : 14;
+
             return (
               <g
-                key={`m-${m.idx}`}
+                key={`m-${m.stop.country}`}
                 onClick={(e) => {
                   e.stopPropagation();
                   if (onSelectStop) {
                     vibrate(6);
-                    onSelectStop(m.idx, m.stop);
+                    const offset = {
+                      x: Math.round((m.x - size / 2) * 0.35),
+                      y: Math.round((m.y - size) * 0.25),
+                    };
+                    onSelectStop(m.idx, m.stop, offset);
                   }
                 }}
                 style={{ cursor: onSelectStop ? "pointer" : "default" }}
@@ -290,7 +349,7 @@ export default function Globe({
                 <circle
                   cx={m.x}
                   cy={m.y}
-                  r={isFocused ? 11 : 8}
+                  r={isFocused ? 12 : 8}
                   fill={isOrigin ? COLORS.labour : COLORS.coral}
                   opacity={0.25}
                 >
@@ -298,7 +357,7 @@ export default function Globe({
                     <>
                       <animate
                         attributeName="r"
-                        values={isFocused ? "7;15;7" : "5;11;5"}
+                        values={isFocused ? "8;16;8" : "5;11;5"}
                         dur="2s"
                         repeatCount="indefinite"
                       />
@@ -314,32 +373,54 @@ export default function Globe({
                 <circle
                   cx={m.x}
                   cy={m.y}
-                  r={isFocused ? 6 : 4.8}
+                  r={isFocused ? 6.5 : 4.8}
                   fill={isOrigin ? COLORS.labour : isFinal ? COLORS.materials : COLORS.coral}
                   stroke="#fff"
                   strokeWidth="1.8"
                 />
-                {/* Compact country tag on globe */}
-                <g transform={`translate(${m.x}, ${m.y - 10})`}>
+
+                {/* Callout pill: flag-only until selected, full country name when selected */}
+                <g transform={`translate(${m.x}, ${m.y - 11})`}>
                   <rect
-                    x={-26}
-                    y={-11}
-                    width={52}
-                    height={13}
-                    rx={6.5}
-                    fill={isFocused ? "#1B1B3A" : "rgba(27,27,58,0.82)"}
+                    x={-pillWidth / 2}
+                    y={-pillHeight}
+                    width={pillWidth}
+                    height={pillHeight}
+                    rx={pillHeight / 2}
+                    fill={isFocused ? "#1B1B3A" : "rgba(27,27,58,0.84)"}
+                    stroke={isFocused ? "#FFC24B" : "rgba(255,255,255,0.65)"}
+                    strokeWidth={isFocused ? 1.2 : 0.7}
                   />
-                  <text
-                    x={0}
-                    y={-2}
-                    textAnchor="middle"
-                    fill="#ffffff"
-                    fontSize="7.5"
-                    fontWeight="800"
-                    fontFamily="Plus Jakarta Sans, sans-serif"
-                  >
-                    {m.idx + 1}. {m.stop.country.slice(0, 8)}
-                  </text>
+                  {isFocused ? (
+                    <>
+                      <MapSvgFlag
+                        country={m.stop.country}
+                        x={-pillWidth / 2 + 11}
+                        y={-pillHeight / 2}
+                        width={12}
+                        height={8.5}
+                      />
+                      <text
+                        x={6}
+                        y={-pillHeight / 2 + 2.8}
+                        textAnchor="middle"
+                        fill="#ffffff"
+                        fontSize="8"
+                        fontWeight="800"
+                        fontFamily="Plus Jakarta Sans, sans-serif"
+                      >
+                        {labelText}
+                      </text>
+                    </>
+                  ) : (
+                    <MapSvgFlag
+                      country={m.stop.country}
+                      x={0}
+                      y={-pillHeight / 2}
+                      width={13}
+                      height={9}
+                    />
+                  )}
                 </g>
               </g>
             );
@@ -350,28 +431,36 @@ export default function Globe({
             <circle cx={trail.x} cy={trail.y} r={3.5} fill="#FFC24B" opacity="0.55" />
           )}
 
-          {/* Travelling gold coin */}
+          {/* Travelling gold coin following active currency (£ or S$) */}
           {coin && (
             <g>
               <circle
                 cx={coin.x}
                 cy={coin.y}
-                r={7}
+                r={7.5}
                 fill="url(#coinG)"
                 stroke="#B5750E"
                 strokeWidth="1.2"
               >
-                <animate attributeName="r" values="6.5;8.5;6.5" dur="0.9s" repeatCount="indefinite" />
+                {!reduce && (
+                  <animate
+                    attributeName="r"
+                    values="6.8;8.6;6.8"
+                    dur="0.9s"
+                    repeatCount="indefinite"
+                  />
+                )}
               </circle>
               <text
                 x={coin.x}
-                y={coin.y + 2.5}
+                y={coin.y + (coinSymbol.length > 1 ? 2.1 : 2.5)}
                 textAnchor="middle"
                 fill="#7A4B04"
-                fontSize="7"
+                fontSize={coinSymbol.length > 1 ? "5.6" : "7.2"}
                 fontWeight="900"
+                fontFamily="Plus Jakarta Sans, sans-serif"
               >
-                £
+                {coinSymbol}
               </text>
             </g>
           )}

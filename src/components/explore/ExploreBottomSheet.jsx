@@ -128,8 +128,6 @@ export default function ExploreBottomSheet({
     vibrate(5);
     if (snap === "peek") {
       setSnap("half");
-    } else if (snap === "half") {
-      setSnap("full");
     } else {
       setSnap("peek");
     }
@@ -233,17 +231,13 @@ export default function ExploreBottomSheet({
           </div>
 
           <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-navy/55 shrink-0">
-            {snap === "full" ? (
+            {snap === "peek" ? (
               <>
-                Collapse <ChevronDown size={13} />
-              </>
-            ) : snap === "half" ? (
-              <>
-                Full list <ChevronUp size={13} />
+                Open <ChevronUp size={13} />
               </>
             ) : (
               <>
-                Open <ChevronUp size={13} />
+                Collapse <ChevronDown size={13} />
               </>
             )}
           </span>
