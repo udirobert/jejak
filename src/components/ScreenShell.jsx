@@ -6,17 +6,19 @@ import StageSidebars from "./StageSidebars";
 import { HelpCircle } from "lucide-react";
 
 // Shared shell: phone-width column, lilac-to-peach background, header with
-// logo, currency switch and a "how we estimate" link.
+// logo, optional currency switch and a "how we estimate" link.
 // For variant="map", the map fills 100% of the column height behind the header, sheet, and tab bar.
 export default function ScreenShell({
   children,
   variant = "soft",
   header = true,
+  showCurrency = variant !== "sunrise",
   maxWidth = 420,
 }) {
   const { setShowHowTo, startGuidedTour, tourStep } = useApp();
   const isMap = variant === "map";
   const isHostBank = variant === "host-bank";
+  const isSunrise = variant === "sunrise";
   const hasTourBanner = tourStep != null;
 
   return (
@@ -32,19 +34,18 @@ export default function ScreenShell({
         } ${hasTourBanner && !isMap ? "pt-36" : ""}`}
         style={{
           maxWidth,
-          background:
-            variant === "sunrise"
-              ? "linear-gradient(160deg,#FF8A65 0%,#FFC24B 45%,#FF3D81 120%)"
-              : isMap
-              ? "#153963"
-              : isHostBank
-              ? "#F5F7FA"
-              : undefined,
+          background: isSunrise
+            ? "linear-gradient(165deg, #1B1B3A 0%, #351E47 32%, #C84B31 74%, #E8921A 100%)"
+            : isMap
+            ? "#153963"
+            : isHostBank
+            ? "#F5F7FA"
+            : undefined,
         }}
       >
         {header && !isHostBank && (
           <header
-            className={`flex items-center justify-between px-5 pt-5 pb-3 ${
+            className={`flex items-center justify-between px-5 pt-4 pb-2.5 ${
               isMap
                 ? "absolute inset-x-0 top-0 z-20 bg-transparent pointer-events-none"
                 : ""
@@ -54,7 +55,9 @@ export default function ScreenShell({
               <Logo size={34} />
               <span
                 className={`text-lg font-extrabold tracking-tight ${
-                  isMap ? "text-white drop-shadow" : "text-jejak-navy"
+                  isMap || isSunrise
+                    ? "text-white drop-shadow-sm"
+                    : "text-jejak-navy"
                 }`}
               >
                 Jejak
@@ -64,16 +67,17 @@ export default function ScreenShell({
               <button
                 type="button"
                 onClick={startGuidedTour}
-                className="rounded-full frosted border border-white/60 px-2.5 py-1.5 text-[11px] font-extrabold text-jejak-navy hover:bg-white/90 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                aria-label="Start interactive guided tour"
+                className="min-h-[44px] rounded-full frosted border border-white/60 px-3.5 py-1.5 text-xs font-extrabold text-jejak-navy hover:bg-white/90 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 Tour
               </button>
-              <CurrencySwitch />
+              {showCurrency && <CurrencySwitch />}
               <button
                 type="button"
                 onClick={() => setShowHowTo(true)}
                 aria-label="How we estimate this"
-                className="flex h-9 w-9 items-center justify-center rounded-full frosted border border-white/60 text-jejak-navy no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="flex h-11 w-11 items-center justify-center rounded-full frosted border border-white/60 text-jejak-navy no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               >
                 <HelpCircle size={18} />
               </button>

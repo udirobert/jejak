@@ -6,7 +6,7 @@ import { vibrate } from "@/lib/haptics";
 import { TAP, SPRING, SPRING_SNAP } from "@/lib/motion";
 
 // Bottom tab bar — rounded, frosted-glass floating dock with safe-area padding.
-// Persistent across the tabbed routes so the active pill slides smoothly.
+// Uses :focus-visible ONLY for keyboard users so mouse/touch taps never leave a double ring.
 const TABS = [
   { to: "/", label: "Trace", icon: Crosshair },
   { to: "/explore", label: "Explore", icon: Compass },
@@ -34,9 +34,12 @@ export default function TabBar() {
                 key={to}
                 to={to}
                 end={to === "/"}
-                onClick={() => vibrate(6)}
+                onClick={(e) => {
+                  vibrate(6);
+                  e.currentTarget.blur();
+                }}
                 className={({ isActive }) =>
-                  `relative flex flex-1 flex-col items-center justify-center rounded-2xl py-1.5 no-tap transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/55 focus-visible:ring-offset-1 ${
+                  `relative min-h-[44px] flex flex-1 flex-col items-center justify-center rounded-2xl py-1 no-tap transition-colors outline-none focus:outline-none focus:ring-0 focus-visible:ring-2 focus-visible:ring-jejak-navy ${
                     isActive
                       ? "text-jejak-navy"
                       : "text-jejak-navy/55 hover:text-jejak-navy"

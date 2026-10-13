@@ -7,14 +7,16 @@ import ScreenShell from "@/components/ScreenShell";
 import ProductPicker from "@/components/ProductPicker";
 import StreakPill from "@/components/StreakPill";
 import ViewfinderStage from "@/components/ViewfinderStage";
-import DemoProductGrid from "@/components/DemoProductGrid";
 import HowItWorksStrip from "@/components/HowItWorksStrip";
+import HomeMiniRouteCard from "@/components/HomeMiniRouteCard";
 import { vibrate } from "@/lib/haptics";
 
 export default function Home() {
   const {
+    product,
     market,
     currency,
+    traces,
     setPhoto,
     setPhotoFile,
     setPhotoUrl,
@@ -23,7 +25,6 @@ export default function Home() {
     setLowConfidence,
     setCustomPrice,
     setMakerTip,
-    startGuidedTour,
   } = useApp();
   const cameraRef = useRef(null);
   const libraryRef = useRef(null);
@@ -37,7 +38,6 @@ export default function Home() {
       return;
     }
     vibrate(10);
-    // Show the photo instantly via a local object URL.
     setPhoto(URL.createObjectURL(file));
     setPhotoFile(file);
     setLowConfidence(false);
@@ -45,14 +45,17 @@ export default function Home() {
     setMakerTip(0);
     setScreen("identifying");
     // Upload privately, then mint a short-lived signed URL the vision model
-    // can fetch for one-time recognition (stored privately — not a public URL).
+    // can fetch for one-time recognition (stored privately).
     try {
       setUploading(true);
-      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
-      const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
+      const { file_uri } = await base44.integrations.Core.UploadPrivateFile({
+        file,
+      });
+      const { signed_url } =
+        await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
       setPhotoUrl(signed_url);
     } catch {
-      setPhotoUrl(""); // empty string signals "upload failed" to Identifying
+      setPhotoUrl("");
     } finally {
       setUploading(false);
     }
@@ -73,20 +76,13 @@ export default function Home() {
     setScreen("identifying");
   };
 
-  const jumpChipReceipt = (id) => {
-    vibrate(10);
-    setProduct(getProduct(id));
-    setLowConfidence(false);
-    setCustomPrice(null);
-    setMakerTip(0);
-    setPhoto(null);
-    setPhotoFile(null);
-    setPhotoUrl(null);
-    setScreen("split");
+  const openLatestRoute = () => {
+    vibrate(6);
+    setScreen("journey");
   };
 
   return (
-    <ScreenShell variant="sunrise">
+    <ScreenShell variant="sunrise" showCurrency={false}>
       <input
         ref={cameraRef}
         type="file"
@@ -104,37 +100,42 @@ export default function Home() {
       />
 
       <div className="flex flex-1 flex-col px-5 pb-28">
-        <div className="mt-1">
-          <StreakPill />
-        </div>
+        <StreakPill />
 
+        {/* High-contrast hero copy over dark plum/navy top gradient (WCAG AA > 8:1) */}
         <motion.div
-          initial={{ opacity: 0, y: 10 }}
+          initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ type: "spring", stiffness: 220, damping: 24 }}
           className="mt-3"
         >
-          <h1 className="text-[24px] font-extrabold leading-[1.14] tracking-tight text-white drop-shadow-sm">
+          <h1 className="text-[23px] font-extrabold leading-[1.15] tracking-tight text-white">
             Know the story behind what you buy.
           </h1>
-          <p className="mt-1 text-xs font-bold text-white/90">
-            Trace where your clothes, coffee and gear really came from — then follow the money.
+          <p className="mt-1 text-xs font-bold leading-relaxed text-amber-100">
+            Snap any item or care tag to map its supply-chain route and follow
+            where your money goes.
           </p>
         </motion.div>
 
-        <HowItWorksStrip onStartGuidedDemo={startGuidedTour} />
+        <HowItWorksStrip />
 
         <ViewfinderStage
-          onPickCamera={onPickCamera}
-          onPickLibrary={onPickLibrary}
-        />
-
-        <DemoProductGrid
           market={market}
           currency={currency}
-          onPickFlow={pickChipFlow}
-          onJumpReceipt={jumpChipReceipt}
+          onPickCamera={onPickCamera}
+          onPickLibrary={onPickLibrary}
+          onPickSample={pickChipFlow}
           onOpenFallback={() => setPickerOpen(true)}
+        />
+
+        {/* Live mini corridor route card (latest trace or preview before first trace) */}
+        <HomeMiniRouteCard
+          product={product}
+          market={market}
+          currency={currency}
+          hasTraced={traces > 0}
+          onInspectJourney={openLatestRoute}
         />
       </div>
 

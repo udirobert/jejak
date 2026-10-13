@@ -7,6 +7,7 @@ import causes from "@/data/causes.json";
 import { getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
 import Globe from "@/components/Globe";
+import JejakPassportCard from "@/components/JejakPassportCard";
 import { VectorFlagSvg } from "@/components/explore/OriginFlagChip";
 import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
 import { vibrate } from "@/lib/haptics";
@@ -303,12 +304,53 @@ export default function Impact() {
             </button>
           </div>
 
-          {/* Interactive globe stage (tap any stop to select it) */}
+          {/* Non-overlapping stat chips row (safe at 375px, hides 0 anchored zero-state) */}
+          <div className="mt-2.5 px-5 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex-1 min-w-[110px] rounded-2xl frosted-strong border border-white/85 px-3 py-2 shadow-sm">
+              <p className="text-lg font-extrabold leading-none text-jejak-navy tabular-nums">
+                {animTraced.toLocaleString()}
+              </p>
+              <p className="mt-0.5 text-[10px] font-bold text-jejak-navy/65">
+                traced · this session
+              </p>
+            </div>
+
+            <div className="flex-1 min-w-[110px] rounded-2xl frosted-strong border border-white/85 px-3 py-2 shadow-sm">
+              <p className="text-lg font-extrabold leading-none text-jejak-freight tabular-nums">
+                {animKm.toLocaleString()}
+              </p>
+              <p className="mt-0.5 text-[10px] font-bold text-jejak-navy/65">
+                km mapped · this session
+              </p>
+            </div>
+
+            {sessionRecordsAnchored > 0 ? (
+              <div className="flex-1 min-w-[110px] rounded-2xl bg-jejak-navy border border-amber-300/40 px-3 py-2 text-white shadow-sm">
+                <p className="text-lg font-extrabold leading-none text-amber-300 tabular-nums">
+                  {animAnchored.toLocaleString()}
+                </p>
+                <p className="mt-0.5 text-[10px] font-bold text-white/75">
+                  anchored · this session
+                </p>
+              </div>
+            ) : (
+              <div className="flex-1 min-w-[110px] rounded-2xl bg-jejak-navy/90 border border-white/20 px-3 py-2 text-white shadow-sm">
+                <p className="text-lg font-extrabold leading-none text-amber-300 tabular-nums">
+                  {activeRoute.length} stops
+                </p>
+                <p className="mt-0.5 text-[10px] font-bold text-white/75">
+                  active corridor
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Interactive globe stage (tap any stop to select it; no overlapping chips at 375px) */}
           <div className="relative mt-1 flex items-center justify-center">
             <Globe
               route={activeRoute}
               activeStop={activeRoute.length}
-              size={310}
+              size={296}
               focusedIdx={safeStopIdx}
               currency={currency}
               onSelectStop={(idx, _stop, offset) => {
@@ -318,40 +360,10 @@ export default function Impact() {
                 setActiveTab("corridors");
               }}
             />
-
-            {/* Floating Counter 1: Top-left (Products traced · this session) */}
-            <div className="pointer-events-none absolute left-4 top-3 rounded-2xl frosted-strong border border-white/85 px-3 py-2 shadow-md">
-              <p className="text-xl font-extrabold leading-none text-jejak-navy tabular-nums">
-                {animTraced.toLocaleString()}
-              </p>
-              <p className="mt-0.5 text-[10px] font-bold text-jejak-navy/65">
-                products traced · this session
-              </p>
-            </div>
-
-            {/* Floating Counter 2: Top-right (Records anchored · this session) */}
-            <div className="pointer-events-none absolute right-4 top-3 rounded-2xl bg-jejak-navy/90 border border-amber-300/40 px-3 py-2 text-right text-white shadow-md backdrop-blur-md">
-              <p className="text-xl font-extrabold leading-none text-amber-300 tabular-nums">
-                {animAnchored.toLocaleString()}
-              </p>
-              <p className="mt-0.5 text-[10px] font-bold text-white/75">
-                anchored · this session
-              </p>
-            </div>
-
-            {/* Floating Counter 3: Bottom-left pill (Km mapped · this session) */}
-            <div className="pointer-events-none absolute bottom-2 left-4 rounded-full frosted-strong border border-white/85 px-3.5 py-1.5 shadow-md flex items-baseline gap-1.5">
-              <span className="text-base font-extrabold text-jejak-freight tabular-nums">
-                {animKm.toLocaleString()}
-              </span>
-              <span className="text-[10px] font-bold text-jejak-navy/65">
-                km mapped · this session
-              </span>
-            </div>
           </div>
 
-          <p className="text-center text-[11px] font-bold text-jejak-navy/55">
-            Tap any stop on the globe to inspect its corridor
+          <p className="px-5 text-center text-[11px] font-bold text-jejak-navy/65">
+            Tap any stop on the globe · Illustrative routes, not live tracking
           </p>
         </div>
 
@@ -496,7 +508,7 @@ export default function Impact() {
             </motion.div>
           )}
 
-          {/* VIEW 2: ON-CHAIN — Latest anchored record + See all */}
+          {/* VIEW 2: ON-CHAIN — Jejak Passport + Latest anchored record + See all */}
           {activeTab === "onchain" && (
             <motion.div
               key="onchain"
@@ -505,6 +517,7 @@ export default function Impact() {
               transition={reduce ? { duration: 0 } : { duration: 0.2 }}
               className="space-y-2.5"
             >
+              <JejakPassportCard variant="impact" />
               {latestRecord ? (
                 <>
                   <div className="flex items-center justify-between gap-2">

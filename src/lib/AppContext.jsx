@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useEffect } fr
 import { hoodie } from "@/data/hoodie";
 import { marketForCurrency, getRoute } from "./money";
 import { base44 } from "@/api/base44Client";
+import { getWalletSession } from "./wallet";
 
 const AppContext = createContext(null);
 const STREAK_STORAGE_KEY = "jejak_streak_v1";
@@ -55,6 +56,7 @@ export function AppProvider({ children }) {
   const [stellarError, setStellarError] = useState(null);
   const [labelEvidence, setLabelEvidence] = useState(null); // extracted care/Made-in label facts
   const [provenanceRecord, setProvenanceRecord] = useState(null); // anchored SHA-256 provenance record
+  const [walletSession, setWalletSession] = useState(() => getWalletSession());
 
   const settleStellarPayout = useCallback(
     async ({
@@ -218,6 +220,8 @@ export function AppProvider({ children }) {
     setLabelEvidence,
     provenanceRecord,
     setProvenanceRecord,
+    walletSession,
+    setWalletSession,
     addTrace,
     addToWorkerFund,
     setCurrency: switchCurrency,

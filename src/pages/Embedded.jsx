@@ -6,6 +6,8 @@ import { getProduct } from "@/data";
 import { computeSplit, formatMoney, getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
 import Logo from "@/components/Logo";
+import CurrencySwitch from "@/components/CurrencySwitch";
+import JejakPassportCard from "@/components/JejakPassportCard";
 import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
 import OriginFlagChip from "@/components/explore/OriginFlagChip";
 import PersonalOriginMapHeader from "@/components/explore/PersonalOriginMapHeader";
@@ -227,18 +229,21 @@ export default function Embedded() {
             </span>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              vibrate(5);
-              setShowInfoSheet(true);
-            }}
-            aria-label="About embedded concept"
-            className="inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm hover:bg-slate-50 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
-          >
-            <span>Embedded concept</span>
-            <Info size={13} className="text-slate-500" />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <CurrencySwitch />
+            <button
+              type="button"
+              onClick={() => {
+                vibrate(5);
+                setShowInfoSheet(true);
+              }}
+              aria-label="About embedded concept"
+              className="min-h-[44px] inline-flex items-center gap-1.5 rounded-full bg-white border border-slate-200 px-3 py-1 text-[11px] font-bold text-slate-700 shadow-sm hover:bg-slate-50 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+            >
+              <span>Concept</span>
+              <Info size={13} className="text-slate-500" />
+            </button>
+          </div>
         </header>
 
         {/* "Without Jejak | With Jejak" Toggle (in-memory state only, default With) */}
@@ -292,7 +297,7 @@ export default function Embedded() {
               </p>
             </div>
             <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-500">
-              Sort 04-00-24
+              {market === "SG" ? "Demo SG · 000-000" : "Demo UK · 00-00-00"}
             </span>
           </div>
 
@@ -310,6 +315,9 @@ export default function Embedded() {
             )}
           </AnimatePresence>
         </div>
+
+        {/* Passkey Smart Account ("Jejak Passport") for Bank controls & spending-limit policy */}
+        <JejakPassportCard variant="bank" />
 
         {/* Host Bank Transaction Feed */}
         <div className="rounded-3xl bg-white border border-slate-200/90 overflow-hidden shadow-sm divide-y divide-slate-100">
