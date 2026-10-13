@@ -7,6 +7,8 @@ import Logo from "@/components/Logo";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { ArrowUpRight, ArrowDownRight, ChevronLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import TabBar from "@/components/TabBar";
+import { vibrate } from "@/lib/haptics";
 
 // Concept screen: a generic mock banking-app feed. No real brand logos.
 // The hoodie transaction has a "Trace" chip that opens the Jejak receipt
@@ -46,7 +48,7 @@ export default function Embedded() {
           <p className="text-xs text-white/40">Sort 12-34-56 · Acct 12345678 (mock)</p>
         </div>
 
-        <div className="mt-6 flex-1 rounded-t-3xl bg-[#F4F2FB] p-5 text-jejak-navy">
+        <div className="mt-6 flex-1 rounded-t-3xl bg-[#F4F2FB] p-5 pb-28 text-jejak-navy">
           <p className="mb-3 text-sm font-extrabold">Recent transactions</p>
           <div className="space-y-2">
             {FEED.map((tx) => (
@@ -92,12 +94,14 @@ export default function Embedded() {
           </motion.div>
         )}
       </AnimatePresence>
+      <TabBar />
     </div>
   );
 }
 
 function ReceiptSheet({ onClose, onFullTrace }) {
   const { currency, market } = useApp();
+  const [fund, setFund] = useState(0);
   const product = getProduct("hoodie");
   const split = computeSplit(product, market, "split");
   const route = getRoute(product, market);
@@ -131,6 +135,21 @@ function ReceiptSheet({ onClose, onFullTrace }) {
       <div className="mt-3 flex items-center gap-2 rounded-xl bg-white/60 p-2.5">
         <ConfidenceBadge level="medium" />
         <span className="text-xs text-jejak-navy/60">Ranges, not facts · {route.length} stops traced</span>
+      </div>
+
+      <div className="mt-3 rounded-xl bg-white/70 p-3">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-bold text-jejak-navy">Jejak worker fund</p>
+          <p className="text-sm font-extrabold text-jejak-materials">£{fund.toFixed(2)}</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => { vibrate(10); setFund((f) => f + 1); }}
+          className="mt-2 w-full rounded-lg bg-jejak-materials py-2 text-xs font-extrabold text-white no-tap"
+        >
+          {fund > 0 ? "Add another £1" : "Add £1 to the worker fund"}
+        </button>
+        <p className="mt-1.5 text-[10px] text-jejak-navy/50">Concept — rounds into a worker welfare fund, not a real charge.</p>
       </div>
 
       <button

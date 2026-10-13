@@ -15,10 +15,17 @@ export function AppProvider({ children }) {
   const [detailCategory, setDetailCategory] = useState(null); // category key
   const [showHowTo, setShowHowTo] = useState(false);
   const [lowConfidence, setLowConfidence] = useState(false);
+  const [traces, setTraces] = useState(0);
+  const [workerTotal, setWorkerTotal] = useState(0);
 
   const switchCurrency = useCallback((cur) => {
     setCurrency(cur);
     setMarket(marketForCurrency(cur));
+  }, []);
+
+  const addTrace = useCallback((labourAmount) => {
+    setTraces((n) => n + 1);
+    setWorkerTotal((t) => t + (labourAmount || 0));
   }, []);
 
   const reset = useCallback(() => {
@@ -42,6 +49,9 @@ export function AppProvider({ children }) {
     detailCategory,
     showHowTo,
     lowConfidence,
+    traces,
+    workerTotal,
+    addTrace,
     setCurrency: switchCurrency,
     setMarket,
     setProduct,

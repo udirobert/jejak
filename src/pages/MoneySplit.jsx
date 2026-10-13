@@ -12,7 +12,7 @@ import { vibrate, coinClink } from "@/lib/haptics";
 import { ArrowLeft, Info } from "lucide-react";
 
 export default function MoneySplit() {
-  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory } = useApp();
+  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace } = useApp();
   const reduce = useReducedMotion();
   const price = product.markets[market].price;
   const split = computeSplit(product, market, compareMode ? "transparent" : "split");
@@ -33,6 +33,7 @@ export default function MoneySplit() {
   useEffect(() => {
     if (celebrated.current) return;
     celebrated.current = true;
+    addTrace(labour.amount);
     vibrate([0, 12, 30, 12]);
     coinClink();
     if (!reduce) {

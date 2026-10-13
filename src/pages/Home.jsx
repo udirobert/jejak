@@ -62,7 +62,7 @@ export default function Home() {
         onChange={(e) => handleFiles(e.target.files)}
       />
 
-      <div className="flex flex-1 flex-col px-6 pb-10">
+      <div className="flex flex-1 flex-col px-6 pb-28">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}

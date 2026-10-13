@@ -9,6 +9,7 @@ import ScrollToTop from './components/ScrollToTop';
 import { AppProvider } from '@/lib/AppContext';
 import Flow from '@/pages/Flow';
 import Embedded from '@/pages/Embedded';
+import Impact from '@/pages/Impact';
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -40,6 +41,7 @@ const AuthenticatedApp = () => {
       <Routes>
         {/* Add your page Route elements here */}
         <Route path="/" element={<Flow />} />
+        <Route path="/impact" element={<Impact />} />
         <Route path="/embedded" element={<Embedded />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>

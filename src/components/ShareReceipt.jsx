@@ -4,8 +4,9 @@ import { useApp } from "@/lib/AppContext";
 import { computeSplit, formatMoney, getRoute } from "@/lib/money";
 import { vibrate } from "@/lib/haptics";
 import html2canvas from "html2canvas";
+import { jsPDF } from "jspdf";
 import Logo from "./Logo";
-import { Share2, Download, Loader2 } from "lucide-react";
+import { Share2, FileDown, Loader2 } from "lucide-react";
 
 // Builds a solid, shareable receipt image (no frosted glass — html2canvas
 // can't capture backdrop-filter), then shares it via the Web Share API or
@@ -57,13 +58,21 @@ export default function ShareReceipt() {
     return wrap;
   };
 
+  const capture = async () => {
+    const node = buildNode();
+    try {
+      return await html2canvas(node, { scale: 2, backgroundColor: null, logging: false });
+    } finally {
+      node.remove();
+    }
+  };
+
   const handleShare = async () => {
     if (busy) return;
     setBusy(true);
     vibrate(8);
-    const node = buildNode();
     try {
-      const canvas = await html2canvas(node, { scale: 2, backgroundColor: null, logging: false });
+      const canvas = await capture();
       const blob = await new Promise((res) => canvas.toBlob(res, "image/png"));
       const file = new File([blob], "jejak-receipt.png", { type: "image/png" });
       const shareData = {
@@ -86,20 +95,47 @@ export default function ShareReceipt() {
     } catch (e) {
       // user cancelled or unsupported — silent
     } finally {
-      node.remove();
+      setBusy(false);
+    }
+  };
+
+  const handlePdf = async () => {
+    if (busy) return;
+    setBusy(true);
+    vibrate(8);
+    try {
+      const canvas = await capture();
+      const img = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [canvas.width / 2, canvas.height / 2] });
+      pdf.addImage(img, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
+      pdf.save("jejak-receipt.pdf");
+    } catch (e) {
+      // silent
+    } finally {
       setBusy(false);
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={handleShare}
-      disabled={busy}
-      className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3 text-sm font-extrabold text-white no-tap disabled:opacity-60"
-    >
-      {busy ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-      {busy ? "Preparing…" : "Share your receipt"}
-    </button>
+    <div className="mt-3 grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={handleShare}
+        disabled={busy}
+        className="flex items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3 text-sm font-extrabold text-white no-tap disabled:opacity-60"
+      >
+        {busy ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+        {busy ? "Preparing…" : "Share"}
+      </button>
+      <button
+        type="button"
+        onClick={handlePdf}
+        disabled={busy}
+        className="flex items-center justify-center gap-2 rounded-2xl frosted-strong py-3 text-sm font-extrabold text-jejak-navy no-tap disabled:opacity-60"
+      >
+        {busy ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+        {busy ? "Preparing…" : "Save PDF"}
+      </button>
+    </div>
   );
 }

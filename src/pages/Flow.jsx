@@ -8,6 +8,7 @@ import MoneySplit from "./MoneySplit";
 import DetailDrawer from "@/components/DetailDrawer";
 import HowWeEstimateDrawer from "@/components/HowWeEstimateDrawer";
 import Onboarding from "@/components/Onboarding";
+import TabBar from "@/components/TabBar";
 
 // Orchestrates the main demo flow based on the shared screen state.
 export default function Flow() {
@@ -35,6 +36,7 @@ export default function Flow() {
       <DetailDrawer />
       <HowWeEstimateDrawer />
       <Onboarding />
+      {screen === "home" && <TabBar />}
     </>
   );
 }
