@@ -1,386 +1,699 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import ScreenShell from "@/components/ScreenShell";
-import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { formatMoney } from "@/lib/money";
 import { Image as ContentImage } from "@/components/ui/image";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/lib/AppContext";
-import { getProduct, DEMO_CHIPS } from "@/data";
-import { startOfTodayISO } from "@/components/TodaySnapPulse";
+import { PRODUCTS, getProduct } from "@/data";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
-import { RefreshCw, Users, MapPin, Radio, Camera, SlidersHorizontal, X, ArrowUpRight, ShieldCheck } from "lucide-react";
+import {
+  Camera,
+  X,
+  ExternalLink,
+  QrCode,
+  Info,
+  ChevronDown,
+  Sparkles,
+} from "lucide-react";
 
-const LABOUR_FILTERS = [
-  { label: "Any", min: 0 },
-  { label: "≥5%", min: 5 },
-  { label: "≥10%", min: 10 },
-  { label: "≥15%", min: 15 },
-];
+const FLAGS = {
+  Bangladesh: "🇧🇩",
+  Vietnam: "🇻🇳",
+  Ethiopia: "🇪🇹",
+  China: "🇨🇳",
+  Cambodia: "🇰🇭",
+  Indonesia: "🇮🇩",
+  India: "🇮🇳",
+  Singapore: "🇸🇬",
+  Netherlands: "🇳🇱",
+  "United Kingdom": "🇬🇧",
+};
 
-function timeAgo(dateStr) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const m = Math.floor(diff / 60000);
-  if (m < 1) return "just now";
-  if (m < 60) return `${m}m ago`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h ago`;
-  return `${Math.floor(h / 24)}d ago`;
+const PRODUCT_SURFACES = {
+  hoodie: "linear-gradient(145deg, #FF8A65 0%, #FFB74D 100%)",
+  trainers: "linear-gradient(145deg, #6366F1 0%, #EC4899 100%)",
+  coffee: "linear-gradient(145deg, #F59E0B 0%, #10B981 100%)",
+  phone_case: "linear-gradient(145deg, #3B82F6 0%, #8B5CF6 100%)",
+};
+
+const DEFAULT_MATERIALS = {
+  hoodie: "Cotton fleece",
+  trainers: "Knit mesh & EVA",
+  coffee: "Washed Arabica",
+  phone_case: "Moulded TPU",
+};
+
+function materialHeadline(scan) {
+  const mat =
+    scan.label_materials?.trim() ||
+    DEFAULT_MATERIALS[scan.product_id] ||
+    "Standard material";
+  return `${mat} · ${scan.origin || "Origin"}`;
 }
 
-function Chip({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={() => { vibrate(6); onClick(); }}
-      className={`rounded-full px-3 py-1.5 text-xs font-bold no-tap transition-colors ${
-        active ? "bg-jejak-navy text-white" : "frosted text-jejak-navy/70 border border-white/60"
-      }`}
-    >
-      {children}
-    </button>
+function hasOwnAnchoredRecord(scan) {
+  return Boolean(
+    scan &&
+      typeof scan.stellar_tx_hash === "string" &&
+      scan.stellar_tx_hash.trim().length === 64 &&
+      typeof scan.record_sha256 === "string" &&
+      scan.record_sha256.trim().length === 64
   );
 }
 
-const DEFAULT_TESTNET_HASH =
-  "d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43";
-
-function ScanCard({ scan, todayCount, onOpen }) {
-  const txHash = scan.stellar_tx_hash || DEFAULT_TESTNET_HASH;
-  const memoLabel =
-    scan.stellar_memo ||
-    `EST:${(scan.product_id || "ITEM").toUpperCase().slice(0, 6)}:${(scan.origin || "ORIGIN").toUpperCase().slice(0, 5)}:${scan.labour_pct}%`;
+function TraceTile({
+  scan,
+  groupScans = null,
+  isNewest = false,
+  aspectClass = "aspect-[4/5]",
+  isExpandedGroup = false,
+  onToggleGroup,
+  onSelectScan,
+  reduce,
+}) {
+  const isGroup = Array.isArray(groupScans) && groupScans.length > 1;
+  const anchored = isGroup
+    ? groupScans.some(hasOwnAnchoredRecord)
+    : hasOwnAnchoredRecord(scan);
+  const allSample = isGroup
+    ? groupScans.every((s) => s.is_sample)
+    : Boolean(scan.is_sample);
+  const bgGradient =
+    PRODUCT_SURFACES[scan.product_id] || PRODUCT_SURFACES.hoodie;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ type: "spring", stiffness: 280, damping: 24 }}
-      className="group overflow-hidden rounded-2xl frosted text-left transition-shadow hover:shadow-md flex flex-col"
+    <motion.button
+      type="button"
+      whileTap={reduce ? undefined : TAP}
+      onClick={() => {
+        vibrate(6);
+        if (isGroup && onToggleGroup) {
+          onToggleGroup(scan.product_id);
+        } else {
+          onSelectScan(scan);
+        }
+      }}
+      className={`group relative w-full overflow-hidden rounded-3xl text-left shadow-md border border-white/80 no-tap ${
+        isNewest ? "col-span-2 aspect-[16/10]" : aspectClass
+      }`}
+      style={{ background: bgGradient }}
     >
-      <button
-        type="button"
-        onClick={() => onOpen(scan)}
-        className="w-full text-left no-tap flex-1"
-      >
-        <div className="relative aspect-square w-full bg-lilac-peach">
-          {scan.photo_url ? (
-            <ContentImage src={scan.photo_url} fittingType="fill" className="h-full w-full" />
-          ) : (
-            <div className="flex h-full w-full flex-col items-center justify-center gap-1">
-              <span className="text-5xl">{scan.emoji}</span>
-              <span className="rounded-full bg-white/70 px-2 py-0.5 text-[9px] font-bold text-jejak-navy/60">
-                Anonymous snap
-              </span>
-            </div>
-          )}
-          {scan.is_sample && (
-            <span className="absolute left-2 top-2 rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-jejak-navy shadow-sm">
+      {/* Photo fill or coloured emoji surface */}
+      {scan.photo_url ? (
+        <ContentImage
+          src={scan.photo_url}
+          fittingType="fill"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span
+            className={`${
+              isNewest ? "text-7xl" : "text-6xl"
+            } select-none drop-shadow-md transition-transform duration-300 group-hover:scale-105`}
+          >
+            {scan.emoji || "🧥"}
+          </span>
+        </div>
+      )}
+
+      {/* Subtle bottom scrim for legibility */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background:
+            "linear-gradient(180deg, rgba(27,27,58,0.18) 0%, rgba(27,27,58,0.04) 42%, rgba(27,27,58,0.78) 100%)",
+        }}
+      />
+
+      {/* Top row: Origin flag + Sample tag + Newest "Just now" pulse or Anchored dot */}
+      <div className="absolute inset-x-3 top-3 flex items-center justify-between gap-1.5">
+        <div className="flex items-center gap-1.5">
+          <span className="flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-sm shadow-sm">
+            {FLAGS[scan.origin] || "🌐"}
+          </span>
+          {allSample && (
+            <span className="rounded-full bg-amber-300/95 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-jejak-navy shadow-sm">
               Sample
             </span>
           )}
-          <span className="absolute right-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/70">
-            {timeAgo(scan.created_date)}
-          </span>
-          {todayCount >= 2 && (
-            <span className="absolute left-2 bottom-2 rounded-full bg-jejak-navy/85 px-2 py-0.5 text-[9px] font-bold text-white">
-              {todayCount} traced today
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          {isNewest && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-0.5 text-[10px] font-extrabold text-jejak-navy shadow-sm">
+              <span
+                className={`h-1.5 w-1.5 rounded-full bg-jejak-materials ${
+                  reduce ? "" : "animate-pulse"
+                }`}
+              />
+              Just now
+            </span>
+          )}
+          {anchored && (
+            <span
+              title="Anchored on Stellar Testnet"
+              className="inline-flex items-center gap-1 rounded-full bg-jejak-navy/85 border border-amber-300/60 px-2 py-0.5 text-[9px] font-extrabold text-amber-300 shadow-sm"
+            >
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-300" />
+              Anchored
             </span>
           )}
         </div>
-        <div className="p-2.5 pb-1.5">
-          <div className="flex items-center justify-between gap-1">
-            <p className="truncate text-sm font-extrabold text-jejak-navy">{scan.product_name}</p>
-            <ArrowUpRight size={13} className="shrink-0 text-jejak-navy/40 group-hover:text-jejak-navy transition-colors" />
-          </div>
-          <div className="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-jejak-navy/60">
-            <MapPin size={10} /> {scan.origin}
-            {scan.label_country && (
-              <span className="rounded bg-jejak-materials/20 px-1 py-0.2 text-[9px] font-extrabold text-jejak-materials">
-                Label read
-              </span>
-            )}
-          </div>
-          <div className="mt-1.5 flex items-end justify-between">
-            <span className="text-lg font-extrabold text-jejak-labour">{scan.labour_pct}%</span>
-            <span className="text-xs font-bold text-jejak-navy">{formatMoney(scan.price, scan.currency)}</span>
-          </div>
-          <p className="text-[10px] font-semibold text-jejak-navy/45">estimated maker share · tap trace</p>
-        </div>
-      </button>
-
-      {/* Clickable Stellar Testnet Estimate Record badge */}
-      <div className="px-2.5 pb-2.5 pt-1">
-        <a
-          href={`https://stellar.expert/explorer/testnet/tx/${txHash}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={(e) => e.stopPropagation()}
-          className="flex items-center justify-between rounded-xl bg-jejak-navy px-2 py-1 text-[9px] font-extrabold text-amber-300 hover:opacity-95 no-tap"
-        >
-          <span className="truncate font-mono">
-            {scan.record_sha256 ? `SHA256:${scan.record_sha256.slice(0, 8)}…` : memoLabel}
-          </span>
-          <span className="shrink-0 ml-1 underline">Anchored estimate ↗</span>
-        </a>
       </div>
-    </motion.div>
+
+      {/* Bottom overlay ONLY: product name (or grouped count + stacked avatars) + one headline fact (material and origin) */}
+      <div className="absolute inset-x-3.5 bottom-3.5 flex items-end justify-between gap-2 text-white">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-extrabold leading-tight drop-shadow-sm">
+            {isGroup
+              ? `${scan.product_name} · ${groupScans.length} traces`
+              : scan.product_name}
+          </p>
+          <p className="mt-0.5 truncate text-[11px] font-semibold text-white/85">
+            {materialHeadline(scan)}
+          </p>
+        </div>
+
+        {/* Stacked avatars for duplicate product groups */}
+        {isGroup && (
+          <div className="flex items-center shrink-0">
+            <div className="flex -space-x-2">
+              {groupScans.slice(0, 3).map((item, i) => (
+                <span
+                  key={item.id || i}
+                  className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs shadow ring-2 ring-jejak-navy/40"
+                >
+                  {FLAGS[item.origin] || item.emoji || "🧥"}
+                </span>
+              ))}
+            </div>
+            <ChevronDown
+              size={14}
+              className={`ml-1 text-white/90 transition-transform ${
+                isExpandedGroup ? "rotate-180" : ""
+              }`}
+            />
+          </div>
+        )}
+      </div>
+    </motion.button>
   );
 }
 
 export default function Explore() {
   const [scans, setScans] = useState([]);
-  const [origins, setOrigins] = useState([]);
-  const [origin, setOrigin] = useState("All");
-  const [minLabour, setMinLabour] = useState(0);
+  const [originFilter, setOriginFilter] = useState("All");
+  const [expandedProductId, setExpandedProductId] = useState(null);
+  const [selectedScan, setSelectedScan] = useState(null);
+  const [showQr, setShowQr] = useState(false);
+  const [showInfoSheet, setShowInfoSheet] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [count, setCount] = useState(0);
-  const [products, setProducts] = useState(0);
-  const [todayByProduct, setTodayByProduct] = useState({});
-  const [showFilters, setShowFilters] = useState(false);
-  const navigate = useNavigate();
-  const { setProduct, setCurrency, setScreen, setCompareMode, setLowConfidence } = useApp();
-  const activeCount = (origin !== "All" ? 1 : 0) + (minLabour > 0 ? 1 : 0);
-  const clearFilters = () => { vibrate(6); setOrigin("All"); setMinLabour(0); };
 
-  const openScanReceipt = (scan) => {
-    vibrate(8);
-    const prod = getProduct(scan.product_id) || getProduct("hoodie");
-    setProduct(prod);
-    if (scan.currency === "GBP" || scan.currency === "SGD") {
-      setCurrency(scan.currency);
+  const reduce = useReducedMotion();
+  const navigate = useNavigate();
+  const { setProduct, setScreen, setCompareMode, setLowConfidence, reset } =
+    useApp();
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const page = await base44.entities.Scan.filter(
+        {},
+        { sort: "-created_date", limit: 50 }
+      );
+      setScans(page.items || []);
+    } catch {
+      setScans([]);
     }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  // Live subscription for newly created traces
+  useEffect(() => {
+    const unsub = base44.entities.Scan.subscribe((event) => {
+      if (event.type !== "create") return;
+      const s = event.data;
+      setScans((prev) => (prev.some((p) => p.id === s.id) ? prev : [s, ...prev]));
+    });
+    return unsub;
+  }, []);
+
+  // Origin flag chips with counts (real traces vs sample items are never conflated)
+  const originChips = useMemo(() => {
+    const map = new Map();
+    scans.forEach((s) => {
+      const o = s.origin || "Bangladesh";
+      const prev = map.get(o) || { origin: o, total: 0, real: 0 };
+      prev.total += 1;
+      if (!s.is_sample) prev.real += 1;
+      map.set(o, prev);
+    });
+    return Array.from(map.values()).sort((a, b) => b.total - a.total);
+  }, [scans]);
+
+  const filteredScans = useMemo(() => {
+    if (originFilter === "All") return scans;
+    return scans.filter((s) => s.origin === originFilter);
+  }, [scans, originFilter]);
+
+  // Group duplicate traces by product_id (one tile per product with count + stacked avatars)
+  const productGroups = useMemo(() => {
+    const groups = new Map();
+    filteredScans.forEach((s) => {
+      const pid = s.product_id || "hoodie";
+      if (!groups.has(pid)) {
+        groups.set(pid, []);
+      }
+      groups.get(pid).push(s);
+    });
+    return Array.from(groups.entries()).map(([productId, items]) => ({
+      productId,
+      lead: items[0],
+      items,
+    }));
+  }, [filteredScans]);
+
+  // Untraced products get a "Be the first to trace this" tile when viewing All
+  const untracedProducts = useMemo(() => {
+    if (originFilter !== "All") return [];
+    const tracedIds = new Set(scans.map((s) => s.product_id));
+    return PRODUCTS.filter((p) => !tracedIds.has(p.id));
+  }, [scans, originFilter]);
+
+  const handleTraceProduct = (productId) => {
+    vibrate(8);
+    const prod = getProduct(productId) || getProduct("hoodie");
+    setProduct(prod);
     setCompareMode(false);
     setLowConfidence(false);
     setScreen("journey");
     navigate("/");
   };
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    const query = {};
-    if (origin !== "All") query.origin = origin;
-    if (minLabour > 0) query.labour_pct = { $gte: minLabour };
-    try {
-      const page = await base44.entities.Scan.filter(query, { sort: "-created_date", limit: 50 });
-      setScans(page.items || []);
-    } catch {
-      setScans([]);
-    }
-    setLoading(false);
-  }, [origin, minLabour]);
+  const handleTraceYours = () => {
+    vibrate(8);
+    reset();
+    navigate("/");
+  };
 
-  useEffect(() => { load(); }, [load]);
-
-  // Distinct origins + products, total count, and today's per-item tally.
-  useEffect(() => {
-    (async () => {
-      try {
-        const [o, p, c, todayAgg] = await Promise.all([
-          base44.entities.Scan.filter({}, { distinct: "origin", limit: 100 }),
-          base44.entities.Scan.filter({}, { distinct: "product_name", limit: 100 }),
-          base44.entities.Scan.count({}),
-          base44.entities.Scan.aggregate({
-            query: { created_date: { $gte: startOfTodayISO() } },
-            groupBy: "product_id",
-          }),
-        ]);
-        setOrigins(o.items || []);
-        setProducts((p.items || []).length);
-        setCount(c);
-        const map = {};
-        (todayAgg?.rows || []).forEach((r) => {
-          if (r.product_id) map[r.product_id] = r.count || 0;
-        });
-        setTodayByProduct(map);
-      } catch {}
-    })();
-  }, []);
-
-  // Keep latest filters readable inside the stable subscribe handler.
-  const originRef = useRef(origin);
-  const minLabourRef = useRef(minLabour);
-  useEffect(() => { originRef.current = origin; }, [origin]);
-  useEffect(() => { minLabourRef.current = minLabour; }, [minLabour]);
-
-  // Live: prepend new scans as they land, but only when they match the active filters.
-  useEffect(() => {
-    const unsub = base44.entities.Scan.subscribe((event) => {
-      if (event.type !== "create") return;
-      const s = event.data;
-      if (originRef.current !== "All" && s.origin !== originRef.current) return;
-      if (minLabourRef.current > 0 && (s.labour_pct ?? 0) < minLabourRef.current) return;
-      setScans((prev) => (prev.some((p) => p.id === s.id) ? prev : [s, ...prev]));
-      setCount((n) => n + 1);
-      if (s.product_id) {
-        setTodayByProduct((prev) => ({
-          ...prev,
-          [s.product_id]: (prev[s.product_id] || 0) + 1,
-        }));
-      }
-    });
-    return unsub;
-  }, []);
+  const BENTO_ASPECTS = ["aspect-[4/5]", "aspect-square", "aspect-[5/4]"];
 
   return (
     <ScreenShell variant="soft">
-      <div className="flex flex-1 flex-col px-5 pb-28">
-        <div className="mt-2 text-center">
-          <p className="text-xs font-bold uppercase tracking-widest text-jejak-navy/50">Community</p>
-          <h1 className="text-2xl font-extrabold text-jejak-navy">What people are tracing</h1>
-          <p className="mt-1 text-xs font-semibold text-jejak-navy/55">
-            {count} traces · {products} products · {origins.length} origins
-          </p>
-        </div>
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-          <span className="flex items-center gap-1 rounded-full bg-jejak-materials/15 px-2 py-1 text-[10px] font-bold text-jejak-materials">
-            <Radio size={11} className="animate-pulse-soft" /> Live
-          </span>
-          <motion.button
-            type="button"
-            onClick={() => { vibrate(6); setShowFilters((s) => !s); }}
-            whileTap={TAP}
-            className="relative flex h-10 items-center gap-1.5 rounded-full frosted border border-white/60 px-3 text-xs font-extrabold text-jejak-navy no-tap"
-          >
-            <SlidersHorizontal size={14} /> Filter
-            {activeCount > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-jejak-navy text-[9px] font-bold text-white">
-                {activeCount}
-              </span>
-            )}
-          </motion.button>
-          <motion.button
-            type="button"
-            onClick={() => { vibrate(8); navigate("/"); }}
-            whileTap={TAP}
-            className="flex h-10 items-center gap-1.5 rounded-full bg-jejak-navy px-3 text-xs font-extrabold text-white no-tap"
-          >
-            <Camera size={14} /> Trace
-          </motion.button>
-          <button
-            type="button"
-            onClick={load}
-            aria-label="Refresh"
-            className="flex h-10 w-10 items-center justify-center rounded-full frosted border border-white/60 no-tap"
-          >
-            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-          </button>
-        </div>
-
-        {/* Active filter summary (when collapsed) */}
-        {activeCount > 0 && !showFilters && (
-          <button
-            type="button"
-            onClick={() => { vibrate(6); setShowFilters(true); }}
-            className="mt-3 flex items-center gap-2 self-start rounded-full bg-jejak-navy/8 px-3 py-1.5 text-xs font-bold text-jejak-navy no-tap"
-          >
-            {origin !== "All" && <span>{origin}</span>}
-            {minLabour > 0 && <span>≥{minLabour}% labour</span>}
-            <X
-              size={13}
-              className="text-jejak-navy/50"
-              onClick={(e) => { e.stopPropagation(); clearFilters(); }}
-            />
-          </button>
-        )}
-
-        {/* Filters (collapsible, progressive disclosure) */}
-        <AnimatePresence>
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-4 space-y-3">
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <p className="text-[11px] font-bold uppercase tracking-wide text-jejak-navy/50">Origin</p>
-                    {activeCount > 0 && (
-                      <button type="button" onClick={clearFilters} className="text-[11px] font-bold text-jejak-navy/50 no-tap">
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    <Chip active={origin === "All"} onClick={() => setOrigin("All")}>All</Chip>
-                    {origins.map((o) => (
-                      <Chip key={o} active={origin === o} onClick={() => setOrigin(o)}>{o}</Chip>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <p className="mb-1.5 text-[11px] font-bold uppercase tracking-wide text-jejak-navy/50">Min labour share</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {LABOUR_FILTERS.map((f) => (
-                      <Chip key={f.label} active={minLabour === f.min} onClick={() => setMinLabour(f.min)}>{f.label}</Chip>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Snapped today pulse strip */}
-        <div className="mt-4 rounded-2xl frosted p-3">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-jejak-navy/55">
-              Snapped today · community pulse
-            </p>
-            <span className="flex items-center gap-1 text-[10px] font-semibold text-jejak-navy/50">
-              <ShieldCheck size={11} className="text-jejak-materials" /> Opt-in only
+      <div className="flex flex-1 flex-col px-5 pb-36">
+        {/* Top Row: Title + Live pulse + single ⓘ opt-in chip */}
+        <div className="mt-2 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-extrabold tracking-tight text-jejak-navy">
+              Community
+            </h1>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-jejak-materials/15 px-2.5 py-0.5 text-[10px] font-extrabold text-jejak-materials">
+              <span
+                className={`h-1.5 w-1.5 rounded-full bg-jejak-materials ${
+                  reduce ? "" : "animate-pulse"
+                }`}
+              />
+              Live
             </span>
           </div>
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
-            {DEMO_CHIPS.map((chip) => {
-              const n = todayByProduct[chip.id] || 0;
-              return (
-                <button
-                  key={chip.id}
-                  type="button"
-                  onClick={() => openScanReceipt({ product_id: chip.id })}
-                  className="flex flex-col items-center rounded-xl bg-white/65 py-2 px-1 text-center no-tap hover:bg-white transition-colors"
-                >
-                  <span className="text-lg">{chip.emoji}</span>
-                  <span className="mt-0.5 text-xs font-extrabold text-jejak-navy">{n}</span>
-                  <span className="text-[9px] font-semibold text-jejak-navy/55 truncate max-w-full">
-                    {chip.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(5);
+              setShowInfoSheet(true);
+            }}
+            aria-label="Opt-in privacy info"
+            className="inline-flex items-center gap-1 rounded-full frosted border border-white/80 px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy no-tap"
+          >
+            <Info size={12} className="text-jejak-freight" />
+            <span>ⓘ</span>
+          </button>
         </div>
 
-        {/* Feed */}
-        <div className="mt-4 flex-1">
+        {/* Header Strip of Origin Flag Chips (badged by count; tapping filters feed) */}
+        <div className="mt-3 flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1">
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(5);
+              setOriginFilter("All");
+            }}
+            className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold transition-colors no-tap ${
+              originFilter === "All"
+                ? "bg-jejak-navy text-white shadow-sm"
+                : "frosted border border-white/75 text-jejak-navy/75"
+            }`}
+          >
+            <span>🌍 All</span>
+          </button>
+
+          {originChips.map((chip) => {
+            const active = originFilter === chip.origin;
+            return (
+              <button
+                key={chip.origin}
+                type="button"
+                onClick={() => {
+                  vibrate(5);
+                  setOriginFilter((prev) =>
+                    prev === chip.origin ? "All" : chip.origin
+                  );
+                }}
+                className={`shrink-0 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold transition-colors no-tap ${
+                  active
+                    ? "bg-jejak-navy text-white shadow-sm"
+                    : "frosted border border-white/75 text-jejak-navy/80 hover:bg-white/90"
+                }`}
+              >
+                <span className="text-sm">{FLAGS[chip.origin] || "🌐"}</span>
+                <span>{chip.origin}</span>
+                {chip.real > 0 ? (
+                  <span
+                    className={`rounded-full px-1.5 py-0.2 text-[10px] font-extrabold tabular-nums ${
+                      active
+                        ? "bg-white/20 text-amber-300"
+                        : "bg-jejak-navy/10 text-jejak-navy/70"
+                    }`}
+                  >
+                    {chip.real}
+                  </span>
+                ) : (
+                  <span
+                    className={`rounded-full px-1.5 py-0.2 text-[9px] font-extrabold uppercase ${
+                      active
+                        ? "bg-white/20 text-amber-300"
+                        : "bg-amber-300/60 text-jejak-navy/75"
+                    }`}
+                  >
+                    sample
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Two-column Masonry / Bento Grid */}
+        <div className="mt-3 flex-1">
           {loading ? (
-            <div className="flex items-center justify-center py-16">
-              <RefreshCw className="animate-spin text-jejak-navy/40" />
-            </div>
-          ) : scans.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <Users size={32} className="text-jejak-navy/30" />
-              <p className="mt-3 text-sm font-bold text-jejak-navy/60">No scans match yet</p>
-              <p className="text-xs text-jejak-navy/45">Trace a product and share it to populate the feed.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 h-44 rounded-3xl bg-white/50 animate-pulse" />
+              <div className="h-48 rounded-3xl bg-white/50 animate-pulse" />
+              <div className="h-48 rounded-3xl bg-white/50 animate-pulse" />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              {scans.map((s) => (
-                <ScanCard
-                  key={s.id}
-                  scan={s}
-                  todayCount={todayByProduct[s.product_id] || 0}
-                  onOpen={openScanReceipt}
-                />
+            <div className="grid grid-cols-2 gap-3 items-start">
+              {productGroups.map((group, idx) => {
+                const isExpanded = expandedProductId === group.productId;
+                const isNewest = idx === 0;
+                const aspectClass = BENTO_ASPECTS[idx % BENTO_ASPECTS.length];
+
+                return (
+                  <React.Fragment key={group.productId}>
+                    <div className={isNewest ? "col-span-2" : "col-span-1"}>
+                      <TraceTile
+                        scan={group.lead}
+                        groupScans={group.items}
+                        isNewest={isNewest}
+                        aspectClass={aspectClass}
+                        isExpandedGroup={isExpanded}
+                        onToggleGroup={(pid) =>
+                          setExpandedProductId((prev) =>
+                            prev === pid ? null : pid
+                          )
+                        }
+                        onSelectScan={(s) => {
+                          setShowQr(false);
+                          setSelectedScan(s);
+                        }}
+                        reduce={reduce}
+                      />
+                    </div>
+
+                    {/* Expanded individual traces when a duplicate group is tapped */}
+                    {isExpanded && group.items.length > 1 && (
+                      <div className="col-span-2 grid grid-cols-2 gap-2.5 rounded-3xl bg-white/55 p-2.5 border border-white/80">
+                        {group.items.map((item, subIdx) => (
+                          <TraceTile
+                            key={item.id || subIdx}
+                            scan={item}
+                            groupScans={null}
+                            isNewest={false}
+                            aspectClass="aspect-square"
+                            onSelectScan={(s) => {
+                              setShowQr(false);
+                              setSelectedScan(s);
+                            }}
+                            reduce={reduce}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+
+              {/* "Be the first to trace this" tile for products with no traces */}
+              {untracedProducts.map((prod) => (
+                <motion.button
+                  key={prod.id}
+                  type="button"
+                  whileTap={reduce ? undefined : TAP}
+                  onClick={() => handleTraceProduct(prod.id)}
+                  className="col-span-1 aspect-square rounded-3xl frosted-strong border-2 border-dashed border-jejak-navy/20 p-4 flex flex-col items-start justify-between text-left no-tap hover:border-jejak-navy/40 transition-colors"
+                >
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-jejak-navy/8 text-2xl">
+                    {prod.emoji}
+                  </span>
+                  <div>
+                    <p className="text-sm font-extrabold text-jejak-navy">
+                      {prod.name}
+                    </p>
+                    <p className="mt-0.5 text-[11px] font-bold text-jejak-coral">
+                      Be the first to trace this →
+                    </p>
+                  </div>
+                </motion.button>
               ))}
             </div>
           )}
         </div>
+
+        {/* Sticky Primary CTA: "Trace yours" */}
+        <div className="fixed bottom-20 left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 px-5 pointer-events-none">
+          <motion.button
+            type="button"
+            whileTap={reduce ? undefined : TAP}
+            onClick={handleTraceYours}
+            className="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3.5 text-sm font-extrabold text-white shadow-xl border border-white/20 no-tap"
+          >
+            <Camera size={16} className="text-amber-300" />
+            <span>Trace yours</span>
+          </motion.button>
+        </div>
+
+        {/* Tile Detail Bottom Sheet */}
+        <AnimatePresence>
+          {selectedScan && (
+            <motion.div
+              className="fixed inset-0 z-[60] flex items-end justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div
+                className="absolute inset-0 bg-jejak-navy/45 backdrop-blur-sm"
+                onClick={() => setSelectedScan(null)}
+              />
+              <motion.div
+                className="relative w-full max-w-[420px] rounded-t-3xl frosted-strong p-5 pb-8 shadow-2xl"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 360, damping: 34 }}
+              >
+                {/* Compact header with photo/emoji + origin & material + original price */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className="relative h-14 w-14 shrink-0 overflow-hidden rounded-2xl flex items-center justify-center text-3xl shadow-sm"
+                      style={{
+                        background:
+                          PRODUCT_SURFACES[selectedScan.product_id] ||
+                          PRODUCT_SURFACES.hoodie,
+                      }}
+                    >
+                      {selectedScan.photo_url ? (
+                        <ContentImage
+                          src={selectedScan.photo_url}
+                          fittingType="fill"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <span>{selectedScan.emoji || "🧥"}</span>
+                      )}
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h2 className="text-base font-extrabold text-jejak-navy truncate">
+                          {selectedScan.product_name}
+                        </h2>
+                        {selectedScan.is_sample && (
+                          <span className="rounded-full bg-amber-300 px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-jejak-navy">
+                            Sample
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-0.5 text-xs font-bold text-jejak-navy/70 truncate">
+                        {FLAGS[selectedScan.origin] || "🌐"}{" "}
+                        {materialHeadline(selectedScan)}
+                      </p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className="text-sm font-extrabold text-jejak-navy tabular-nums">
+                          {formatMoney(
+                            selectedScan.price || 45,
+                            selectedScan.currency || "GBP"
+                          )}
+                        </span>
+                        <span className="rounded-full bg-jejak-labour/15 px-2 py-0.5 text-[10px] font-extrabold text-jejak-labour tabular-nums">
+                          Est. maker share {selectedScan.labour_pct}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedScan(null)}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-jejak-navy/10 text-jejak-navy no-tap"
+                  >
+                    <X size={15} />
+                  </button>
+                </div>
+
+                {/* Anchored record block (only shown if this trace has its own on-chain record) */}
+                {hasOwnAnchoredRecord(selectedScan) ? (
+                  <div className="mt-3.5 rounded-2xl bg-jejak-navy p-3 text-white">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold text-amber-300">
+                        <span className="h-2 w-2 rounded-full bg-jejak-materials" />
+                        Anchored record
+                        {selectedScan.stellar_ledger
+                          ? ` · Ledger #${selectedScan.stellar_ledger}`
+                          : ""}
+                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setShowQr((v) => !v)}
+                          className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-0.5 text-[10px] font-extrabold text-white no-tap"
+                        >
+                          <QrCode size={10} /> QR
+                        </button>
+                        <a
+                          href={`https://stellar.expert/explorer/testnet/tx/${selectedScan.stellar_tx_hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-full bg-amber-300 px-2.5 py-0.5 text-[10px] font-extrabold text-jejak-navy no-tap"
+                        >
+                          stellar.expert <ExternalLink size={10} />
+                        </a>
+                      </div>
+                    </div>
+                    <p className="mt-1.5 truncate font-mono text-[10px] text-white/75">
+                      SHA-256: {selectedScan.record_sha256}
+                    </p>
+                    <p className="truncate font-mono text-[10px] text-white/55">
+                      TX: {selectedScan.stellar_tx_hash}
+                    </p>
+
+                    {showQr && (
+                      <div className="mt-2.5 flex items-center gap-3 rounded-xl bg-white p-2 text-jejak-navy">
+                        <img
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
+                            `https://stellar.expert/explorer/testnet/tx/${selectedScan.stellar_tx_hash}`
+                          )}`}
+                          alt="Stellar.Expert QR"
+                          className="h-16 w-16 shrink-0 rounded-lg border border-jejak-navy/10"
+                        />
+                        <p className="text-[11px] font-bold leading-snug text-jejak-navy/80">
+                          Scan to verify this trace’s SHA-256 hash on Stellar Testnet.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="mt-3.5 rounded-2xl bg-jejak-navy/6 px-3 py-2 text-[11px] font-bold text-jejak-navy/60">
+                    Not anchored on-chain
+                  </div>
+                )}
+
+                <motion.button
+                  type="button"
+                  whileTap={reduce ? undefined : TAP}
+                  onClick={() => {
+                    const pid = selectedScan.product_id;
+                    setSelectedScan(null);
+                    handleTraceProduct(pid);
+                  }}
+                  className="mt-3.5 flex w-full items-center justify-center gap-2 rounded-2xl bg-sunrise py-3 text-xs font-extrabold text-white shadow-md no-tap"
+                >
+                  Trace this too
+                </motion.button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Single-sentence ⓘ Opt-in Explanation Sheet */}
+        <AnimatePresence>
+          {showInfoSheet && (
+            <motion.div
+              className="fixed inset-0 z-[60] flex items-end justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <div
+                className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm"
+                onClick={() => setShowInfoSheet(false)}
+              />
+              <motion.div
+                className="relative w-full max-w-[420px] rounded-t-3xl frosted-strong p-5 pb-8"
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                exit={{ y: "100%" }}
+                transition={{ type: "spring", stiffness: 360, damping: 34 }}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-jejak-navy">
+                    <Sparkles size={13} className="text-jejak-coral" /> Community privacy
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowInfoSheet(false)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full bg-jejak-navy/10 text-jejak-navy no-tap"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+                <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
+                  Every trace is private by default and only appears here when a user explicitly opts in; seeded demo cards are marked “Sample” and never counted as real activity.
+                </p>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </ScreenShell>
   );

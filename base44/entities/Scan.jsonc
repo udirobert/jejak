@@ -35,6 +35,9 @@
     "stellar_tx_hash": {
       "type": "string"
     },
+    "stellar_ledger": {
+      "type": "number"
+    },
     "stellar_memo": {
       "type": "string"
     },

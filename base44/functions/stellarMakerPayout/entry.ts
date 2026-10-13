@@ -7,6 +7,7 @@ import {
   Asset,
   Memo,
   Claimant,
+  StrKey,
 } from "npm:@stellar/stellar-sdk@12.3.0";
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
@@ -14,8 +15,6 @@ const FRIENDBOT_URL = "https://friendbot.stellar.org";
 const EMPTY_STRING_SHA256 =
   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
 
-// Real verified Stellar Testnet transaction from this app (non-empty canonical provenance SHA-256),
-// used as a zero-fail fallback if Horizon or Friendbot is slow or unreachable.
 const CACHED_FALLBACK_TX = {
   hash: "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643",
   ledger: 5180822,
@@ -27,10 +26,27 @@ const CACHED_FALLBACK_TX = {
   destination: "GCHJR2K3HXX55NYA7ZYWZH6NZ3TOBTIQFUVZWPUZESAQJ2QFGX5PKVDC",
 };
 
-// Public Testnet addresses for Demo Cause Wallets (all labelled "Demo cause (testnet)"; no real charity names)
+// Deterministic Ed25519 keypair helper for Testnet demo accounts so every address is a valid StrKey
+async function deriveDeterministicKeypair(seedPhrase: string): Promise<Keypair> {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(seedPhrase)
+  );
+  return Keypair.fromRawEd25519Seed(new Uint8Array(digest));
+}
+
+// Valid, funded Stellar Testnet addresses for Demo Cause Wallets (all labelled "Demo wallet (testnet)")
 const DEMO_CAUSE_WALLETS: Record<
   string,
-  { id: string; publicKey: string; causeName: string; label: string; description: string; defaultProduct: string }
+  {
+    id: string;
+    publicKey: string;
+    seedTag?: string;
+    causeName: string;
+    label: string;
+    description: string;
+    defaultProduct: string;
+  }
 > = {
   Bangladesh: {
     id: "cause_south_asia_apparel",
@@ -42,7 +58,8 @@ const DEMO_CAUSE_WALLETS: Record<
   },
   Vietnam: {
     id: "cause_se_asia_footwear",
-    publicKey: "GB6NVEN5HSUBKMYCE5ZOWSK5K23TBWRUQLZY3KNMXUZ3AQ2U4MY42G4A",
+    publicKey: "GBOCIZ3W5QDXYWPKWV2QXBEDMGYZZ5LJYMR3KWVSGTMUTOALKVA6QRKI",
+    seedTag: "jejak-demo-wallet-vietnam-v1",
     causeName: "Demo cause · SE Asia Footwear Corridor (testnet)",
     label: "Demo wallet (testnet)",
     description: "Demo testnet donation. No real-world disbursement.",
@@ -58,7 +75,8 @@ const DEMO_CAUSE_WALLETS: Record<
   },
   China: {
     id: "cause_east_asia_electronics",
-    publicKey: "GDJWYEZ4SG7GI42ER6OYWHS5EORLEFDAMYFD5XVI4AXV3CALOPMOAOFT",
+    publicKey: "GBCBNUCPJ4QFBFUA3FBK6GI3QC3M3AHVDERL7R5YEHZISFUZIJ2TRSMC",
+    seedTag: "jejak-demo-wallet-china-v1",
     causeName: "Demo cause · East Asia Accessories Corridor (testnet)",
     label: "Demo wallet (testnet)",
     description: "Demo testnet donation. No real-world disbursement.",
@@ -66,13 +84,19 @@ const DEMO_CAUSE_WALLETS: Record<
   },
 };
 
-let ephemeralSigner: Keypair | null = null;
-
-function getTestnetSigner(): Keypair {
-  if (!ephemeralSigner) {
-    ephemeralSigner = Keypair.random();
+async function resolveCauseWallet(origin: string) {
+  const cfg = DEMO_CAUSE_WALLETS[origin] || DEMO_CAUSE_WALLETS.Bangladesh;
+  if (StrKey.isValidEd25519PublicKey(cfg.publicKey)) {
+    return cfg;
   }
-  return ephemeralSigner;
+  const kp = await deriveDeterministicKeypair(cfg.seedTag || `jejak-wallet-${origin}`);
+  return { ...cfg, publicKey: kp.publicKey() };
+}
+
+async function getFundedTestnetSigner(server: Horizon.Server): Promise<Keypair> {
+  const signer = await deriveDeterministicKeypair("jejak-testnet-primary-signer-v2");
+  await ensureFunded(server, signer.publicKey());
+  return signer;
 }
 
 async function ensureFunded(server: Horizon.Server, publicKey: string) {
@@ -120,8 +144,8 @@ export default async function (req: Request) {
     // Action 1 (PRIMARY STELLAR FEATURE): Anchor a Provenance Record SHA-256 hash on Stellar Testnet via MEMO_HASH
     if (action === "anchor_provenance") {
       const productId = String(body.productId || "hoodie").slice(0, 16);
-      const origin = DEMO_CAUSE_WALLETS[body.origin] ? body.origin : "Bangladesh";
-      const cause = DEMO_CAUSE_WALLETS[origin];
+      const origin = String(body.origin || "Bangladesh");
+      const cause = await resolveCauseWallet(origin);
 
       // Always build a non-empty canonical JSON string so we never hash an empty string
       const canonicalStr =
@@ -139,8 +163,6 @@ export default async function (req: Request) {
                   }
             );
 
-      // Compute the SHA-256 digest directly from canonicalStr whenever canonicalJson/record is provided,
-      // and explicitly reject the empty-string SHA-256 (e3b0c44298fc...).
       const computedHashHex = await sha256HexFromString(canonicalStr);
       const suppliedHashHex = String(body.recordHashHex || "").toLowerCase().trim();
       const recordHashHex =
@@ -151,11 +173,9 @@ export default async function (req: Request) {
           : computedHashHex;
 
       try {
-        const signer = getTestnetSigner();
-        const [senderAccount] = await Promise.all([
-          ensureFunded(server, signer.publicKey()),
-          ensureFunded(server, cause.publicKey),
-        ]);
+        const signer = await getFundedTestnetSigner(server);
+        await ensureFunded(server, cause.publicKey);
+        const senderAccount = await server.loadAccount(signer.publicKey());
 
         const tx = new TransactionBuilder(senderAccount, {
           fee: "100",
@@ -171,11 +191,11 @@ export default async function (req: Request) {
           .addOperation(
             Operation.manageData({
               name: `jejak_prov_${productId.slice(0, 8)}`,
-              value: `${origin}:${recordHashHex.slice(0, 16)}`,
+              value: `${origin.slice(0, 12)}:${recordHashHex.slice(0, 16)}`,
             })
           )
           .addMemo(Memo.hash(recordHashHex))
-          .setTimeout(20)
+          .setTimeout(25)
           .build();
 
         tx.sign(signer);
@@ -194,12 +214,13 @@ export default async function (req: Request) {
           destination: cause.publicKey,
           explorerUrl: `https://stellar.expert/explorer/testnet/tx/${result.hash}`,
         });
-      } catch {
+      } catch (err) {
         return Response.json({
           ok: true,
           cachedFallback: true,
           fallbackNotice:
             "Testnet is slow right now — here's a recent verified testnet transaction.",
+          errorDetail: String(err),
           network: "Stellar Testnet",
           hash: CACHED_FALLBACK_TX.hash,
           ledger: CACHED_FALLBACK_TX.ledger,
@@ -275,12 +296,12 @@ export default async function (req: Request) {
       }
     }
 
-    // Action 3: Anchor an Estimate Record memo for Explore social proof
+    // Action 3: Anchor an Estimate Record memo
     if (action === "anchor_estimate") {
       const productId = String(body.productId || "hoodie")
         .slice(0, 8)
         .toUpperCase();
-      const origin = DEMO_CAUSE_WALLETS[body.origin] ? body.origin : "Bangladesh";
+      const origin = String(body.origin || "Bangladesh");
       const labourPct = Number(body.labourPct) || 8;
       const memoStr = `EST:${productId}:${origin.slice(0, 6).toUpperCase()}:${labourPct}%`.slice(
         0,
@@ -288,8 +309,8 @@ export default async function (req: Request) {
       );
 
       try {
-        const signer = getTestnetSigner();
-        const senderAccount = await ensureFunded(server, signer.publicKey());
+        const signer = await getFundedTestnetSigner(server);
+        const senderAccount = await server.loadAccount(signer.publicKey());
 
         const tx = new TransactionBuilder(senderAccount, {
           fee: "100",
@@ -335,7 +356,7 @@ export default async function (req: Request) {
       const origins = Object.keys(DEMO_CAUSE_WALLETS);
       const vaults = await Promise.all(
         origins.map(async (origin) => {
-          const cfg = DEMO_CAUSE_WALLETS[origin];
+          const cfg = await resolveCauseWallet(origin);
           const pub = cfg.publicKey;
           try {
             const acct = await ensureFunded(server, pub);
@@ -353,7 +374,6 @@ export default async function (req: Request) {
               .map((t) => {
                 const decodedHash =
                   t.memo_type === "hash" && t.memo ? base64ToHex(t.memo).toLowerCase() : "";
-                // Filter out any historical test transaction that hashed an empty string
                 if (decodedHash === EMPTY_STRING_SHA256) return null;
 
                 let productLabel = cfg.defaultProduct;
@@ -408,20 +428,7 @@ export default async function (req: Request) {
               label: cfg.label,
               description: cfg.description,
               xlmBalance: 10000,
-              recentTxs: [
-                {
-                  hash: CACHED_FALLBACK_TX.hash,
-                  ledger: CACHED_FALLBACK_TX.ledger,
-                  memoType: "hash",
-                  rawMemo: CACHED_FALLBACK_TX.recordHashHex,
-                  memo: `SHA256:${CACHED_FALLBACK_TX.recordHashHex.slice(0, 12)}…`,
-                  productLabel: cfg.defaultProduct,
-                  actionLabel: "Provenance anchored",
-                  origin,
-                  createdAt: new Date().toISOString(),
-                  explorerUrl: `https://stellar.expert/explorer/testnet/tx/${CACHED_FALLBACK_TX.hash}`,
-                },
-              ],
+              recentTxs: [],
               accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${pub}`,
             };
           }
@@ -439,9 +446,10 @@ export default async function (req: Request) {
     // Action 5 (SECONDARY STELLAR FEATURE): Give to a Cause (Testnet payment to selected demo cause wallet)
     const productId = String(body.productId || "hoodie").slice(0, 12);
     const origin = DEMO_CAUSE_WALLETS[body.origin] ? body.origin : "Bangladesh";
-    const defaultCause = DEMO_CAUSE_WALLETS[origin];
+    const defaultCause = await resolveCauseWallet(origin);
     const targetWallet =
-      typeof body.walletAddress === "string" && /^G[A-Z2-7]{55}$/.test(body.walletAddress)
+      typeof body.walletAddress === "string" &&
+      StrKey.isValidEd25519PublicKey(body.walletAddress)
         ? body.walletAddress
         : defaultCause.publicKey;
     const causeName =
@@ -464,11 +472,9 @@ export default async function (req: Request) {
     );
 
     try {
-      const signer = getTestnetSigner();
-      const [senderAccount] = await Promise.all([
-        ensureFunded(server, signer.publicKey()),
-        ensureFunded(server, targetWallet),
-      ]);
+      const signer = await getFundedTestnetSigner(server);
+      await ensureFunded(server, targetWallet);
+      const senderAccount = await server.loadAccount(signer.publicKey());
 
       const txBuilder = new TransactionBuilder(senderAccount, {
         fee: "100",

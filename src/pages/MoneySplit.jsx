@@ -12,6 +12,7 @@ import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
 import MakerBridgeCard from "@/components/MakerBridgeCard";
 import CoachmarkPill from "@/components/CoachmarkPill";
+import { buildCanonicalProvenanceRecord } from "@/components/ProvenanceAnchorCard";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
@@ -90,49 +91,74 @@ export default function MoneySplit() {
         const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: photoFile });
         photo_url = file_url;
       }
-      // Use existing anchored provenance record if already anchored on Journey, else anchor estimate memo
+      // Each real trace is anchored with its own SHA-256 hash of its own canonical provenance record.
+      // Never fall back to a shared hash if this trace was not individually anchored.
       let stellar_tx_hash =
-        provenanceRecord?.txHash ||
-        "89cc05d9e7d0c0bfc766c205b00da5780fb4e70d93c45215202bb3b3346d6643";
-      let stellar_memo = `EST:${product.id.toUpperCase().slice(0, 8)}:${originCountry.slice(0, 6).toUpperCase()}:${labour.pct.mid}%`;
-      if (!provenanceRecord?.txHash) {
+        provenanceRecord && !provenanceRecord.cachedFallback
+          ? provenanceRecord.txHash || ""
+          : "";
+      let record_sha256 =
+        provenanceRecord && !provenanceRecord.cachedFallback
+          ? provenanceRecord.recordHashHex || ""
+          : "";
+      let stellar_ledger =
+        provenanceRecord && !provenanceRecord.cachedFallback
+          ? Number(provenanceRecord.ledger) || 0
+          : 0;
+      const effectiveOrigin = labelEvidence?.country_of_manufacture || originCountry;
+
+      if (!stellar_tx_hash || !record_sha256) {
         try {
-          const anchorRes = await base44.functions.invoke("stellarMakerPayout", {
-            action: "anchor_estimate",
-            productId: product.id,
-            origin: originCountry,
-            labourPct: labour.pct.mid,
+          const record = buildCanonicalProvenanceRecord({
+            product,
+            market,
+            labelEvidence,
+            timestampISO: new Date().toISOString(),
           });
-          if (anchorRes?.data?.hash) {
+          const canonicalJson = JSON.stringify(record);
+          const anchorRes = await base44.functions.invoke("stellarMakerPayout", {
+            action: "anchor_provenance",
+            productId: product.id,
+            origin: effectiveOrigin,
+            canonicalJson,
+          });
+          if (anchorRes?.data?.ok && !anchorRes.data.cachedFallback && anchorRes.data.hash) {
             stellar_tx_hash = anchorRes.data.hash;
-            stellar_memo = anchorRes.data.memo || stellar_memo;
+            record_sha256 = anchorRes.data.recordHashHex || "";
+            stellar_ledger = Number(anchorRes.data.ledger) || 0;
           }
         } catch {}
       }
 
+      const stellar_memo = record_sha256
+        ? `SHA256:${record_sha256.slice(0, 12)}`
+        : "";
       await base44.entities.Scan.create({
         product_id: product.id,
         product_name: product.name,
         emoji: product.emoji,
-        origin: labelEvidence?.country_of_manufacture || originCountry,
+        origin: effectiveOrigin,
         labour_pct: labour.pct.mid,
-        price: product.markets[market].price,
+        price,
         currency,
         market,
         photo_url,
         confidence: labour.confidence,
         stellar_tx_hash,
+        stellar_ledger,
         stellar_memo,
-        record_sha256: provenanceRecord?.recordHashHex || "",
+        record_sha256,
         label_country: labelEvidence?.country_of_manufacture || "",
         label_materials: labelEvidence?.fibre_composition || "",
         is_sample: false,
       });
-      setAnchoredEstimate({
-        hash: stellar_tx_hash,
-        memo: stellar_memo,
-        explorerUrl: `https://stellar.expert/explorer/testnet/tx/${stellar_tx_hash}`,
-      });
+      if (stellar_tx_hash) {
+        setAnchoredEstimate({
+          hash: stellar_tx_hash,
+          memo: stellar_memo,
+          explorerUrl: `https://stellar.expert/explorer/testnet/tx/${stellar_tx_hash}`,
+        });
+      }
     } catch {} finally {
       setAnchoring(false);
     }

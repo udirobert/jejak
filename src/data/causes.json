@@ -14,7 +14,7 @@
     "label": "Demo cause (testnet)",
     "description": "Demo cause entry for the Southeast Asia footwear & assembly corridor. Sends a Stellar Testnet payment to a demo cause wallet.",
     "region": "Vietnam",
-    "walletAddress": "GB6NVEN5HSUBKMYCE5ZOWSK5K23TBWRUQLZY3KNMXUZ3AQ2U4MY42G4A",
+    "walletAddress": "GBOCIZ3W5QDXYWPKWV2QXBEDMGYZZ5LJYMR3KWVSGTMUTOALKVA6QRKI",
     "externalDonationUrl": ""
   },
   {
@@ -32,7 +32,7 @@
     "label": "Demo cause (testnet)",
     "description": "Demo cause entry for the East Asia components & accessories corridor. Sends a Stellar Testnet payment to a demo cause wallet.",
     "region": "China",
-    "walletAddress": "GDJWYEZ4SG7GI42ER6OYWHS5EORLEFDAMYFD5XVI4AXV3CALOPMOAOFT",
+    "walletAddress": "GBCBNUCPJ4QFBFUA3FBK6GI3QC3M3AHVDERL7R5YEHZISFUZIJ2TRSMC",
     "externalDonationUrl": ""
   }
 ]
