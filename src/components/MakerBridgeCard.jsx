@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { formatMoney } from "@/lib/money";
@@ -7,7 +7,7 @@ import StellarSettlementBadge from "./StellarSettlementBadge";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
-import { HeartHandshake, Check, RotateCcw, Zap } from "lucide-react";
+import { HeartHandshake, Check, RotateCcw, Zap, Lock } from "lucide-react";
 
 // Concise, visual-first "Flow & Boost" card:
 // 1. Animated SVG SupplyFlowPipe showing where money gets stuck vs reaches makers
@@ -29,6 +29,7 @@ export default function MakerBridgeCard({
     stellarError,
     settleStellarPayout,
   } = useApp();
+  const [settlementMode, setSettlementMode] = useState("direct"); // "direct" | "escrow"
   const gapAmount = Math.max(1, +(transparentLabourAmount - labourAmount).toFixed(2));
   const unitStep = 1;
 
@@ -39,7 +40,7 @@ export default function MakerBridgeCard({
     setMakerTip(nextTip);
     addToWorkerFund(amt);
     celebrate();
-    settleStellarPayout({ amount: amt });
+    settleStellarPayout({ amount: amt, mode: settlementMode });
   };
 
   const resetTip = () => {
@@ -88,6 +89,38 @@ export default function MakerBridgeCard({
               <RotateCcw size={10} /> Reset
             </button>
           )}
+        </div>
+
+        {/* Stellar Primitive Switcher: Direct SEP-24 Anchor vs Claimable Co-op Escrow */}
+        <div className="mt-2 flex items-center gap-1 rounded-xl bg-white/60 p-1 border border-jejak-navy/10">
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(5);
+              setSettlementMode("direct");
+            }}
+            className={`flex-1 flex items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-extrabold transition-colors no-tap ${
+              settlementMode === "direct"
+                ? "bg-jejak-navy text-white shadow-sm"
+                : "text-jejak-navy/65 hover:text-jejak-navy"
+            }`}
+          >
+            <Zap size={10} /> Instant SEP-24 Anchor
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              vibrate(5);
+              setSettlementMode("escrow");
+            }}
+            className={`flex-1 flex items-center justify-center gap-1 rounded-lg py-1 text-[10px] font-extrabold transition-colors no-tap ${
+              settlementMode === "escrow"
+                ? "bg-jejak-navy text-amber-300 shadow-sm"
+                : "text-jejak-navy/65 hover:text-jejak-navy"
+            }`}
+          >
+            <Lock size={10} /> Claimable Co-op Escrow
+          </button>
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-2">

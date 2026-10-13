@@ -55,7 +55,7 @@ export function AppProvider({ children }) {
   const [stellarError, setStellarError] = useState(null);
 
   const settleStellarPayout = useCallback(
-    async ({ amount, productObj, currencyOverride }) => {
+    async ({ amount, productObj, currencyOverride, mode = "direct" }) => {
       const targetProd = productObj || product;
       const cur = currencyOverride || currency;
       const mkt = marketForCurrency(cur);
@@ -66,10 +66,12 @@ export function AppProvider({ children }) {
       setStellarError(null);
       try {
         const res = await base44.functions.invoke("stellarMakerPayout", {
+          action: "settle",
           productId: targetProd?.id || "hoodie",
           origin,
           amount,
           currency: cur,
+          mode,
         });
         if (res?.data?.ok) {
           setLastStellarTx(res.data);

@@ -8,6 +8,7 @@ import ScreenShell from "@/components/ScreenShell";
 import Globe from "@/components/Globe";
 import Logo from "@/components/Logo";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
+import StellarHorizonVaults from "@/components/StellarHorizonVaults";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
 import { Crosshair, Users, Globe2, HandCoins, Route } from "lucide-react";
@@ -151,6 +152,9 @@ export default function Impact() {
             </div>
           ))}
         </motion.div>
+
+        {/* Live Stellar Horizon Co-op Vaults & Ledger Proofs */}
+        <StellarHorizonVaults />
 
         {/* Community counter */}
         <motion.div
