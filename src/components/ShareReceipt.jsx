@@ -1,11 +1,9 @@
 import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { computeSplit, formatMoney, getRoute } from "@/lib/money";
 import { vibrate } from "@/lib/haptics";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
-import Logo from "./Logo";
 import { Share2, FileDown, Loader2, Users } from "lucide-react";
 
 // Builds a solid, shareable receipt image (no frosted glass — html2canvas
@@ -24,7 +22,6 @@ export default function ShareReceipt() {
   const labour = split.find((s) => s.key === "labour");
   const stdSplit = computeSplit(product, market, "transparent", price);
   const stdLabour = stdSplit.find((s) => s.key === "labour").amount;
-  const curSymbol = currency === "SGD" ? "S$" : "£";
   const impact = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
   const stdImpact = `A transparent brand would send about ${formatMoney(stdLabour, currency)} their way.`;
   const challenge = `I traced a ${product.name} — only ${labour.pct.mid}% reached the makers. Can you find a fairer one? Trace yours: ${APP_URL}`;
@@ -107,7 +104,7 @@ export default function ShareReceipt() {
         a.click();
         URL.revokeObjectURL(url);
       }
-    } catch (e) {
+    } catch {
       // user cancelled or unsupported — silent
     } finally {
       setBusy(false);
@@ -124,7 +121,7 @@ export default function ShareReceipt() {
       const pdf = new jsPDF({ orientation: "portrait", unit: "pt", format: [canvas.width / 2, canvas.height / 2] });
       pdf.addImage(img, "PNG", 0, 0, canvas.width / 2, canvas.height / 2);
       pdf.save("jejak-receipt.pdf");
-    } catch (e) {
+    } catch {
       // silent
     } finally {
       setBusy(false);
@@ -141,7 +138,7 @@ export default function ShareReceipt() {
         setCopied(true);
         setTimeout(() => setCopied(false), 1800);
       }
-    } catch (e) {
+    } catch {
       // silent
     }
   };

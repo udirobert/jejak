@@ -1,4 +1,4 @@
-import { CATEGORIES } from "./tokens";
+import { CATEGORIES } from "./tokens.js";
 
 // Returns the full route (base stops + market-specific final stop) for a product.
 export function getRoute(product, market) {
@@ -42,13 +42,13 @@ const currencySymbol = { GBP: "£", SGD: "S$" };
 
 export function formatMoney(amount, currency, opts = {}) {
   const locale = currencyLocale[currency] || "en-GB";
+  const symbol = currencySymbol[currency] || `${currency} `;
   const nf = new Intl.NumberFormat(locale, {
-    style: "currency",
-    currency,
-    minimumFractionDigits: opts.minDigits ?? (currency === "SGD" ? 2 : 2),
+    minimumFractionDigits: opts.minDigits ?? 2,
     maximumFractionDigits: opts.maxDigits ?? 2,
   });
-  return nf.format(amount);
+  const sign = amount < 0 ? "-" : "";
+  return `${sign}${symbol}${nf.format(Math.abs(amount))}`;
 }
 
 // Compact money for small amounts (e.g. 7.5p per £1). Keeps one decimal

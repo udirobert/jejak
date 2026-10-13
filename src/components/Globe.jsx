@@ -160,7 +160,7 @@ export default function Globe({
         name: f.properties.name,
         highlight: routeSet.has(f.properties.name),
       })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [gen]
   );
 

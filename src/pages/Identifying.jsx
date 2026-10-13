@@ -112,7 +112,7 @@ export default function Identifying() {
     }
     const t = setTimeout(() => { vibrate(12); setPhase("launching"); }, reduce ? 350 : 950);
     return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, [phase]);
 
   // Launch: card zooms into the globe — one continuous motion into the journey.
@@ -121,7 +121,7 @@ export default function Identifying() {
     launchedRef.current = true;
     const t = setTimeout(() => setScreen("journey"), reduce ? 200 : 680);
     return () => clearTimeout(t);
-  }, [phase]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   const onPickerPick = (id) => {
     setProduct(getProduct(id));

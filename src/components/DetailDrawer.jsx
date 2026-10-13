@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
-import { computeSplit, formatMoney, getRoute, labourPerUnit } from "@/lib/money";
+import { computeSplit, formatMoney } from "@/lib/money";
 import { CATEGORY_MAP } from "@/lib/tokens";
 import ConfidenceBadge from "./ConfidenceBadge";
 

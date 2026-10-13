@@ -1,7 +1,7 @@
-import { hoodie } from "./hoodie";
-import { trainers } from "./trainers";
-import { coffee } from "./coffee";
-import { phoneCase } from "./phoneCase";
+import { hoodie } from "./hoodie.js";
+import { trainers } from "./trainers.js";
+import { coffee } from "./coffee.js";
+import { phoneCase } from "./phoneCase.js";
 
 export const PRODUCTS = [hoodie, trainers, coffee, phoneCase];
 

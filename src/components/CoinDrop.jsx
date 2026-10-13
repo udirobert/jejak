@@ -1,11 +1,10 @@
 import React, { useMemo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { CATEGORIES } from "@/lib/tokens";
 
 // The price as 100 coins (one per 1%) dropping into five frosted-glass columns.
 // Each column fills to its category share; coins rain in with spring easing.
 // `split` = output of computeSplit() — array of {key,label,color,pct,amount}.
-export default function CoinDrop({ split, animate = true }) {
+export default function CoinDrop({ split }) {
   const reduce = useReducedMotion();
   const COL_H = 230;
   const COIN_R = 7;

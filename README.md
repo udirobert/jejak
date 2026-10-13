@@ -5,7 +5,7 @@
 
 Jejak is an open-source, photo-first **supply-chain provenance and cost-split receipt** built on **Stellar Testnet** for the **Stellar "Find Your Way" Hackathon (General Track)**.
 
-Photograph an item (or pick a sample product), scan its **care / Made-in label** to attach high-confidence provenance facts, inspect its multi-stage route across a 3D globe, and **anchor a tamper-evident SHA-256 provenance record (`MEMO_HASH`) on Stellar Testnet**—verifiable in one click against Stellar Horizon. Then step into Layer 2 ("Follow the money") to see the estimated 5-way cost split and optionally send a Testnet payment to a demo co-op wallet.
+Photograph an item (or pick a sample product), scan its **care / Made-in label** to attach high-confidence provenance facts, inspect its multi-stage route across a 3D globe, and **anchor a tamper-evident SHA-256 provenance record (`MEMO_HASH`) on Stellar Testnet**—verifiable in one click against Stellar Horizon. Then step into Layer 2 ("Follow the money") to see the estimated 5-way cost split and optionally send a Testnet payment to a demo cause wallet.
 
 ---
 
@@ -24,7 +24,7 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
    - The canonical JSON is hashed with **SHA-256** (32 bytes) in the browser and submitted to Stellar Testnet (`base44/functions/stellarMakerPayout/entry.ts`, `action: "anchor_provenance"`) using:
      - `Memo.hash(recordHashHex)` (`MEMO_HASH`) — stores the exact 32-byte SHA-256 digest in the transaction header.
      - `Operation.manageData({ name: "jejak_prov_<product>", value: "<origin>:<hashPrefix>" })` — indexes the provenance entry on the account ledger.
-     - `Operation.payment` (`0.0000100 XLM`) to the corridor's Demo Co-op Wallet (Testnet) so the transaction appears in the corridor's Horizon feed.
+     - `Operation.payment` (`0.0000100 XLM`) to the corridor's Demo Cause Wallet (Testnet) so the transaction appears in the corridor's Horizon feed.
    - Users can download the off-chain JSON (`jejak-provenance-<product>.json`) and scan a QR code linking directly to `stellar.expert/explorer/testnet/tx/{hash}`.
 
 2. **Cryptographic Verification Step (`action: "verify_provenance"`):**
@@ -32,11 +32,17 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
    - Includes a **Test altered JSON** toggle that modifies one field in the off-chain JSON and re-runs verification against Horizon to prove that any post-anchor tampering triggers a **HASH MISMATCH**.
 
 3. **Secondary Maker Bridge (`Operation.payment` & `Operation.createClaimableBalance`):**
-   - In Layer 2 ("Follow the money"), users can send an optional Testnet XLM payment or create an unconditional `ClaimableBalance` (`Operation.createClaimableBalance`) to a **Demo co-op wallet (testnet)** with a structured `MEMO_TEXT` (`JEJAK:<PRODUCT>:<ORIGIN>:<AMOUNT>`).
+   - In Layer 2 ("Follow the money"), users can send an optional Testnet XLM payment or create an unconditional `ClaimableBalance` (`Operation.createClaimableBalance`) to a **Demo cause wallet (testnet)** with a structured `MEMO_TEXT` (`CAUSE:<PRODUCT>:<REGION>`).
    - Small cross-border payments are costly on card and bank rails; Stellar network fees are a fraction of a cent (`0.00001 XLM` base fee).
 
 4. **Zero-Fail Testnet Resilience:**
    - Every Stellar Testnet and Horizon call has an automatic fallback to a cached, real verified Testnet transaction (`976dc854593180c819797b3606963c4ecbccd83ae8cbec0b9ca47db5c1407ff3` / `d1a60c45d14ad388bcfc4f6194e8bec19fd01035a903e6e81e7181f0ee3caa43`) with a clear notice (*"Testnet is slow right now — here's a recent verified testnet transaction"*), ensuring the app never hard-fails during a live judge run.
+
+5. **Passkey Smart Wallet — "Jejak Passport" (Soroban Smart Accounts):**
+   - The Embedded bank view (`/embedded`) offers a **Jejak Passport**: a WebAuthn passkey-backed smart wallet built on the OpenZeppelin `smart-account-kit` architecture (Protocol 27) on Soroban Testnet — no seed phrase or browser extension required (`src/lib/wallet.js`, `src/lib/stellarConfig.js`).
+   - Supports adding a **recovery signer** (threshold policy) and setting an on-chain **spending-limit policy** as context rules on the account contract.
+   - A dedicated **fee-sponsoring relayer** (`base44/functions/stellarFeeRelayer/entry.ts`) pays the fee (max 200 stroops, zero XLM transferred) for an allow-listed set of smart-account operations (`deploy_smart_account`, `add_recovery_signer`, `set_spending_policy`, `sign_session_challenge`) from an isolated deterministic Testnet account, with a per-IP sliding-window rate limit — so users never need to acquire XLM to use the wallet.
+   - Users can alternatively **connect an external wallet (Freighter)** for read-only address binding.
 
 ---
 
@@ -51,14 +57,16 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
   - Community sharing defaults to **Private (`shareMode = "private"`)**. Switching to **Public feed** requires an explicit confirmation before a product photo is uploaded to a public URL (label photos are never uploaded publicly).
 - **Live Stellar Testnet & Horizon Integration (`base44/functions/stellarMakerPayout/entry.ts`):**
   - Real `MEMO_HASH` provenance anchoring, live Horizon transaction lookup and SHA-256 verification, live `payment` and `createClaimableBalance` operations on Stellar Testnet, and live Horizon account telemetry on the Impact screen.
+- **Jejak Passport Smart Wallet (`src/lib/wallet.js`, `base44/functions/stellarFeeRelayer/entry.ts`):**
+  - Real Soroban Testnet smart-account operations (deploy, sign, recovery signer, spending-limit policy) relayed through a fee sponsor. Embedded preview iframes fall back to a clearly simulated passkey session.
 - **Live Explore Feed & "Others Traced This":**
   - Backed by the `Scan` entity with realtime subscriptions. Seeded records carry `is_sample: true` and are badged **Sample** in the UI; single-person real counts (`count === 1`) are hidden so an individual cannot be singled out.
 
 ### Mocked / Illustrative (Clearly labelled in the UI)
 - **Supply-Chain Route & Cost-Split Percentages:**
   - Upstream stages, country routes, and 5-category cost-split ranges (`low` / `mid` / `high`) are curated category-level estimates, not data from specific named factories or suppliers. Every stage and figure is labelled **Estimated** (unless a care label was scanned for the final-manufacture stage, which is labelled **Read from label**).
-- **Demo Co-op Wallets & Future Off-Ramps:**
-  - Destination wallets (`Bangladesh`, `Vietnam`, `Ethiopia`, `China`) are **Demo co-op wallets (testnet)**, not real partner cooperatives, and funds do not reach individual workers. Local-currency anchor off-ramps (SEP-24) are described strictly as a **future integration**.
+- **Demo Cause Wallets & Future Off-Ramps:**
+  - Destination wallets (`Bangladesh`, `Vietnam`, `Ethiopia`, `China`) are **Demo cause wallets (testnet)**, not real partner cooperatives, and funds do not reach individual workers. Local-currency anchor off-ramps (SEP-24) are described strictly as a **future integration**.
 - **Embedded Bank Screen (`/embedded`):**
   - An illustrative concept preview showing how provenance and cost splits could appear inside a consumer bank feed.
 
@@ -68,17 +76,23 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
 
 ```bash
 npm install
-cp .env.example .env
+base44 dev                   # Recommended: runs the Base44 backend + frontend together
+# or, frontend only against a hosted Base44 app:
+cp .env.example .env         # fill in VITE_BASE44_APP_ID / VITE_BASE44_APP_BASE_URL
 npm run dev                  # Start Vite dev server
+
 npm run build                # Production build check
+npm run lint                 # ESLint
 node scripts/validate-data.mjs   # Asserts every product split sums to 100%
 ```
 
 ### Environment Variables (`.env.example`)
-No secrets are committed to this repository. See `.env.example`:
-- `STELLAR_TESTNET_SIGNER_SECRET` *(optional)* — Stellar Testnet secret key (`S...`, funded via Friendbot). If unset, the backend generates an ephemeral Testnet keypair in memory and funds it via `https://friendbot.stellar.org`.
-- `STELLAR_HORIZON_URL` — defaults to `https://horizon-testnet.stellar.org`.
-- `STELLAR_DEMO_COOP_PUBLIC_KEY_BD` / `VN` / `ET` / `CN` — public Testnet addresses (`G...`) for the four demo co-op wallets.
+No secrets are required or committed to this repository — everything on-chain is **Stellar Testnet only**.
+
+- `VITE_BASE44_APP_ID`, `VITE_BASE44_APP_BASE_URL` — identify your Base44 app to the frontend SDK client (`src/api/base44Client.js`). Supplied automatically by `base44 dev` / `base44 link`.
+- `VITE_BASE44_FUNCTIONS_VERSION` *(optional)* — pin a deployed functions version.
+
+The backend functions in `base44/functions/` take no env vars: the Stellar signer is a deterministic ephemeral Testnet keypair funded via Friendbot (`https://friendbot.stellar.org`), the fee relayer uses its own isolated deterministic Testnet account, and the demo cause wallets are public Testnet addresses committed in source.
 
 ---
 
@@ -153,9 +167,9 @@ Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high
   - Tap **Preview JSON** to show the canonical `jejak.provenance.v1` JSON (stages, label facts, estimate ranges, basis, timestamp — no photos or personal data).
   - Tap **Anchor this trace on Stellar**. Show the SHA-256 digest written as a `MEMO_HASH` transaction on Stellar Testnet, complete with ledger number, QR code, and `stellar.expert` link.
   - Tap **Verify hash on Horizon** — show the live **HASH MATCH** against Horizon Testnet. Then tap **Test altered JSON** to demonstrate how altering a single field in the off-chain JSON produces an immediate **HASH MISMATCH**.
-- **2:05 – 2:40 · Layer 2: Follow the Money & Demo Co-op Wallet (Money Split Screen):**
+- **2:05 – 2:40 · Layer 2: Follow the Money & Demo Cause Wallet (Money Split Screen):**
   - Tap **Follow the money** to drop the 100 coins across Materials, Labour, Freight, Brand, and Retail.
-  - Switch to **Flow & Boost** and send a Testnet payment (or Claimable Balance) to the **Demo co-op wallet (testnet)**, noting that Stellar fees are a fraction of a cent (`0.00001 XLM`).
+  - Switch to **Flow & Boost** and send a Testnet payment (or Claimable Balance) to the **Demo cause wallet (testnet)**, noting that Stellar fees are a fraction of a cent (`0.00001 XLM`).
 - **2:40 – 3:00 · Explore & Honest Methodology:**
   - Open **Explore** to show community traces with clickable `stellar.expert` links and **Sample** badges on seeded items, then open the **?** drawer to highlight the **What's real vs. mocked** transparency box.
 
