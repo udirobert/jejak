@@ -6,6 +6,7 @@ import { DEMO_CHIPS, getProduct } from "@/data";
 import ScreenShell from "@/components/ScreenShell";
 import ShutterButton from "@/components/ShutterButton";
 import ProductPicker from "@/components/ProductPicker";
+import StreakPill from "@/components/StreakPill";
 import { vibrate } from "@/lib/haptics";
 import { Camera, Image as ImageIcon, Sparkles } from "lucide-react";
 
@@ -74,6 +75,7 @@ export default function Home() {
       />
 
       <div className="flex flex-1 flex-col px-6 pb-28">
+        <div className="mt-2"><StreakPill /></div>
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}

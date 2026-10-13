@@ -6,7 +6,7 @@ import { vibrate } from "@/lib/haptics";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import Logo from "./Logo";
-import { Share2, FileDown, Loader2 } from "lucide-react";
+import { Share2, FileDown, Loader2, Users } from "lucide-react";
 
 // Builds a solid, shareable receipt image (no frosted glass — html2canvas
 // can't capture backdrop-filter), then shares it via the Web Share API or
@@ -14,6 +14,8 @@ import { Share2, FileDown, Loader2 } from "lucide-react";
 export default function ShareReceipt() {
   const { product, market, currency, compareMode } = useApp();
   const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const APP_URL = "https://jejak-trace-flow.base44.app";
 
   const price = product.markets[market].price;
   const split = computeSplit(product, market, compareMode ? "transparent" : "split");
@@ -24,6 +26,7 @@ export default function ShareReceipt() {
   const curSymbol = currency === "SGD" ? "S$" : "£";
   const impact = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
   const stdImpact = `A transparent brand would send about ${formatMoney(stdLabour, currency)} their way.`;
+  const challenge = `I traced a ${product.name} — only ${labour.pct.mid}% reached the makers. Can you find a fairer one? Trace yours: ${APP_URL}`;
 
   const buildNode = () => {
     const wrap = document.createElement("div");
@@ -52,7 +55,11 @@ export default function ShareReceipt() {
         <p style="margin:0;font-size:12px;font-weight:700;color:#1B1B3A;line-height:1.45;">${impact}</p>
         <p style="margin:6px 0 0;font-size:11px;color:#1B1B3Acc;line-height:1.4;">${stdImpact}</p>
       </div>
-      <p style="margin:14px 0 0;font-size:10px;color:#ffffffcc;text-align:center;">${route.length} stops traced · Ranges, not facts · jejak.app</p>
+      <div style="margin-top:12px;padding:10px 12px;border-radius:12px;background:#1B1B3A;display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size:11px;font-weight:700;color:#fff;">Can you beat ${labour.pct.mid}% to the makers?</span>
+        <span style="font-size:11px;font-weight:800;color:#FFC24B;">${APP_URL.replace("https://", "")}</span>
+      </div>
+      <p style="margin:12px 0 0;font-size:10px;color:#ffffffcc;text-align:center;">${route.length} stops traced · Ranges, not facts · ${APP_URL.replace("https://", "")}</p>
     `;
     document.body.appendChild(wrap);
     return wrap;
@@ -77,7 +84,7 @@ export default function ShareReceipt() {
       const file = new File([blob], "jejak-receipt.png", { type: "image/png" });
       const shareData = {
         title: "Jejak — trace what you pay for",
-        text: `${impact} ${stdImpact}`,
+        text: challenge,
         files: [file],
       };
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
@@ -116,25 +123,49 @@ export default function ShareReceipt() {
     }
   };
 
+  const handleChallenge = async () => {
+    vibrate(8);
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Jejak challenge", text: challenge });
+      } else {
+        await navigator.clipboard.writeText(challenge);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1800);
+      }
+    } catch (e) {
+      // silent
+    }
+  };
+
   return (
-    <div className="mt-3 grid grid-cols-2 gap-2">
+    <div className="mt-3">
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={handleShare}
+          disabled={busy}
+          className="flex items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3 text-sm font-extrabold text-white no-tap disabled:opacity-60"
+        >
+          {busy ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
+          {busy ? "Preparing…" : "Share"}
+        </button>
+        <button
+          type="button"
+          onClick={handlePdf}
+          disabled={busy}
+          className="flex items-center justify-center gap-2 rounded-2xl frosted-strong py-3 text-sm font-extrabold text-jejak-navy no-tap disabled:opacity-60"
+        >
+          {busy ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+          {busy ? "Preparing…" : "Save PDF"}
+        </button>
+      </div>
       <button
         type="button"
-        onClick={handleShare}
-        disabled={busy}
-        className="flex items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3 text-sm font-extrabold text-white no-tap disabled:opacity-60"
+        onClick={handleChallenge}
+        className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-sunrise py-3 text-sm font-extrabold text-white no-tap shadow-md"
       >
-        {busy ? <Loader2 size={16} className="animate-spin" /> : <Share2 size={16} />}
-        {busy ? "Preparing…" : "Share"}
-      </button>
-      <button
-        type="button"
-        onClick={handlePdf}
-        disabled={busy}
-        className="flex items-center justify-center gap-2 rounded-2xl frosted-strong py-3 text-sm font-extrabold text-jejak-navy no-tap disabled:opacity-60"
-      >
-        {busy ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
-        {busy ? "Preparing…" : "Save PDF"}
+        <Users size={16} /> {copied ? "Link copied — send it!" : "Challenge a friend to beat it"}
       </button>
     </div>
   );

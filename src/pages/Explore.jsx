@@ -5,7 +5,9 @@ import ScreenShell from "@/components/ScreenShell";
 import ConfidenceBadge from "@/components/ConfidenceBadge";
 import { formatMoney } from "@/lib/money";
 import { Image as ContentImage } from "@/components/ui/image";
-import { RefreshCw, Users, MapPin, Radio } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { vibrate } from "@/lib/haptics";
+import { RefreshCw, Users, MapPin, Radio, Camera } from "lucide-react";
 
 const LABOUR_FILTERS = [
   { label: "Any", min: 0 },
@@ -28,7 +30,7 @@ function Chip({ active, onClick, children }) {
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => { vibrate(6); onClick(); }}
       className={`rounded-full px-3 py-1.5 text-xs font-bold no-tap transition-colors ${
         active ? "bg-jejak-navy text-white" : "frosted text-jejak-navy/70 border border-white/60"
       }`}
@@ -79,6 +81,9 @@ export default function Explore() {
   const [origin, setOrigin] = useState("All");
   const [minLabour, setMinLabour] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [count, setCount] = useState(0);
+  const [products, setProducts] = useState(0);
+  const navigate = useNavigate();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,12 +101,18 @@ export default function Explore() {
 
   useEffect(() => { load(); }, [load]);
 
-  // Distinct origins for the filter chips.
+  // Distinct origins + products, and a total count for social proof.
   useEffect(() => {
     (async () => {
       try {
-        const page = await base44.entities.Scan.filter({}, { distinct: "origin", limit: 100 });
-        setOrigins(page.items || []);
+        const [o, p, c] = await Promise.all([
+          base44.entities.Scan.filter({}, { distinct: "origin", limit: 100 }),
+          base44.entities.Scan.filter({}, { distinct: "product_name", limit: 100 }),
+          base44.entities.Scan.count({}),
+        ]);
+        setOrigins(o.items || []);
+        setProducts((p.items || []).length);
+        setCount(c);
       } catch {}
     })();
   }, []);
@@ -114,6 +125,7 @@ export default function Explore() {
           if (prev.some((s) => s.id === event.data.id)) return prev;
           return [event.data, ...prev];
         });
+        setCount((n) => n + 1);
       }
     });
     return unsub;
@@ -126,11 +138,21 @@ export default function Explore() {
           <div>
             <p className="text-xs font-bold uppercase tracking-widest text-jejak-navy/50">Community</p>
             <h1 className="text-2xl font-extrabold text-jejak-navy">What people are tracing</h1>
+            <p className="mt-1 text-xs font-semibold text-jejak-navy/55">
+              {count} traces · {products} products · {origins.length} origins
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 rounded-full bg-jejak-materials/15 px-2 py-1 text-[10px] font-bold text-jejak-materials">
               <Radio size={11} className="animate-pulse-soft" /> Live
             </span>
+            <button
+              type="button"
+              onClick={() => { vibrate(8); navigate("/"); }}
+              className="flex h-10 items-center gap-1.5 rounded-full bg-jejak-navy px-3 text-xs font-extrabold text-white no-tap"
+            >
+              <Camera size={14} /> Trace
+            </button>
             <button
               type="button"
               onClick={load}

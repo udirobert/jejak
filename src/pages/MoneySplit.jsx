@@ -3,7 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { base44 } from "@/api/base44Client";
 import { computeSplit, formatMoney, labourPerUnit, getRoute } from "@/lib/money";
-import { buildMetrics } from "@/lib/metrics";
+import { buildMetrics, routeDistance } from "@/lib/metrics";
 import ScreenShell from "@/components/ScreenShell";
 import CoinDrop from "@/components/CoinDrop";
 import StackedBar from "@/components/StackedBar";
@@ -12,10 +12,10 @@ import ShareReceipt from "@/components/ShareReceipt";
 import MetricsCarousel from "@/components/MetricsCarousel";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
-import { ArrowLeft, Info } from "lucide-react";
+import { ArrowLeft, Info, Camera } from "lucide-react";
 
 export default function MoneySplit() {
-  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace, photoFile, shareToFeed } = useApp();
+  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace, photoFile, shareToFeed, reset } = useApp();
   const reduce = useReducedMotion();
   const price = product.markets[market].price;
   const split = computeSplit(product, market, compareMode ? "transparent" : "split");
@@ -37,7 +37,7 @@ export default function MoneySplit() {
   useEffect(() => {
     if (celebrated.current) return;
     celebrated.current = true;
-    addTrace(labour.amount);
+    addTrace(labour.amount, routeDistance(product, market));
     vibrate([0, 12, 30, 12]);
     coinClink();
     if (!reduce) {
@@ -224,6 +224,14 @@ export default function MoneySplit() {
         </div>
 
         <ShareReceipt />
+
+        <button
+          type="button"
+          onClick={() => { vibrate(10); reset(); }}
+          className="mt-3 flex w-full items-center justify-center gap-2 rounded-2xl bg-sunrise py-3.5 text-sm font-extrabold text-white no-tap shadow-lg"
+        >
+          <Camera size={18} /> Trace another product
+        </button>
       </div>
     </ScreenShell>
   );

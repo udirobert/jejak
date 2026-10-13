@@ -19,15 +19,17 @@ export function AppProvider({ children }) {
   const [shareToFeed, setShareToFeed] = useState(false); // opt-in community feed (off by default)
   const [traces, setTraces] = useState(0);
   const [workerTotal, setWorkerTotal] = useState(0);
+  const [distanceTotal, setDistanceTotal] = useState(0);
 
   const switchCurrency = useCallback((cur) => {
     setCurrency(cur);
     setMarket(marketForCurrency(cur));
   }, []);
 
-  const addTrace = useCallback((labourAmount) => {
+  const addTrace = useCallback((labourAmount, distanceKm = 0) => {
     setTraces((n) => n + 1);
     setWorkerTotal((t) => t + (labourAmount || 0));
+    setDistanceTotal((d) => d + (distanceKm || 0));
   }, []);
 
   const reset = useCallback(() => {
@@ -56,6 +58,7 @@ export function AppProvider({ children }) {
     shareToFeed,
     traces,
     workerTotal,
+    distanceTotal,
     addTrace,
     setCurrency: switchCurrency,
     setMarket,
