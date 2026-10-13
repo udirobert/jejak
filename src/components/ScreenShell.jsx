@@ -63,7 +63,15 @@ export default function ScreenShell({ children, variant = "soft", header = true,
             </div>
           </header>
         )}
-        <main className="flex-1 flex flex-col">{children}</main>
+        <main
+          className={`flex-1 flex flex-col ${
+            isMap
+              ? ""
+              : "pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))]"
+          }`}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

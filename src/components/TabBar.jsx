@@ -36,7 +36,7 @@ export default function TabBar() {
                 end={to === "/"}
                 onClick={() => vibrate(6)}
                 className={({ isActive }) =>
-                  `relative flex flex-1 flex-col items-center justify-center rounded-2xl py-1.5 no-tap transition-colors ${
+                  `relative flex flex-1 flex-col items-center justify-center rounded-2xl py-1.5 no-tap transition-colors outline-none focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/55 focus-visible:ring-offset-1 ${
                     isActive
                       ? "text-jejak-navy"
                       : "text-jejak-navy/55 hover:text-jejak-navy"

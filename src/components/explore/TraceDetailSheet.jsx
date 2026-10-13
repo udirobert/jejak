@@ -10,12 +10,17 @@ import {
   CheckCircle2,
   XCircle,
   Loader2,
+  HeartHandshake,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
+import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
+import causes from "@/data/causes.json";
 import { formatMoney, getRoute } from "@/lib/money";
+import SupplyFlowPipe from "@/components/SupplyFlowPipe";
 import { TAP } from "@/lib/motion";
-import { vibrate } from "@/lib/haptics";
+import { vibrate, coinClink } from "@/lib/haptics";
+import { celebrate } from "@/lib/celebrate";
 import ProductIllustrationIcon from "./ProductIllustrationIcon";
 import {
   FLAGS,
@@ -35,18 +40,27 @@ export default function TraceDetailSheet({
   onTraceProduct,
   reduce,
 }) {
+  const { settleStellarPayout } = useApp();
   const [trustOpen, setTrustOpen] = useState(false);
   const [copiedField, setCopiedField] = useState(null);
   const [verifying, setVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
 
-  // Reset collapsible trust state whenever a different scan is opened
+  // "Give to a cause (optional, default off)" inside the detail sheet
+  const [giveEnabled, setGiveEnabled] = useState(false);
+  const [givingLoading, setGivingLoading] = useState(false);
+  const [giveTx, setGiveTx] = useState(null);
+
+  // Reset sheet states whenever a different trace is opened
   useEffect(() => {
     setTrustOpen(false);
     setCopiedField(null);
     setVerifyResult(null);
     setVerifying(false);
-  }, [scan?.id]);
+    setGiveEnabled(false);
+    setGivingLoading(false);
+    setGiveTx(null);
+  }, [scan?.id, scan?.product_id, scan?.origin]);
 
   // Build route stops for the thin animated route strip below the hero
   const routeStops = useMemo(() => {
@@ -70,11 +84,38 @@ export default function TraceDetailSheet({
   const bgGradient =
     PRODUCT_SURFACES[scan.product_id] || PRODUCT_SURFACES.hoodie;
 
+  const price = Number(scan.price) || 45;
+  const currency = scan.currency || "GBP";
+  const labourPct = Number(scan.labour_pct) || 7.5;
+  const labourAmount = +((price * labourPct) / 100).toFixed(2);
+  const matchedCause =
+    causes.find((c) => c.region === scan.origin) || causes[0];
+
   const handleCopy = (text, key) => {
     vibrate(4);
     navigator.clipboard?.writeText(text);
     setCopiedField(key);
     setTimeout(() => setCopiedField(null), 1800);
+  };
+
+  const handleGiveToCause = async () => {
+    if (givingLoading) return;
+    vibrate([0, 10, 20, 10]);
+    coinClink();
+    if (!reduce) celebrate();
+    setGivingLoading(true);
+    try {
+      const prod = getProduct(scan.product_id) || getProduct("hoodie");
+      const res = await settleStellarPayout({
+        amount: 1,
+        productObj: prod,
+        currencyOverride: currency,
+        causeObj: matchedCause,
+      });
+      if (res) setGiveTx(res);
+    } finally {
+      setGivingLoading(false);
+    }
   };
 
   const handleVerify = async () => {
@@ -83,7 +124,6 @@ export default function TraceDetailSheet({
     setVerifying(true);
     setVerifyResult(null);
     try {
-      // Recompute SHA-256 from this scan's own canonical record
       const canonicalStr =
         scan.canonical_json && scan.canonical_json.trim().length > 2
           ? scan.canonical_json.trim()
@@ -148,10 +188,10 @@ export default function TraceDetailSheet({
             onDragEnd={(_, info) => {
               if (info.offset.y > 90) onClose();
             }}
-            className="relative w-full max-w-[420px] overflow-hidden rounded-t-3xl frosted-strong border-t border-white/85 shadow-2xl"
+            className="relative w-full max-w-[420px] max-h-[88vh] flex flex-col overflow-hidden rounded-t-3xl frosted-strong border-t border-white/85 shadow-2xl"
             style={{
               background:
-                "linear-gradient(165deg, rgba(255,255,255,0.94) 0%, rgba(255,235,222,0.92) 60%, rgba(237,231,255,0.94) 100%)",
+                "linear-gradient(165deg, rgba(255,255,255,0.96) 0%, rgba(255,235,222,0.94) 60%, rgba(237,231,255,0.96) 100%)",
             }}
             initial={reduce ? { opacity: 0 } : { y: "100%" }}
             animate={reduce ? { opacity: 1 } : { y: 0 }}
@@ -160,7 +200,7 @@ export default function TraceDetailSheet({
           >
             {/* Full-bleed Hero at the top */}
             <div
-              className="relative h-40 w-full overflow-hidden"
+              className="relative h-36 w-full shrink-0 overflow-hidden"
               style={{ background: bgGradient }}
             >
               <ProductIllustrationIcon
@@ -198,9 +238,8 @@ export default function TraceDetailSheet({
             </div>
 
             {/* Thin animated route line with origin flags through the stages */}
-            <div className="relative px-5 py-2.5 bg-white/60 border-b border-jejak-navy/10">
+            <div className="relative shrink-0 px-5 py-2.5 bg-white/65 border-b border-jejak-navy/10">
               <div className="relative flex items-center justify-between">
-                {/* Base track */}
                 <div className="absolute left-3 right-3 top-1/2 -translate-y-1/2 h-[2px] bg-jejak-navy/12 rounded-full overflow-hidden">
                   <motion.div
                     initial={reduce ? { width: "100%" } : { width: "0%" }}
@@ -230,12 +269,12 @@ export default function TraceDetailSheet({
               </div>
             </div>
 
-            {/* Body content */}
-            <div className="p-5 pb-7 space-y-3.5">
+            {/* Scrollable Body content */}
+            <div className="flex-1 overflow-y-auto p-5 pb-7 space-y-3 scrollbar-hide">
               {/* Headline: material and origin + Basis tag next to headline */}
               <div>
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="text-lg font-extrabold leading-snug text-jejak-navy">
+                  <h2 className="text-base sm:text-lg font-extrabold leading-snug text-jejak-navy">
                     {materialMadeInHeadline(scan)}
                   </h2>
                   <span
@@ -252,23 +291,98 @@ export default function TraceDetailSheet({
                 </div>
 
                 {/* Short secondary line ("Traced 3h ago") + original price + small secondary maker share tag */}
-                <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
                   <span className="font-semibold text-jejak-navy/55">
                     {relativeTracedTime(scan.created_date)}
                   </span>
                   <span className="text-jejak-navy/30">·</span>
                   <span className="font-extrabold text-jejak-navy tabular-nums">
-                    {formatMoney(scan.price || 45, scan.currency || "GBP")}
+                    {formatMoney(price, currency)}
                   </span>
                   <span className="rounded-full bg-jejak-labour/15 px-2 py-0.5 text-[10px] font-extrabold text-jejak-labour tabular-nums">
-                    Maker share {scan.labour_pct}%
+                    Maker share {labourPct}%
                   </span>
                 </div>
               </div>
 
+              {/* Full Sankey (appears inside this detail sheet only) */}
+              <SupplyFlowPipe
+                price={price}
+                currency={currency}
+                labourPct={labourPct}
+                labourAmount={labourAmount}
+                makerTip={0}
+              />
+
+              {/* Give to a cause (optional, default off) as one short line and a toggle */}
+              <div className="rounded-2xl bg-white/80 border border-jejak-navy/10 px-3.5 py-2.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-jejak-navy">
+                    <HeartHandshake size={14} className="text-jejak-labour shrink-0" />
+                    Give to a cause (optional, default off)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      vibrate(5);
+                      setGiveEnabled((v) => !v);
+                    }}
+                    aria-pressed={giveEnabled}
+                    className="relative h-6 w-11 shrink-0 rounded-full transition-colors no-tap"
+                    style={{ background: giveEnabled ? "#2FBF71" : "#D9DBE8" }}
+                  >
+                    <motion.span
+                      className="absolute top-0.5 h-5 w-5 rounded-full bg-white shadow"
+                      animate={{ left: giveEnabled ? 22 : 2 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 32 }}
+                    />
+                  </button>
+                </div>
+
+                <AnimatePresence initial={false}>
+                  {giveEnabled && (
+                    <motion.div
+                      initial={reduce ? false : { height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={reduce ? undefined : { height: 0, opacity: 0 }}
+                      className="overflow-hidden pt-2 mt-2 border-t border-jejak-navy/8 space-y-2"
+                    >
+                      <p className="text-[11px] font-semibold text-jejak-navy/65">
+                        Demo testnet payment to {matchedCause.name} with no real-world disbursement.
+                      </p>
+                      <div className="flex items-center justify-between gap-2">
+                        <motion.button
+                          type="button"
+                          whileTap={reduce ? undefined : TAP}
+                          disabled={givingLoading}
+                          onClick={handleGiveToCause}
+                          className="rounded-xl bg-jejak-navy px-3 py-1.5 text-[11px] font-extrabold text-jejak-gold no-tap disabled:opacity-60"
+                        >
+                          {givingLoading
+                            ? "Sending on Testnet…"
+                            : `Give ${formatMoney(1, currency)} (testnet)`}
+                        </motion.button>
+
+                        {giveTx && (
+                          <a
+                            href={giveTx.explorerUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-freight hover:underline"
+                          >
+                            <CheckCircle2 size={12} className="text-jejak-materials" />
+                            Ledger #{giveTx.ledger} <ExternalLink size={10} />
+                          </a>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* One Trust Row: green dot + "Anchored on Stellar" + chevron (ONLY when trace has its own anchor) */}
               {anchored && (
-                <div className="rounded-2xl bg-white/75 border border-jejak-navy/12 overflow-hidden">
+                <div className="rounded-2xl bg-white/80 border border-jejak-navy/10 overflow-hidden">
                   <button
                     type="button"
                     onClick={() => {
@@ -297,7 +411,6 @@ export default function TraceDetailSheet({
                         exit={reduce ? undefined : { height: 0, opacity: 0 }}
                         className="overflow-hidden border-t border-jejak-navy/10 px-3.5 pb-3.5 pt-3 space-y-2.5 text-xs"
                       >
-                        {/* QR + Ledger + Truncated Hash with Copy + stellar.expert link */}
                         <div className="flex items-center gap-3">
                           <img
                             src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(
@@ -323,7 +436,6 @@ export default function TraceDetailSheet({
                               </a>
                             </div>
 
-                            {/* Truncated SHA-256 hash + copy button */}
                             <div className="flex items-center justify-between gap-1.5 rounded-lg bg-jejak-navy/6 px-2 py-1 font-mono text-[10px] text-jejak-navy/80">
                               <span className="truncate">
                                 SHA-256: {scan.record_sha256.slice(0, 10)}…
@@ -350,7 +462,6 @@ export default function TraceDetailSheet({
                           </div>
                         </div>
 
-                        {/* Verify button + animated match/mismatch result */}
                         <div className="flex items-center justify-between gap-2 pt-0.5">
                           <button
                             type="button"
