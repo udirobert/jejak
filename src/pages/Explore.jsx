@@ -8,20 +8,18 @@ import { PRODUCTS, getProduct } from "@/data";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
 import { Camera, X, Sparkles } from "lucide-react";
-import ExploreWorldHeader from "@/components/explore/ExploreWorldHeader";
-import LiveHeroSlot from "@/components/explore/LiveHeroSlot";
-import TypographicTraceRow from "@/components/explore/TypographicTraceRow";
+import ExploreFullBleedMap from "@/components/explore/ExploreFullBleedMap";
+import ExploreBottomSheet from "@/components/explore/ExploreBottomSheet";
 import TraceDetailSheet from "@/components/explore/TraceDetailSheet";
-
-const INITIAL_VISIBLE_LIMIT = 8;
 
 export default function Explore() {
   const [scans, setScans] = useState([]);
   const [originFilter, setOriginFilter] = useState("All");
   const [selectedScan, setSelectedScan] = useState(null);
   const [showInfoSheet, setShowInfoSheet] = useState(false);
-  const [showAllRows, setShowAllRows] = useState(false);
+  const [snap, setSnap] = useState("half");
   const [newlyArrivedId, setNewlyArrivedId] = useState(null);
+  const [arcOrigin, setArcOrigin] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const reduce = useReducedMotion();
@@ -36,7 +34,11 @@ export default function Explore() {
         {},
         { sort: "-created_date", limit: 50 }
       );
-      setScans(page.items || []);
+      const items = page.items || [];
+      setScans(items);
+      if (items[0]?.origin) {
+        setArcOrigin(items[0].origin);
+      }
     } catch {
       setScans([]);
     }
@@ -47,13 +49,23 @@ export default function Explore() {
     load();
   }, [load]);
 
-  // Live subscription: crossfades hero slot and animates new trace into top of list
+  // Clear initial arrival arc after animation finishes
+  useEffect(() => {
+    if (!arcOrigin) return;
+    const t = setTimeout(() => setArcOrigin(null), 2400);
+    return () => clearTimeout(t);
+  }, [arcOrigin]);
+
+  // Live subscription: animates an arc from the new trace's origin dot into the sheet
   useEffect(() => {
     const unsub = base44.entities.Scan.subscribe((event) => {
       if (event.type !== "create") return;
       const s = event.data;
       setNewlyArrivedId(s.id);
-      setScans((prev) => (prev.some((p) => p.id === s.id) ? prev : [s, ...prev]));
+      if (s.origin) setArcOrigin(s.origin);
+      setScans((prev) =>
+        prev.some((p) => p.id === s.id) ? prev : [s, ...prev]
+      );
     });
     return unsub;
   }, []);
@@ -81,7 +93,7 @@ export default function Explore() {
     return scans.filter((s) => s.origin === originFilter);
   }, [scans, originFilter]);
 
-  // Group duplicate traces per product in newest-first order
+  // Deduplicated product groups — each product appears ONCE in newest-first order
   const productGroups = useMemo(() => {
     const groups = new Map();
     filteredScans.forEach((s) => {
@@ -104,11 +116,13 @@ export default function Explore() {
     return PRODUCTS.filter((p) => !tracedIds.has(p.id));
   }, [scans, originFilter]);
 
-  const visibleGroups = showAllRows
-    ? productGroups
-    : productGroups.slice(0, INITIAL_VISIBLE_LIMIT);
-
-  const newestScan = filteredScans[0] || scans[0] || null;
+  const handleSelectOrigin = (origin) => {
+    setOriginFilter(origin);
+    if (origin !== "All") {
+      setArcOrigin(origin);
+      if (snap === "peek") setSnap("half");
+    }
+  };
 
   const handleTraceProduct = (productId) => {
     vibrate(8);
@@ -126,114 +140,62 @@ export default function Explore() {
     navigate("/");
   };
 
+  // Position floating round gold camera button right above the draggable sheet
+  // (or tucked cleanly in the top-right corner when sheet is full) so it never covers content.
+  const fabBottomClass =
+    snap === "peek"
+      ? "bottom-[168px]"
+      : snap === "half"
+      ? "bottom-[382px]"
+      : "bottom-[572px]";
+
   return (
-    <ScreenShell variant="soft">
-      <div className="flex flex-1 flex-col px-5 pb-36">
-        {/* Flat World Map Header with Origin Flag Filter */}
-        <ExploreWorldHeader
+    <ScreenShell variant="map">
+      <div className="relative flex-1 w-full overflow-hidden">
+        {/* Full-bleed High-Contrast Interactive Map Background */}
+        <ExploreFullBleedMap
           originChips={originChips}
           originFilter={originFilter}
-          onSelectOrigin={setOriginFilter}
+          onSelectOrigin={handleSelectOrigin}
           onOpenInfo={() => setShowInfoSheet(true)}
+          arcOrigin={arcOrigin}
           reduce={reduce}
         />
 
-        {/* Single Live Hero Slot above the list */}
-        <LiveHeroSlot
-          scan={newestScan}
+        {/* Floating Round Gold Camera Button (never covers list rows) */}
+        <div
+          className={`fixed left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 px-5 pointer-events-none transition-all duration-300 ${fabBottomClass}`}
+        >
+          <div className="flex justify-end">
+            <motion.button
+              type="button"
+              whileTap={reduce ? undefined : TAP}
+              onClick={handleTraceYours}
+              aria-label="Trace a product with camera"
+              title="Trace yours"
+              className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-jejak-gold text-jejak-navy shadow-[0_8px_24px_rgba(255,194,75,0.45)] border-2 border-white/90 hover:brightness-105 no-tap"
+            >
+              <Camera size={20} strokeWidth={2.4} />
+            </motion.button>
+          </div>
+        </div>
+
+        {/* Three-Snap-Point Draggable Bottom Sheet (peek | half | full) */}
+        <ExploreBottomSheet
+          snap={snap}
+          setSnap={setSnap}
+          productGroups={productGroups}
+          untracedProducts={untracedProducts}
+          originFilter={originFilter}
+          onClearOrigin={() => setOriginFilter("All")}
+          newlyArrivedId={newlyArrivedId}
           onSelectScan={(s) => setSelectedScan(s)}
+          onTraceProduct={handleTraceProduct}
+          loading={loading}
           reduce={reduce}
         />
 
-        {/* Borderless Typographic List */}
-        <div className="flex-1">
-          {loading ? (
-            <div className="divide-y divide-jejak-navy/10">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="py-5 animate-pulse space-y-2">
-                  <div className="h-6 w-44 rounded bg-jejak-navy/10" />
-                  <div className="h-3.5 w-60 rounded bg-jejak-navy/10" />
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div>
-              {visibleGroups.map((group) => (
-                <TypographicTraceRow
-                  key={group.productId}
-                  group={group}
-                  isNewlyArrived={group.items.some(
-                    (it) => it.id === newlyArrivedId
-                  )}
-                  onSelectScan={(s) => setSelectedScan(s)}
-                  reduce={reduce}
-                />
-              ))}
-
-              {/* See all toggle if rows exceed 8 */}
-              {productGroups.length > INITIAL_VISIBLE_LIMIT && (
-                <div className="py-3 border-b border-jejak-navy/10">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      vibrate(5);
-                      setShowAllRows((v) => !v);
-                    }}
-                    className="text-xs font-extrabold text-jejak-freight hover:underline no-tap"
-                  >
-                    {showAllRows
-                      ? "Show fewer"
-                      : `See all (${productGroups.length})`}
-                  </button>
-                </div>
-              )}
-
-              {/* "Be the first to trace this" typographic rows for untraced products */}
-              {untracedProducts.map((prod) => (
-                <div
-                  key={prod.id}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleTraceProduct(prod.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      handleTraceProduct(prod.id);
-                    }
-                  }}
-                  className="group py-4 border-b border-jejak-navy/12 flex items-baseline justify-between gap-3 cursor-pointer no-tap"
-                >
-                  <div>
-                    <p className="text-xl sm:text-2xl font-extrabold tracking-tight text-jejak-navy/45 group-hover:text-jejak-navy transition-colors">
-                      {prod.name}
-                    </p>
-                    <p className="mt-0.5 text-xs font-bold text-jejak-coral">
-                      Be the first to trace this →
-                    </p>
-                  </div>
-                  <span className="text-xl opacity-60 group-hover:opacity-100 transition-opacity">
-                    {prod.emoji}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Sticky Primary CTA: "Trace yours" */}
-        <div className="fixed bottom-20 left-1/2 z-30 w-full max-w-[420px] -translate-x-1/2 px-5 pointer-events-none">
-          <motion.button
-            type="button"
-            whileTap={reduce ? undefined : TAP}
-            onClick={handleTraceYours}
-            className="pointer-events-auto flex w-full items-center justify-center gap-2 rounded-2xl bg-jejak-navy py-3.5 text-sm font-extrabold text-white shadow-xl border border-white/20 no-tap"
-          >
-            <Camera size={16} className="text-amber-300" />
-            <span>Trace yours</span>
-          </motion.button>
-        </div>
-
-        {/* Detail Bottom Sheet */}
+        {/* Detail Sheet on Row Tap */}
         <TraceDetailSheet
           scan={selectedScan}
           onClose={() => setSelectedScan(null)}
@@ -241,7 +203,7 @@ export default function Explore() {
           reduce={reduce}
         />
 
-        {/* Single-sentence ⓘ Opt-in Explanation Sheet */}
+        {/* Single-sentence Privacy Sheet */}
         <AnimatePresence>
           {showInfoSheet && (
             <motion.div
@@ -274,7 +236,7 @@ export default function Explore() {
                   </button>
                 </div>
                 <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  Every trace is private by default and only appears here when a user explicitly opts in; seeded demo entries are marked “Sample” and never counted as real activity.
+                  Every trace is private by default and only appears here when a user explicitly opts in; seeded demo entries are covered by the single “Sample data” banner and excluded from live counts.
                 </p>
               </motion.div>
             </motion.div>

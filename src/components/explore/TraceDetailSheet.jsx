@@ -17,6 +17,7 @@ import { getProduct } from "@/data";
 import { formatMoney, getRoute } from "@/lib/money";
 import { TAP } from "@/lib/motion";
 import { vibrate } from "@/lib/haptics";
+import ProductIllustrationIcon from "./ProductIllustrationIcon";
 import {
   FLAGS,
   PRODUCT_SURFACES,
@@ -28,34 +29,6 @@ import {
   txExplorerUrl,
   sha256HexBrowser,
 } from "./exploreUtils";
-
-function ProductIllustration({ productId, emoji }) {
-  return (
-    <div className="relative flex h-full w-full items-center justify-center overflow-hidden">
-      {/* Subtle decorative radial rings */}
-      <svg
-        viewBox="0 0 240 120"
-        className="absolute inset-0 h-full w-full opacity-25"
-        aria-hidden="true"
-      >
-        <circle cx="120" cy="60" r="36" fill="none" stroke="#FFFFFF" strokeWidth="1.5" />
-        <circle
-          cx="120"
-          cy="60"
-          r="58"
-          fill="none"
-          stroke="#FFFFFF"
-          strokeWidth="1"
-          strokeDasharray="4 4"
-        />
-        <circle cx="120" cy="60" r="82" fill="none" stroke="#FFFFFF" strokeWidth="0.75" />
-      </svg>
-      <div className="relative flex h-20 w-20 items-center justify-center rounded-3xl bg-white/25 backdrop-blur-md border border-white/40 shadow-lg text-5xl select-none">
-        {emoji || (productId === "trainers" ? "👟" : productId === "coffee" ? "☕" : "🧥")}
-      </div>
-    </div>
-  );
-}
 
 export default function TraceDetailSheet({
   scan,
@@ -191,18 +164,11 @@ export default function TraceDetailSheet({
               className="relative h-40 w-full overflow-hidden"
               style={{ background: bgGradient }}
             >
-              {scan.photo_url ? (
-                <ContentImage
-                  src={scan.photo_url}
-                  fittingType="fill"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <ProductIllustration
-                  productId={scan.product_id}
-                  emoji={scan.emoji}
-                />
-              )}
+              <ProductIllustrationIcon
+                productId={scan.product_id}
+                photoUrl={scan.photo_url}
+                size="hero"
+              />
 
               {/* Drag handle pill */}
               <div className="pointer-events-none absolute inset-x-0 top-2.5 flex justify-center">

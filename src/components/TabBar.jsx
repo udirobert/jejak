@@ -5,8 +5,8 @@ import { Crosshair, Compass, HeartPulse, Landmark } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 import { TAP, SPRING, SPRING_SNAP } from "@/lib/motion";
 
-// Bottom tab bar — persistent across the tabbed routes so the active pill
-// slides between tabs (layoutId). Hidden during the immersive trace flow.
+// Bottom tab bar — rounded, frosted-glass floating dock with safe-area padding.
+// Persistent across the tabbed routes so the active pill slides smoothly.
 const TABS = [
   { to: "/", label: "Trace", icon: Crosshair },
   { to: "/explore", label: "Explore", icon: Compass },
@@ -21,41 +21,58 @@ export default function TabBar() {
       animate={{ y: 0 }}
       exit={{ y: 120 }}
       transition={SPRING}
-      className="fixed bottom-0 inset-x-0 z-40 flex justify-center safe-bottom"
+      className="fixed bottom-0 inset-x-0 z-40 flex justify-center pointer-events-none safe-bottom"
     >
-      <nav className="w-full max-w-[420px] frosted-strong border-t border-white/60">
-        <div className="flex items-stretch justify-around px-2 pt-1.5">
-        {TABS.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === "/"}
-            onClick={() => vibrate(6)}
-            className={({ isActive }) =>
-              `flex flex-1 flex-col items-center gap-0.5 rounded-xl py-2 no-tap transition-colors ${
-                isActive ? "text-jejak-navy" : "text-jejak-navy/45"
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <motion.div whileTap={TAP} className="flex flex-col items-center gap-0.5">
-                <span className="relative flex h-8 w-8 items-center justify-center rounded-full">
-                  {isActive && (
-                    <motion.span
-                      layoutId="tabPill"
-                      className="absolute inset-0 rounded-full bg-jejak-navy"
-                      transition={SPRING_SNAP}
-                    />
-                  )}
-                  <Icon size={17} className={`relative z-10 ${isActive ? "text-amber-300" : ""}`} />
-                </span>
-                <span className="text-[10px] font-extrabold">{label}</span>
-              </motion.div>
-            )}
-          </NavLink>
-        ))}
-        </div>
-      </nav>
+      <div className="w-full max-w-[420px] px-3.5 pb-2.5 pt-1">
+        <nav
+          aria-label="Primary navigation"
+          className="pointer-events-auto w-full rounded-3xl frosted-strong border border-white/75 shadow-[0_12px_36px_rgba(27,27,58,0.22)] px-2 py-1.5"
+        >
+          <div className="flex items-stretch justify-around gap-1">
+            {TABS.map(({ to, label, icon: Icon }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                onClick={() => vibrate(6)}
+                className={({ isActive }) =>
+                  `relative flex flex-1 flex-col items-center justify-center rounded-2xl py-1.5 no-tap transition-colors ${
+                    isActive
+                      ? "text-jejak-navy"
+                      : "text-jejak-navy/55 hover:text-jejak-navy"
+                  }`
+                }
+              >
+                {({ isActive }) => (
+                  <motion.div
+                    whileTap={TAP}
+                    className="relative flex flex-col items-center gap-0.5"
+                  >
+                    <span className="relative flex h-8 w-11 items-center justify-center rounded-full">
+                      {isActive && (
+                        <motion.span
+                          layoutId="tabPill"
+                          className="absolute inset-0 rounded-full bg-jejak-navy shadow-sm"
+                          transition={SPRING_SNAP}
+                        />
+                      )}
+                      <Icon
+                        size={16}
+                        className={`relative z-10 transition-colors ${
+                          isActive ? "text-jejak-gold" : ""
+                        }`}
+                      />
+                    </span>
+                    <span className="text-[10px] font-extrabold tracking-tight">
+                      {label}
+                    </span>
+                  </motion.div>
+                )}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
+      </div>
     </motion.div>
   );
 }
