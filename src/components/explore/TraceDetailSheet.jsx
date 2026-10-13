@@ -12,7 +12,6 @@ import {
   Loader2,
 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
-import { Image as ContentImage } from "@/components/ui/image";
 import { getProduct } from "@/data";
 import { formatMoney, getRoute } from "@/lib/money";
 import { TAP } from "@/lib/motion";
