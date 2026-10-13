@@ -9,12 +9,14 @@ export function AppProvider({ children }) {
   const [market, setMarket] = useState("GB"); // 'GB' | 'SG'
   const [product, setProduct] = useState(hoodie);
   const [photo, setPhoto] = useState(null); // display URL (object URL or data URL)
-  const [photoUrl, setPhotoUrl] = useState(null); // uploaded public URL used for recognition
+  const [photoFile, setPhotoFile] = useState(null); // raw File, kept for optional public share
+  const [photoUrl, setPhotoUrl] = useState(null); // signed URL used for recognition
   const [screen, setScreen] = useState("home"); // home | identifying | journey | split
   const [compareMode, setCompareMode] = useState(false);
   const [detailCategory, setDetailCategory] = useState(null); // category key
   const [showHowTo, setShowHowTo] = useState(false);
   const [lowConfidence, setLowConfidence] = useState(false);
+  const [shareToFeed, setShareToFeed] = useState(true); // opt-in community feed
   const [traces, setTraces] = useState(0);
   const [workerTotal, setWorkerTotal] = useState(0);
 
@@ -31,6 +33,7 @@ export function AppProvider({ children }) {
   const reset = useCallback(() => {
     setScreen("home");
     setPhoto(null);
+    setPhotoFile(null);
     setPhotoUrl(null);
     setCompareMode(false);
     setDetailCategory(null);
@@ -43,12 +46,14 @@ export function AppProvider({ children }) {
     market,
     product,
     photo,
+    photoFile,
     photoUrl,
     screen,
     compareMode,
     detailCategory,
     showHowTo,
     lowConfidence,
+    shareToFeed,
     traces,
     workerTotal,
     addTrace,
@@ -56,12 +61,14 @@ export function AppProvider({ children }) {
     setMarket,
     setProduct,
     setPhoto,
+    setPhotoFile,
     setPhotoUrl,
     setScreen,
     setCompareMode,
     setDetailCategory,
     setShowHowTo,
     setLowConfidence,
+    setShareToFeed,
     reset,
   };
 

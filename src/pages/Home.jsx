@@ -10,7 +10,7 @@ import { vibrate } from "@/lib/haptics";
 import { Camera, Image as ImageIcon, Sparkles } from "lucide-react";
 
 export default function Home() {
-  const { setPhoto, setPhotoUrl, setProduct, setScreen, setLowConfidence } = useApp();
+  const { setPhoto, setPhotoFile, setPhotoUrl, setProduct, setScreen, setLowConfidence } = useApp();
   const cameraRef = useRef(null);
   const libraryRef = useRef(null);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -25,6 +25,7 @@ export default function Home() {
     vibrate(10);
     // Show the photo instantly via a local object URL.
     setPhoto(URL.createObjectURL(file));
+    setPhotoFile(file);
     setLowConfidence(false);
     setScreen("identifying");
     // Upload privately, then mint a short-lived signed URL the vision model
@@ -49,6 +50,7 @@ export default function Home() {
     setProduct(getProduct(id));
     setLowConfidence(false);
     setPhoto(null);
+    setPhotoFile(null);
     setPhotoUrl(null);
     setScreen("identifying");
   };

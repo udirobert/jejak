@@ -1,11 +1,12 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Crosshair, HeartPulse, Landmark } from "lucide-react";
+import { Crosshair, Compass, HeartPulse, Landmark } from "lucide-react";
 
 // Bottom tab bar — the main app's primary navigation. Hidden during the
 // active trace flow (identifying/journey/split) so those screens stay immersive.
 const TABS = [
   { to: "/", label: "Trace", icon: Crosshair },
+  { to: "/explore", label: "Explore", icon: Compass },
   { to: "/impact", label: "Impact", icon: HeartPulse },
   { to: "/embedded", label: "Bank", icon: Landmark },
 ];

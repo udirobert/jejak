@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
-import { computeSplit, formatMoney, labourPerUnit } from "@/lib/money";
+import { base44 } from "@/api/base44Client";
+import { computeSplit, formatMoney, labourPerUnit, getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
 import CoinDrop from "@/components/CoinDrop";
 import StackedBar from "@/components/StackedBar";
@@ -12,7 +13,7 @@ import { vibrate, coinClink } from "@/lib/haptics";
 import { ArrowLeft, Info } from "lucide-react";
 
 export default function MoneySplit() {
-  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace } = useApp();
+  const { product, market, currency, setScreen, compareMode, setCompareMode, setDetailCategory, addTrace, photoFile, shareToFeed } = useApp();
   const reduce = useReducedMotion();
   const price = product.markets[market].price;
   const split = computeSplit(product, market, compareMode ? "transparent" : "split");
@@ -41,6 +42,40 @@ export default function MoneySplit() {
       return () => clearTimeout(t);
     }
   }, [reduce]);
+
+  // Persist this trace to the community feed (opt-in). The photo is uploaded
+  // publicly only when sharing is on; chip picks share an emoji card instead.
+  const savedScan = useRef(false);
+  useEffect(() => {
+    if (savedScan.current || !shareToFeed) return;
+    savedScan.current = true;
+    let cancelled = false;
+    (async () => {
+      try {
+        let photo_url = "";
+        if (photoFile) {
+          const { file_url } = await base44.integrations.Core.UploadPublicFile({ file: photoFile });
+          photo_url = file_url;
+        }
+        if (cancelled) return;
+        const route = getRoute(product, market);
+        await base44.entities.Scan.create({
+          product_id: product.id,
+          product_name: product.name,
+          emoji: product.emoji,
+          origin: route[0]?.country || "Unknown",
+          labour_pct: labour.pct.mid,
+          price: product.markets[market].price,
+          currency,
+          market,
+          photo_url,
+          confidence: labour.confidence,
+        });
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <ScreenShell variant="soft">

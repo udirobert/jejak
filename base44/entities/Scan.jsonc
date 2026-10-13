@@ -1,0 +1,54 @@
+{
+  "name": "Scan",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "emoji": {
+      "type": "string"
+    },
+    "origin": {
+      "type": "string"
+    },
+    "labour_pct": {
+      "type": "number"
+    },
+    "price": {
+      "type": "number"
+    },
+    "currency": {
+      "type": "string"
+    },
+    "market": {
+      "type": "string"
+    },
+    "photo_url": {
+      "type": "string"
+    },
+    "confidence": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "product_id",
+    "product_name",
+    "origin",
+    "labour_pct"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}
