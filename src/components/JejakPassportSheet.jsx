@@ -22,6 +22,7 @@ import {
   Plus,
   LogOut,
   ExternalLink,
+  Wallet,
 } from "lucide-react";
 
 export function formatShortWalletAddress(address) {
@@ -45,6 +46,8 @@ function shortErrorMessage(code) {
       return "Fee sponsor is busy. Try again in a moment.";
     case "INVALID_EXTERNAL_ADDRESS":
       return "Enter a valid Stellar address.";
+    case "FREIGHTER_NOT_FOUND":
+      return "Freighter not detected — paste a Stellar address instead.";
     default:
       return "Couldn't complete request.";
   }
@@ -135,6 +138,23 @@ export default function JejakPassportSheet({
       setShowExternalInput(false);
     } catch (err) {
       const code = err.code || "INVALID_EXTERNAL_ADDRESS";
+      setErrorState({ code, message: shortErrorMessage(code) });
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const handleConnectFreighter = async () => {
+    vibrate(6);
+    setLastAttempt("external");
+    setBusyAction("external");
+    setErrorState(null);
+    try {
+      const sess = await connect({ mode: "external" });
+      triggerSuccessDelight(sess);
+    } catch (err) {
+      const code = err.code || "INVALID_EXTERNAL_ADDRESS";
+      if (code === "FREIGHTER_NOT_FOUND") setShowExternalInput(true);
       setErrorState({ code, message: shortErrorMessage(code) });
     } finally {
       setBusyAction(null);
@@ -264,7 +284,8 @@ export default function JejakPassportSheet({
                   Your Jejak passport
                 </h2>
                 <p className="mt-0.5 text-xs font-semibold text-slate-500">
-                  {pendingActionLabel || "Unlock spending limits with Face ID"}
+                  {pendingActionLabel ||
+                    "A Stellar smart wallet secured by your passkey — no seed phrase."}
                 </p>
 
                 <button
@@ -284,28 +305,47 @@ export default function JejakPassportSheet({
                   )}
                 </button>
 
-                {/* Two small text links */}
-                <div className="mt-3 flex items-center justify-between gap-2 text-xs">
+                {/* Two secondary connect paths, always visible */}
+                <div className="mt-2.5 grid grid-cols-2 gap-2">
                   <button
                     type="button"
                     disabled={Boolean(busyAction)}
                     onClick={handleSignIn}
-                    className="font-bold text-slate-600 hover:text-slate-900 underline underline-offset-2 no-tap"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-60 no-tap"
                   >
-                    Already have one? Sign in
+                    {busyAction === "signin" ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Fingerprint size={14} />
+                    )}
+                    Sign in
                   </button>
                   <button
                     type="button"
                     disabled={Boolean(busyAction)}
-                    onClick={() => {
-                      vibrate(4);
-                      setShowExternalInput((v) => !v);
-                    }}
-                    className="font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2 no-tap"
+                    onClick={handleConnectFreighter}
+                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-60 no-tap"
                   >
-                    Use an existing wallet
+                    {busyAction === "external" ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : (
+                      <Wallet size={14} />
+                    )}
+                    Freighter
                   </button>
                 </div>
+
+                <button
+                  type="button"
+                  disabled={Boolean(busyAction)}
+                  onClick={() => {
+                    vibrate(4);
+                    setShowExternalInput((v) => !v);
+                  }}
+                  className="mt-3 font-bold text-slate-500 hover:text-slate-800 underline underline-offset-2 text-xs no-tap"
+                >
+                  or paste a Stellar address
+                </button>
 
                 <AnimatePresence>
                   {showExternalInput && (
@@ -321,7 +361,7 @@ export default function JejakPassportSheet({
                           type="text"
                           value={externalInput}
                           onChange={(e) => setExternalInput(e.target.value)}
-                          placeholder="Stellar address (or leave blank for Freighter)"
+                          placeholder="G… or C… Testnet address"
                           className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-jejak-navy"
                         />
                         <button

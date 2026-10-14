@@ -329,6 +329,13 @@ export async function connect({
     }
 
     const cleaned = String(externalAddress || "").trim().toUpperCase();
+    if (!cleaned) {
+      const err = new Error(
+        "Freighter isn't installed — paste a Stellar Testnet address instead."
+      );
+      err.code = "FREIGHTER_NOT_FOUND";
+      throw err;
+    }
     if (
       (!cleaned.startsWith("G") && !cleaned.startsWith("C")) ||
       cleaned.length < 32

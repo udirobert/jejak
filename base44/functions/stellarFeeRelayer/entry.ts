@@ -127,6 +127,23 @@ function passkeySignerScVal(pubkey65, credentialIdBytes) {
   ]);
 }
 
+// True if a contract instance exists at `contractId` on Soroban Testnet.
+// Used by the sign-in path: a WebAuthn assertion can't reveal the pubkey,
+// so we can't re-deploy — but we can confirm an existing deployment.
+async function contractDeployed(rpcServer, contractId) {
+  try {
+    await rpcServer.getContractData(
+      contractId,
+      xdr.ScVal.scvLedgerKeyContractInstance(),
+      rpc.Durability.Persistent
+    );
+    return true;
+  } catch (e) {
+    if (e?.code === 404) return false;
+    throw e;
+  }
+}
+
 // Deploy the OpenZeppelin multisig smart-account instance for this passkey.
 // Returns { contractId, hash, ledger } on success, throws otherwise.
 async function deploySmartAccount(sponsorKp, pubkey65, credentialIdBytes) {
@@ -286,6 +303,22 @@ export default async function (req) {
             pubkey65,
             credentialIdBytes
           );
+        } else if (credOk && expectedContractId) {
+          // Sign-in path: passkey assertions don't expose the public key, so a
+          // fresh deploy isn't possible — but the account may already exist
+          // (deployed from the passkey's original device). Report truthfully.
+          const rpcServer = new rpc.Server(RPC_URL);
+          if (await contractDeployed(rpcServer, expectedContractId)) {
+            deployed = {
+              contractId: expectedContractId,
+              hash: null,
+              ledger: null,
+              alreadyDeployed: true,
+            };
+          } else {
+            deployError =
+              "Passkey public key unavailable and no smart account found at the derived address.";
+          }
         } else {
           deployError = "Invalid or missing passkey public key / credentialId.";
         }
@@ -295,6 +328,8 @@ export default async function (req) {
 
       if (deployed) {
         // Also journal a manageData marker so the deploy shows in the sponsor's feed.
+        let journalHash = null;
+        let journalLedger = null;
         try {
           const sponsorAcct = await server.loadAccount(sponsorKp.publicKey());
           const jtx = new TransactionBuilder(sponsorAcct, {
@@ -311,11 +346,16 @@ export default async function (req) {
             .setTimeout(20)
             .build();
           jtx.sign(sponsorKp);
-          await server.submitTransaction(jtx);
+          const jres = await server.submitTransaction(jtx);
+          journalHash = jres.hash;
+          journalLedger = jres.ledger;
         } catch {
           // journal is best-effort only
         }
 
+        // `deployed.hash` is null on the sign-in path (existing contract
+        // detected, no new deploy tx) — fall back to the journal tx for links.
+        const txHash = deployed.hash || journalHash;
         return Response.json({
           ok: true,
           network: "Stellar Testnet",
@@ -324,9 +364,12 @@ export default async function (req) {
           sponsoredBy: sponsorKp.publicKey(),
           contractId: deployed.contractId,
           action,
-          hash: deployed.hash,
-          ledger: deployed.ledger,
-          explorerUrl: `https://stellar.expert/explorer/testnet/tx/${deployed.hash}`,
+          hash: txHash,
+          deployTxHash: deployed.hash,
+          ledger: deployed.ledger ?? journalLedger,
+          explorerUrl: txHash
+            ? `https://stellar.expert/explorer/testnet/tx/${txHash}`
+            : null,
           contractExplorerUrl: `https://stellar.expert/explorer/testnet/contract/${deployed.contractId}`,
         });
       }
