@@ -40,9 +40,13 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
 
 5. **Passkey Smart Wallet — "Jejak Passport" (Soroban Smart Accounts):**
    - The Embedded bank view (`/embedded`) offers a **Jejak Passport**: a WebAuthn passkey-backed smart wallet built on the OpenZeppelin `smart-account-kit` architecture (Protocol 27) on Soroban Testnet — no seed phrase or browser extension required (`src/lib/wallet.js`, `src/lib/stellarConfig.js`).
-   - Supports adding a **recovery signer** (threshold policy) and setting an on-chain **spending-limit policy** as context rules on the account contract.
-   - A dedicated **fee-sponsoring relayer** (`base44/functions/stellarFeeRelayer/entry.ts`) pays the fee (max 200 stroops, zero XLM transferred) for an allow-listed set of smart-account operations (`deploy_smart_account`, `add_recovery_signer`, `set_spending_policy`, `sign_session_challenge`) from an isolated deterministic Testnet account, with a per-IP sliding-window rate limit — so users never need to acquire XLM to use the wallet.
+   - **Real contract deployment:** the fee-sponsoring relayer (`base44/functions/stellarFeeRelayer/entry.ts`) deploys a real `multisig-account-example` contract instance via `createContractV2`, constructed with the passkey's secp256r1 public key + credential ID as a `Signer::External` for the audited WebAuthn verifier contract. Every passport gets a **real, resolvable `C...` contract address** on Soroban Testnet (deterministic salt `sha256("jejak-passport:" + credentialId)`), viewable on stellar.expert.
+   - The relayer is isolated (its own deterministic Friendbot-funded account), rate-limited per IP, and enforces an allow-list of actions and Protocol 27 contract addresses — users never need to acquire XLM.
+   - **Honest limitation:** account admin operations (`add_recovery_signer`, `set_spending_policy`, `sign_session_challenge`) are journaled on the sponsor account via `manageData` — executing them on-chain requires a passkey-signed `__check_auth` authorization that only the client can produce (full smart-account-kit signing flow is future work). If a deployment fails, the relayer falls back to the same journal and the UI marks the account "deployment pending".
    - Users can alternatively **connect an external wallet (Freighter)** for read-only address binding.
+
+6. **Stellar DEX as Price Oracle:**
+   - The Layer-2 payment converts the user's fiat amount to XLM using the **live XLM/USDC orderbook midpoint on the Stellar DEX** (mainnet Horizon read-only), rather than a fixed estimate — falling back to a documented heuristic if the orderbook is unreachable.
 
 ---
 
@@ -58,7 +62,7 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
 - **Live Stellar Testnet & Horizon Integration (`base44/functions/stellarMakerPayout/entry.ts`):**
   - Real `MEMO_HASH` provenance anchoring, live Horizon transaction lookup and SHA-256 verification, live `payment` and `createClaimableBalance` operations on Stellar Testnet, and live Horizon account telemetry on the Impact screen.
 - **Jejak Passport Smart Wallet (`src/lib/wallet.js`, `base44/functions/stellarFeeRelayer/entry.ts`):**
-  - Real Soroban Testnet smart-account operations (deploy, sign, recovery signer, spending-limit policy) relayed through a fee sponsor. Embedded preview iframes fall back to a clearly simulated passkey session.
+  - **Real** Soroban Testnet contract deployment via `createContractV2` — each passport is a real `C...` smart-account instance, fee-sponsored by an isolated relayer account. Admin actions (recovery signer, spending policy) are journaled on the sponsor account rather than executed — labelled honestly as such.
 - **Live Explore Feed & "Others Traced This":**
   - Backed by the `Scan` entity with realtime subscriptions. Seeded records carry `is_sample: true` and are badged **Sample** in the UI; single-person real counts (`count === 1`) are hidden so an individual cannot be singled out.
 

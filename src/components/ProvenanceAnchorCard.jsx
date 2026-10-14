@@ -189,12 +189,16 @@ export default function ProvenanceAnchorCard({ compact = false }) {
         expectedHashHex: recomputedHex,
       });
       const data = res?.data || {};
+      const unverifiable =
+        !simulateTamper && data.verificationStatus === "unverifiable";
       setVerifyResult({
         matched: simulateTamper ? false : Boolean(data.verified),
+        unverifiable,
         recomputedHex,
-        onChainHashHex: data.onChainHashHex || provenanceRecord.recordHashHex,
+        onChainHashHex: data.onChainHashHex || null,
         ledger: data.ledger || provenanceRecord.ledger,
         cachedFallback: Boolean(data.cachedFallback),
+        fallbackNotice: data.fallbackNotice || null,
         simulateTamper,
       });
     } catch {
@@ -204,11 +208,14 @@ export default function ProvenanceAnchorCard({ compact = false }) {
           : provenanceRecord.canonicalJson
       );
       setVerifyResult({
-        matched: !simulateTamper,
+        matched: false,
+        unverifiable: !simulateTamper,
         recomputedHex,
-        onChainHashHex: provenanceRecord.recordHashHex,
+        onChainHashHex: null,
         ledger: provenanceRecord.ledger,
         cachedFallback: true,
+        fallbackNotice:
+          "Could not reach the verification service — result is indeterminate.",
         simulateTamper,
       });
     } finally {
@@ -393,6 +400,8 @@ export default function ProvenanceAnchorCard({ compact = false }) {
                 className={`rounded-xl p-2.5 border text-[11px] ${
                   verifyResult.matched
                     ? "bg-jejak-materials/20 border-jejak-materials/50 text-white"
+                    : verifyResult.unverifiable
+                    ? "bg-amber-300/15 border-amber-300/40 text-white"
                     : "bg-red-500/20 border-red-400/50 text-white"
                 }`}
               >
@@ -402,6 +411,11 @@ export default function ProvenanceAnchorCard({ compact = false }) {
                       <>
                         <CheckCircle2 size={14} className="text-jejak-materials" />
                         HASH MATCH · Record matches Stellar Testnet MEMO_HASH
+                      </>
+                    ) : verifyResult.unverifiable ? (
+                      <>
+                        <Clock size={14} className="text-amber-300" />
+                        UNVERIFIABLE · Horizon unavailable — result indeterminate
                       </>
                     ) : (
                       <>
@@ -416,7 +430,7 @@ export default function ProvenanceAnchorCard({ compact = false }) {
                     Recomputed SHA-256: {verifyResult.recomputedHex}
                   </p>
                   <p className="truncate">
-                    Horizon MEMO_HASH:  {verifyResult.onChainHashHex}
+                    Horizon MEMO_HASH:  {verifyResult.onChainHashHex || "unavailable"}
                   </p>
                 </div>
               </motion.div>

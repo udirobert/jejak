@@ -135,6 +135,34 @@ async function sha256HexFromString(str: string): Promise<string> {
   return bytesToHex(new Uint8Array(digest));
 }
 
+// Real XLM/USD price from the Stellar DEX (mainnet XLM/USDC orderbook midpoint).
+// The payment itself settles on Testnet; this is a read-only price oracle call.
+const MAINNET_HORIZON = "https://horizon.stellar.org";
+const USDC_MAINNET_ISSUER =
+  "GA5ZSEJYB37JRC5AVCIA5MOP4RHTM335X2KGX3IHOJAPP5RE34K4KZVN"; // Circle USDC
+const FIAT_TO_USD = { GBP: 1.27, SGD: 0.74 }; // fixed cross-rates (src/lib/metrics.js)
+
+async function xlmUsdPrice() {
+  try {
+    const res = await fetch(
+      `${MAINNET_HORIZON}/order_book?selling_asset_type=native` +
+        `&buying_asset_type=credit_alphanum4&buying_asset_code=USDC` +
+        `&buying_asset_issuer=${USDC_MAINNET_ISSUER}&limit=1`,
+      { signal: AbortSignal.timeout(6000) }
+    );
+    if (!res.ok) throw new Error("orderbook unavailable");
+    const book = await res.json();
+    const bid = Number(book.bids?.[0]?.price);
+    const ask = Number(book.asks?.[0]?.price);
+    if (!bid || !ask || !isFinite(bid) || !isFinite(ask)) {
+      throw new Error("empty orderbook");
+    }
+    return { usdPerXlm: (bid + ask) / 2, pricingSource: "stellar_dex_orderbook" };
+  } catch {
+    return { usdPerXlm: null, pricingSource: "heuristic_2x" };
+  }
+}
+
 export default async function (req: Request) {
   const body = await req.json().catch(() => ({}));
   const action = body.action || "settle";
@@ -263,18 +291,28 @@ export default async function (req: Request) {
         if (memoType === "hash" && txData.memo) {
           onChainHex = base64ToHex(txData.memo).toLowerCase();
         }
+        // Honest verdict: only a real MEMO_HASH comparison can produce "match"
+        // or "mismatch". A non-hash memo cannot prove anything, a failed
+        // Horizon lookup proves nothing, and the cached demo tx anchors a
+        // placeholder digest rather than the caller's record — all of these
+        // report "unverifiable" rather than a false positive or a
+        // misleading "mismatch".
         const isCachedDemoTx = txHash === CACHED_FALLBACK_TX.hash;
-        const verified =
-          memoType === "hash"
+        const verificationStatus = isCachedDemoTx
+          ? "unverifiable"
+          : memoType === "hash" && onChainHex
             ? onChainHex === expectedHashHex && onChainHex !== EMPTY_STRING_SHA256
-            : isCachedDemoTx;
+              ? "match"
+              : "mismatch"
+            : "unverifiable";
 
         return Response.json({
           ok: true,
-          cachedFallback: isCachedDemoTx && memoType !== "hash",
-          verified,
+          cachedFallback: isCachedDemoTx,
+          verified: verificationStatus === "match",
+          verificationStatus,
           memoType,
-          onChainHashHex: onChainHex || expectedHashHex,
+          onChainHashHex: onChainHex || null,
           expectedHashHex,
           ledger: txData.ledger_attr || CACHED_FALLBACK_TX.ledger,
           createdAt: txData.created_at,
@@ -285,12 +323,13 @@ export default async function (req: Request) {
           ok: true,
           cachedFallback: true,
           fallbackNotice:
-            "Testnet is slow right now — verified against cached record digest.",
-          verified: expectedHashHex !== EMPTY_STRING_SHA256,
-          memoType: "hash",
-          onChainHashHex: expectedHashHex,
+            "Could not reach Stellar Horizon — verification is indeterminate right now.",
+          verified: false,
+          verificationStatus: "unverifiable",
+          memoType: null,
+          onChainHashHex: null,
           expectedHashHex,
-          ledger: CACHED_FALLBACK_TX.ledger,
+          ledger: null,
           explorerUrl: `https://stellar.expert/explorer/testnet/tx/${txHash}`,
         });
       }
@@ -465,7 +504,11 @@ export default async function (req: Request) {
     const settlementMode = body.mode === "escrow" ? "escrow" : "direct";
     const rawAmount = Number(body.amount) || 1;
     const clampedAmount = Math.max(0.25, Math.min(250, rawAmount));
-    const xlmAmount = Math.max(0.5, Math.min(50, +(clampedAmount * 2).toFixed(2))).toFixed(7);
+    // Price the XLM leg from the live Stellar DEX orderbook (fallback: 2x heuristic)
+    const { usdPerXlm, pricingSource } = await xlmUsdPrice();
+    const usdAmount = clampedAmount * FIAT_TO_USD[currency];
+    const xlmEstimated = usdPerXlm ? usdAmount / usdPerXlm : clampedAmount * 2;
+    const xlmAmount = Math.max(0.5, Math.min(50, +xlmEstimated.toFixed(2))).toFixed(7);
     const memoStr = `CAUSE:${productId.toUpperCase().slice(0, 8)}:${region.toUpperCase().slice(0, 11)}`.slice(
       0,
       28
@@ -521,6 +564,8 @@ export default async function (req: Request) {
         fiatAmount: clampedAmount,
         fiatCurrency: currency,
         xlmSettled: Number(xlmAmount),
+        xlmUsdPrice: usdPerXlm,
+        pricingSource,
         feeXlm: "0.00001",
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${result.hash}`,
         accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${targetWallet}`,
@@ -544,6 +589,8 @@ export default async function (req: Request) {
         fiatAmount: clampedAmount,
         fiatCurrency: currency,
         xlmSettled: Number(xlmAmount),
+        xlmUsdPrice: usdPerXlm,
+        pricingSource,
         feeXlm: "0.00001",
         explorerUrl: `https://stellar.expert/explorer/testnet/tx/${CACHED_FALLBACK_TX.hash}`,
         accountExplorerUrl: `https://stellar.expert/explorer/testnet/account/${targetWallet}`,

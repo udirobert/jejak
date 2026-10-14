@@ -26,7 +26,8 @@ function base64UrlToBytes(b64url) {
   return out;
 }
 
-// Deterministic Soroban C... contract address derived from credential salt + OpenZeppelin account WASM hash
+// Preliminary C... placeholder derived locally before the relayer responds —
+// the relayer replaces it with the real preimage-derived contract address.
 async function deriveSmartAccountAddress(credentialId) {
   const input = `smart-account-kit:${OZ_SMART_ACCOUNT_TESTNET.accountWasmHash}:${STELLAR_NETWORK}:${credentialId}`;
   const digest = new Uint8Array(
@@ -82,18 +83,33 @@ async function checkSorobanRpcHealth() {
   return true;
 }
 
+// Extract the 65-byte uncompressed secp256r1 public key from a WebAuthn
+// credential response (last 65 bytes of the DER SubjectPublicKeyInfo).
+function getPasskeyPublicKey65(cred) {
+  const der = cred?.response?.getPublicKey?.();
+  if (!der) return null;
+  const bytes = new Uint8Array(der);
+  const tail = bytes.slice(-65);
+  return tail[0] === 0x04 ? tail : null;
+}
+
 async function deploySmartAccountSession({
   credentialId,
   rpId,
   simulatedPasskey = false,
+  passkeyPublicKey = null,
 }) {
-  const contractId = await deriveSmartAccountAddress(credentialId);
+  const placeholderContractId = await deriveSmartAccountAddress(credentialId);
   const nowIso = new Date().toISOString();
 
   const relayRes = await base44.functions
     .invoke("stellarFeeRelayer", {
       action: "deploy_smart_account",
-      contractId,
+      contractId: placeholderContractId,
+      credentialId,
+      passkeyPublicKey: passkeyPublicKey
+        ? bytesToBase64Url(passkeyPublicKey)
+        : null,
       targetContract: OZ_SMART_ACCOUNT_TESTNET.webauthnVerifierContract,
       meta: `rp:${rpId.slice(0, 14)}`,
     })
@@ -108,9 +124,22 @@ async function deploySmartAccountSession({
     throw err;
   }
 
+  // The relayer returns the real preimage-derived contract address — already
+  // deployed on Soroban Testnet when `deployed === true`.
+  const contractId =
+    typeof relayRes.data.contractId === "string" &&
+    relayRes.data.contractId.startsWith("C")
+      ? relayRes.data.contractId
+      : placeholderContractId;
+  const deployed = Boolean(relayRes.data.deployed);
+  const contractExplorerUrl =
+    relayRes.data.contractExplorerUrl ||
+    `https://stellar.expert/explorer/testnet/contract/${contractId}`;
+
   const session = {
     provider: "smart-account-kit",
     address: contractId,
+    deployed,
     credentialId,
     rpId,
     simulatedPasskey,
@@ -139,9 +168,11 @@ async function deploySmartAccountSession({
       {
         id: `act-create-${Date.now()}`,
         type: "Passport created",
-        detail: simulatedPasskey
-          ? "Smart account deployed (preview key)"
-          : "Smart account deployed with passkey",
+        detail: deployed
+          ? simulatedPasskey
+            ? "Smart account deployed on Testnet (preview key)"
+            : "Smart account deployed on Testnet with passkey"
+          : "Smart account registered (deployment pending)",
         hash: relayRes.data.hash,
         ledger: relayRes.data.ledger,
         explorerUrl: relayRes.data.explorerUrl,
@@ -152,6 +183,7 @@ async function deploySmartAccountSession({
     sponsoredTxHash: relayRes.data.hash,
     sponsoredLedger: relayRes.data.ledger,
     explorerUrl: relayRes.data.explorerUrl,
+    contractExplorerUrl,
     createdAt: nowIso,
   };
 
@@ -172,10 +204,16 @@ export async function createWallet({
   if (allowPreviewFallback) {
     const rawKey = crypto.getRandomValues(new Uint8Array(24));
     const credentialId = bytesToBase64Url(rawKey);
+    // Well-formed 65-byte uncompressed P-256 pubkey placeholder so the
+    // relayer can still perform a real contract deployment for previews.
+    const previewKey = new Uint8Array(65);
+    previewKey[0] = 0x04;
+    crypto.getRandomValues(previewKey.subarray(1));
     return deploySmartAccountSession({
       credentialId,
       rpId,
       simulatedPasskey: true,
+      passkeyPublicKey: previewKey,
     });
   }
 
@@ -235,6 +273,7 @@ export async function createWallet({
     credentialId,
     rpId,
     simulatedPasskey: false,
+    passkeyPublicKey: getPasskeyPublicKey65(cred),
   });
 }
 

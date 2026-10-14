@@ -21,6 +21,7 @@ import {
   ShieldCheck,
   Plus,
   LogOut,
+  ExternalLink,
 } from "lucide-react";
 
 export function formatShortWalletAddress(address) {
@@ -346,6 +347,19 @@ export default function JejakPassportSheet({
                     <p className="font-mono text-xs font-bold text-slate-500">
                       {formatShortWalletAddress(walletSession.address)}
                     </p>
+                    {walletSession.contractExplorerUrl && (
+                      <a
+                        href={walletSession.contractExplorerUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 no-tap"
+                      >
+                        {walletSession.deployed !== false
+                          ? "Deployed contract on Soroban Testnet"
+                          : "Deployment pending"}
+                        <ExternalLink size={9} />
+                      </a>
+                    )}
                   </div>
                   <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-extrabold text-emerald-700">
                     <Check size={12} strokeWidth={2.5} /> Active

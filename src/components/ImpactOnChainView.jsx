@@ -11,6 +11,7 @@ import {
   ExternalLink,
   CheckCircle2,
   XCircle,
+  Clock,
   ShieldCheck,
   Loader2,
   Fingerprint,
@@ -121,19 +122,24 @@ export default function ImpactOnChainView({ traceRecords = [], reduce = false })
         txHash,
         expectedHashHex: recomputedHex,
       });
-      const onChainHex =
-        res?.data?.onChainHashHex || rec.recordHashHex || rec.rawMemo || recomputedHex;
+      const onChainHex = res?.data?.onChainHashHex || null;
+      const unverifiable = res?.data?.verificationStatus === "unverifiable";
       const matched =
+        !unverifiable &&
         Boolean(recomputedHex) &&
+        Boolean(onChainHex) &&
         recomputedHex.toLowerCase() === onChainHex.toLowerCase();
 
       setVerifyMap((prev) => ({
         ...prev,
         [txHash]: {
           matched,
+          unverifiable,
           recomputedHex,
           onChainHex,
-          explanation: matched
+          explanation: unverifiable
+            ? "Unverifiable — Horizon unreachable, result indeterminate."
+            : matched
             ? "Match — in-app record hash matches the MEMO_HASH on Stellar Testnet."
             : "Mismatch — record digest differs from the on-chain MEMO_HASH.",
         },
@@ -142,8 +148,9 @@ export default function ImpactOnChainView({ traceRecords = [], reduce = false })
       setVerifyMap((prev) => ({
         ...prev,
         [txHash]: {
-          matched: true,
-          explanation: "Match — verified against stored SHA-256 record digest.",
+          matched: false,
+          unverifiable: true,
+          explanation: "Unverifiable — verification service unreachable.",
         },
       }));
     } finally {
@@ -280,6 +287,8 @@ export default function ImpactOnChainView({ traceRecords = [], reduce = false })
                           className={`mt-1.5 flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-[10px] font-bold ${
                             vResult.matched
                               ? "bg-emerald-500/15 text-emerald-900"
+                              : vResult.unverifiable
+                              ? "bg-amber-400/20 text-amber-900"
                               : "bg-red-500/15 text-red-900"
                           }`}
                         >
@@ -287,6 +296,11 @@ export default function ImpactOnChainView({ traceRecords = [], reduce = false })
                             <CheckCircle2
                               size={12}
                               className="text-emerald-600 shrink-0"
+                            />
+                          ) : vResult.unverifiable ? (
+                            <Clock
+                              size={12}
+                              className="text-amber-600 shrink-0"
                             />
                           ) : (
                             <XCircle

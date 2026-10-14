@@ -10,6 +10,7 @@ import { TAP } from "@/lib/motion";
 import {
   CheckCircle2,
   XCircle,
+  Clock,
   Loader2,
   ExternalLink,
   ShieldCheck,
@@ -190,18 +191,24 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
         expectedHashHex: recomputedHex,
       });
       const data = res?.data || {};
-      const onChainHashHex =
-        data.onChainHashHex || provenanceRecord.recordHashHex;
-      const matched = forceTamper
-        ? false
-        : recomputedHex.toLowerCase() === onChainHashHex.toLowerCase();
+      const unverifiable =
+        !forceTamper && data.verificationStatus === "unverifiable";
+      const onChainHashHex = data.onChainHashHex || null;
+      const matched =
+        !unverifiable &&
+        !forceTamper &&
+        Boolean(onChainHashHex) &&
+        recomputedHex.toLowerCase() === onChainHashHex.toLowerCase();
 
       setVerifyState({
         matched,
+        unverifiable,
         recomputedHex,
         onChainHashHex,
         simulated: Boolean(data.cachedFallback || provenanceRecord.cachedFallback),
-        explanation: matched
+        explanation: unverifiable
+          ? "Could not confirm against Stellar Horizon right now — the result is indeterminate, not verified."
+          : matched
           ? `Recomputed SHA-256 from this trace record matches the MEMO_HASH on Stellar Testnet ledger #${
               data.ledger || provenanceRecord.ledger
             }.`
@@ -213,16 +220,15 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
           ? `${provenanceRecord.canonicalJson} `
           : provenanceRecord.canonicalJson
       );
-      const matched =
-        !forceTamper && recomputedHex === provenanceRecord.recordHashHex;
       setVerifyState({
-        matched,
+        matched: false,
+        unverifiable: !forceTamper,
         recomputedHex,
-        onChainHashHex: provenanceRecord.recordHashHex,
+        onChainHashHex: null,
         simulated: true,
-        explanation: matched
-          ? "Recomputed SHA-256 matches the anchored record digest (offline check)."
-          : "Recomputed SHA-256 does not match the anchored record digest.",
+        explanation: forceTamper
+          ? "Recomputed SHA-256 does not match the anchored record digest."
+          : "Verification service unreachable — the result is indeterminate, not verified.",
       });
     } finally {
       setVerifying(false);
@@ -430,6 +436,8 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
                 className={`rounded-xl p-2.5 border text-xs ${
                   verifyState.matched
                     ? "bg-emerald-500/20 border-emerald-400/50 text-white"
+                    : verifyState.unverifiable
+                    ? "bg-amber-300/15 border-amber-300/40 text-white"
                     : "bg-red-500/20 border-red-400/50 text-white"
                 }`}
               >
@@ -439,6 +447,11 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
                       <>
                         <CheckCircle2 size={14} className="text-emerald-300" />
                         <span>Match</span>
+                      </>
+                    ) : verifyState.unverifiable ? (
+                      <>
+                        <Clock size={14} className="text-amber-300" />
+                        <span>Unverifiable</span>
                       </>
                     ) : (
                       <>
@@ -470,7 +483,7 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
                     In-app SHA-256: {verifyState.recomputedHex}
                   </p>
                   <p className="truncate">
-                    Horizon memo:   {verifyState.onChainHashHex}
+                    Horizon memo:   {verifyState.onChainHashHex || "unavailable"}
                   </p>
                 </div>
               </motion.div>
