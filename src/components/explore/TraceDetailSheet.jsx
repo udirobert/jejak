@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   XCircle,
+  Clock,
   Loader2,
   HeartHandshake,
 } from "lucide-react";
@@ -138,14 +139,21 @@ export default function TraceDetailSheet({
         expectedHashHex: recomputedHex,
       });
       const data = res?.data || {};
+      const unverifiable = data.verificationStatus === "unverifiable";
       const onChainHex = (data.onChainHashHex || "").toLowerCase();
       const matched =
-        Boolean(recomputedHex && onChainHex && recomputedHex === onChainHex);
+        !unverifiable &&
+        Boolean(
+          recomputedHex &&
+            onChainHex &&
+            recomputedHex.toLowerCase() === onChainHex
+        );
 
       setVerifyResult({
         matched,
+        unverifiable,
         recomputedHex,
-        onChainHex: onChainHex || scan.record_sha256,
+        onChainHex: onChainHex || null,
       });
     } catch {
       const canonicalStr =
@@ -156,9 +164,10 @@ export default function TraceDetailSheet({
         ? await sha256HexBrowser(canonicalStr)
         : scan.record_sha256;
       setVerifyResult({
-        matched: recomputedHex === scan.record_sha256,
+        matched: false,
+        unverifiable: true,
         recomputedHex,
-        onChainHex: scan.record_sha256,
+        onChainHex: null,
       });
     } finally {
       setVerifying(false);
@@ -492,7 +501,13 @@ export default function TraceDetailSheet({
                           <AnimatePresence mode="wait">
                             {verifyResult && (
                               <motion.div
-                                key={verifyResult.matched ? "match" : "mismatch"}
+                                key={
+                                  verifyResult.matched
+                                    ? "match"
+                                    : verifyResult.unverifiable
+                                    ? "unverifiable"
+                                    : "mismatch"
+                                }
                                 initial={
                                   reduce ? false : { opacity: 0, scale: 0.92 }
                                 }
@@ -501,6 +516,8 @@ export default function TraceDetailSheet({
                                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold ${
                                   verifyResult.matched
                                     ? "bg-jejak-materials/15 text-jejak-materials"
+                                    : verifyResult.unverifiable
+                                    ? "bg-amber-400/20 text-amber-800"
                                     : "bg-red-500/15 text-red-600"
                                 }`}
                               >
@@ -508,6 +525,10 @@ export default function TraceDetailSheet({
                                   <>
                                     <CheckCircle2 size={13} /> Hash matches
                                     on-chain memo
+                                  </>
+                                ) : verifyResult.unverifiable ? (
+                                  <>
+                                    <Clock size={13} /> Unverifiable right now
                                   </>
                                 ) : (
                                   <>

@@ -104,9 +104,19 @@ export default function StellarSettlementBadge({
                 {tx.causeLabel || "Demo cause (testnet)"}
               </span>
             </div>
-            <p className="mt-1 text-[9px] font-semibold text-white/65">
-              Sends a testnet payment to a demo cause wallet. In production, donations would go to a vetted organisation.
-            </p>
+            <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1 text-[9px] font-semibold text-white/65">
+              <span>
+                Sends a testnet payment to a demo cause wallet.
+              </span>
+              {tx.pricingSource && (
+                <span className="rounded-full bg-white/10 px-2 py-0.5 font-mono text-[9px] font-bold text-amber-200">
+                  {tx.pricingSource === "stellar_dex_orderbook_xlm_usdc" &&
+                  tx.xlmUsdPrice
+                    ? `1 XLM ≈ $${Number(tx.xlmUsdPrice).toFixed(3)} · Stellar DEX`
+                    : "Rate · Heuristic fallback"}
+                </span>
+              )}
+            </div>
           </div>
 
           {/* Qualitative fee note */}

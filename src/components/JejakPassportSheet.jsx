@@ -311,12 +311,12 @@ export default function JejakPassportSheet({
                     type="button"
                     disabled={Boolean(busyAction)}
                     onClick={handleSignIn}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-60 no-tap"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-jejak-navy hover:bg-slate-50 disabled:opacity-60 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                   >
                     {busyAction === "signin" ? (
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
-                      <Fingerprint size={14} />
+                      <Fingerprint size={14} className="text-jejak-freight" />
                     )}
                     Sign in
                   </button>
@@ -324,12 +324,12 @@ export default function JejakPassportSheet({
                     type="button"
                     disabled={Boolean(busyAction)}
                     onClick={handleConnectFreighter}
-                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-slate-800 hover:bg-slate-50 disabled:opacity-60 no-tap"
+                    className="inline-flex items-center justify-center gap-1.5 rounded-2xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-extrabold text-jejak-navy hover:bg-slate-50 disabled:opacity-60 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-300"
                   >
                     {busyAction === "external" ? (
                       <Loader2 size={14} className="animate-spin" />
                     ) : (
-                      <Wallet size={14} />
+                      <Wallet size={14} className="text-jejak-labour" />
                     )}
                     Freighter
                   </button>
@@ -392,11 +392,17 @@ export default function JejakPassportSheet({
                         href={walletSession.contractExplorerUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-indigo-500 hover:text-indigo-700 no-tap"
+                        className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-extrabold no-tap ${
+                          walletSession.deployed !== false
+                            ? "bg-jejak-freight/10 text-jejak-freight hover:bg-jejak-freight/15"
+                            : "bg-amber-400/20 text-amber-800 hover:bg-amber-400/30"
+                        }`}
                       >
                         {walletSession.deployed !== false
-                          ? "Deployed contract on Soroban Testnet"
-                          : "Deployment pending"}
+                          ? walletSession.alreadyDeployed
+                            ? "Verified contract on Soroban Testnet"
+                            : "Deployed contract on Soroban Testnet"
+                          : "Deployment pending (journaled)"}
                         <ExternalLink size={9} />
                       </a>
                     )}

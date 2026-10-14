@@ -132,6 +132,7 @@ async function deploySmartAccountSession({
       ? relayRes.data.contractId
       : placeholderContractId;
   const deployed = Boolean(relayRes.data.deployed);
+  const alreadyDeployed = Boolean(relayRes.data.alreadyDeployed);
   const contractExplorerUrl =
     relayRes.data.contractExplorerUrl ||
     `https://stellar.expert/explorer/testnet/contract/${contractId}`;
@@ -140,6 +141,7 @@ async function deploySmartAccountSession({
     provider: "smart-account-kit",
     address: contractId,
     deployed,
+    alreadyDeployed,
     credentialId,
     rpId,
     simulatedPasskey,
@@ -167,9 +169,11 @@ async function deploySmartAccountSession({
     passportActions: [
       {
         id: `act-create-${Date.now()}`,
-        type: "Passport created",
+        type: alreadyDeployed ? "Passport connected" : "Passport created",
         detail: deployed
-          ? simulatedPasskey
+          ? alreadyDeployed
+            ? "Existing smart account verified on Soroban Testnet"
+            : simulatedPasskey
             ? "Smart account deployed on Testnet (preview key)"
             : "Smart account deployed on Testnet with passkey"
           : "Smart account registered (deployment pending)",
