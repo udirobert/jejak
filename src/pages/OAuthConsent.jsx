@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { appParams } from "@/lib/app-params";
-import { Button } from "@/components/ui/button";
-import { ShieldCheck, Loader2 } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
+import { Loader2 } from "lucide-react";
+import AuthLayout, { AuthError } from "@/components/AuthLayout";
 
 const OPERATION_VERBS = { read: "view", create: "create", update: "edit", delete: "delete" };
 const COLLAPSED_DATA_ROWS = 6;
@@ -44,7 +43,7 @@ function OperationSummary({ operations }) {
         return (
           <React.Fragment key={op}>
             {separator}
-            <span className={op === "delete" ? "font-medium text-destructive" : undefined}>
+            <span className={op === "delete" ? "font-medium text-journal-stamp" : undefined}>
               {i === 0 ? verb[0].toUpperCase() + verb.slice(1) : verb}
             </span>
           </React.Fragment>
@@ -58,8 +57,8 @@ function OperationSummary({ operations }) {
 function ToolSection({ title, children }) {
   return (
     <section>
-      <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">{title}</h3>
-      <ul className="divide-y divide-border rounded-lg border border-border">{children}</ul>
+      <h3 className="text-xs font-medium uppercase tracking-wide text-journal-ink-soft mb-2">{title}</h3>
+      <ul className="divide-y divide-journal-rule rounded-lg border border-journal-rule">{children}</ul>
     </section>
   );
 }
@@ -67,8 +66,8 @@ function ToolSection({ title, children }) {
 function ToolRow({ title, children }) {
   return (
     <li className="flex flex-col gap-0.5 px-3 py-2">
-      <span className="font-medium text-foreground">{title}</span>
-      {children && <span className="text-muted-foreground">{children}</span>}
+      <span className="font-medium text-journal-ink">{title}</span>
+      {children && <span className="text-journal-ink-soft">{children}</span>}
     </li>
   );
 }
@@ -206,8 +205,8 @@ export default function OAuthConsent() {
 
   if (checking) {
     return (
-      <AuthLayout icon={ShieldCheck} title="Authorize access">
-        <div className="flex items-center justify-center py-6 text-muted-foreground">
+      <AuthLayout title="Authorize access">
+        <div className="flex items-center justify-center py-6 text-journal-ink-soft">
           <Loader2 className="w-5 h-5 mr-2 animate-spin" aria-hidden="true" />
           Loading…
         </div>
@@ -221,7 +220,7 @@ export default function OAuthConsent() {
   if (decided) {
     return (
       <AuthLayout
-        icon={ShieldCheck}
+       
         title={decided === "approve" ? "Access granted" : "Access denied"}
         subtitle={`You can return to ${client} and close this window.`}
       />
@@ -233,10 +232,8 @@ export default function OAuthConsent() {
   // no approve/deny controls.
   if (reconnect) {
     return (
-      <AuthLayout icon={ShieldCheck} title="Reconnect required">
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {reconnect}
-        </div>
+      <AuthLayout title="Reconnect required">
+        <AuthError>{reconnect}</AuthError>
       </AuthLayout>
     );
   }
@@ -246,10 +243,8 @@ export default function OAuthConsent() {
   // the error alone, never the approve/deny controls.
   if (error && !info) {
     return (
-      <AuthLayout icon={ShieldCheck} title="Authorize access">
-        <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
+      <AuthLayout title="Authorize access">
+        <AuthError>{error}</AuthError>
       </AuthLayout>
     );
   }
@@ -259,17 +254,12 @@ export default function OAuthConsent() {
 
   return (
     <AuthLayout
-      icon={ShieldCheck}
       title="Authorize access"
       subtitle={`${client} wants to access ${appName} on your behalf`}
     >
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      {error && <AuthError>{error}</AuthError>}
 
-      <p className="text-sm font-medium text-foreground mb-3">
+      <p className="text-sm font-medium text-journal-ink mb-3">
         {tools.length ? `${client} will be able to:` : "No tools requested"}
       </p>
       {tools.length > 0 && (
@@ -285,7 +275,7 @@ export default function OAuthConsent() {
                 <li className="px-3 py-2">
                   <button
                     type="button"
-                    className="text-sm font-medium text-primary hover:underline"
+                    className="text-sm font-medium text-journal-ink underline decoration-journal-stamp underline-offset-4"
                     onClick={() => setShowAllData((shown) => !shown)}
                   >
                     {showAllData ? "Show less" : `Show all ${data.length}`}
@@ -316,22 +306,23 @@ export default function OAuthConsent() {
       )}
 
       <div className="flex gap-3">
-        <Button
-          variant="outline"
-          className="flex-1 h-12 font-medium"
+        <button
+          type="button"
+          className="flex-1 border border-journal-rule bg-journal-paper py-2.5 font-grotesk text-sm font-medium text-journal-ink transition-all hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--j-stamp)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp disabled:opacity-50"
           disabled={submitting}
           onClick={() => respond("deny")}
         >
           Deny
-        </Button>
-        <Button
-          className="flex-1 h-12 font-medium"
+        </button>
+        <button
+          type="button"
+          className="flex-1 rounded-[2px] bg-journal-ink px-5 py-2.5 font-grotesk text-sm font-medium text-journal-paper shadow-[3px_3px_0_0_var(--j-stamp)] transition-all hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp disabled:opacity-50 inline-flex items-center justify-center gap-2"
           disabled={submitting}
           onClick={() => respond("approve")}
         >
-          {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+          {submitting ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : null}
           Approve
-        </Button>
+        </button>
       </div>
     </AuthLayout>
   );

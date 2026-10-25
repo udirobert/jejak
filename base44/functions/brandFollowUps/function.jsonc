@@ -1,17 +1,4 @@
 {
   "name": "brandFollowUps",
-  "entry": "entry.ts",
-  "automations": [
-    {
-      "type": "scheduled",
-      "name": "daily_brand_reminders",
-      "description": "Daily reminder for unanswered brand letters.",
-      "is_active": true,
-      "schedule_mode": "recurring",
-      "schedule_type": "simple",
-      "repeat_unit": "days",
-      "repeat_interval": 1,
-      "start_time": "09:00"
-    }
-  ]
+  "entry": "entry.ts"
 }

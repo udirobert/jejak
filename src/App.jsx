@@ -16,6 +16,11 @@ const Explore = React.lazy(() => import('@/pages/Explore'));
 const Landing = React.lazy(() => import('@/pages/Landing'));
 const Journal = React.lazy(() => import('@/pages/Journal'));
 const Room = React.lazy(() => import('@/pages/Room'));
+const Login = React.lazy(() => import('@/pages/Login'));
+const Register = React.lazy(() => import('@/pages/Register'));
+const ForgotPassword = React.lazy(() => import('@/pages/ForgotPassword'));
+const ResetPassword = React.lazy(() => import('@/pages/ResetPassword'));
+const OAuthConsent = React.lazy(() => import('@/pages/OAuthConsent'));
 
 const PageFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#F3EDE2]">
@@ -65,6 +70,11 @@ const AuthenticatedApp = () => {
         </Route>
         <Route path="/" element={<Landing />} />
         <Route path="/landing" element={<Navigate to="/" replace />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/oauth-consent" element={<OAuthConsent />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
       </Suspense>

@@ -1,11 +1,9 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { LogIn, Mail, Lock, Loader2 } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
+import { Mail, Lock, Loader2 } from "lucide-react";
+import AuthLayout, { AuthDivider, AuthError, authGhostBtn, authInput, authLabel, authLink } from "@/components/AuthLayout";
+import JournalButton from "@/components/journal/JournalButton";
 import GoogleIcon from "@/components/GoogleIcon";
 import { safeReturnTo } from "@/lib/authReturnTo";
 
@@ -38,51 +36,35 @@ export default function Login() {
 
   return (
     <AuthLayout
-      icon={LogIn}
-      title="Welcome back"
-      subtitle="Log in to your account"
+      title="Welcome back."
+      subtitle="Pick up your journal where you left it."
       footer={
         <>
-          Don't have an account?{" "}
+          No journal yet?{" "}
           <Link
             to={"/register" + (returnTo !== "/" ? "?returnTo=" + encodeURIComponent(returnTo) : "")}
-            className="text-primary font-medium hover:underline"
+            className={authLink}
           >
-            Create one
+            Open one
           </Link>
         </>
       }
     >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 mr-2" />
+      <button type="button" className={authGhostBtn} onClick={handleGoogle}>
+        <GoogleIcon className="w-5 h-5" />
         Continue with Google
-      </Button>
+      </button>
 
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
-        </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
-        </div>
-      </div>
+      <AuthDivider />
 
-      {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
-          {error}
-        </div>
-      )}
+      {error && <AuthError>{error}</AuthError>}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <label htmlFor="email" className={authLabel}>Email</label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-journal-ink-soft" aria-hidden="true" />
+            <input
               id="email"
               type="email"
               autoComplete="email"
@@ -90,42 +72,42 @@ export default function Login() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="pl-10 h-12"
+              className={authInput}
               required
             />
           </div>
         </div>
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <Link to="/forgot-password" className="text-xs text-primary hover:underline">
-              Forgot password?
+            <label htmlFor="password" className={authLabel}>Password</label>
+            <Link to="/forgot-password" className="font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft underline decoration-journal-rule underline-offset-4 hover:text-journal-stamp">
+              Forgot?
             </Link>
           </div>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
-            <Input
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-journal-ink-soft" aria-hidden="true" />
+            <input
               id="password"
               type="password"
               autoComplete="current-password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 h-12"
+              className={authInput}
               required
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <JournalButton type="submit" className="w-full" disabled={loading}>
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Logging in...
+              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+              Signing in…
             </>
           ) : (
-            "Log in"
+            "Sign in"
           )}
-        </Button>
+        </JournalButton>
       </form>
     </AuthLayout>
   );

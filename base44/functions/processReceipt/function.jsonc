@@ -1,14 +1,4 @@
 {
   "name": "processReceipt",
-  "entry": "entry.ts",
-  "automations": [
-    {
-      "type": "entity",
-      "name": "on_receipt_create",
-      "description": "Reads a receipt photo and traces each item.",
-      "is_active": true,
-      "entity_name": "Receipt",
-      "event_types": ["create"]
-    }
-  ]
+  "entry": "entry.ts"
 }
