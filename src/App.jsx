@@ -15,6 +15,7 @@ const Impact = React.lazy(() => import('@/pages/Impact'));
 const Explore = React.lazy(() => import('@/pages/Explore'));
 const Landing = React.lazy(() => import('@/pages/Landing'));
 const Journal = React.lazy(() => import('@/pages/Journal'));
+const Room = React.lazy(() => import('@/pages/Room'));
 
 const PageFallback = () => (
   <div className="flex min-h-screen items-center justify-center bg-[#F3EDE2]">
@@ -57,6 +58,8 @@ const AuthenticatedApp = () => {
           <Route path="/atlas" element={<Explore />} />
           <Route path="/explore" element={<Navigate to="/atlas" replace />} />
           <Route path="/journal" element={<Journal />} />
+          <Route path="/room" element={<Room />} />
+          <Route path="/floor" element={<Navigate to="/room" replace />} />
           <Route path="/impact" element={<Impact />} />
           <Route path="/embedded" element={<Embedded />} />
         </Route>

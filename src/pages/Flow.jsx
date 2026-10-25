@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
 import Home from "./Home";
@@ -26,6 +26,7 @@ export default function Flow() {
   } = useApp();
   const [searchParams] = useSearchParams();
   const deepLinked = useRef(false);
+  const reduce = useReducedMotion();
 
   // Deep link: /trace?sample=<id> jumps straight into that specimen's flow.
   useEffect(() => {
@@ -64,15 +65,18 @@ export default function Flow() {
 
   return (
     <>
-      <motion.div
-        key={screen}
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: "easeOut" }}
-        className="w-full"
-      >
-        <Current />
-      </motion.div>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={screen}
+          initial={reduce ? false : { opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? false : { opacity: 0, y: -10 }}
+          transition={{ duration: 0.22, ease: "easeOut" }}
+          className="w-full flex-1 flex flex-col"
+        >
+          <Current />
+        </motion.div>
+      </AnimatePresence>
       <DetailDrawer />
       <HowWeEstimateDrawer />
     </>

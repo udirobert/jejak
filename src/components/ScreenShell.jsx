@@ -8,6 +8,7 @@ import { HelpCircle } from "lucide-react";
 const NAV = [
   { to: "/trace", label: "Trace" },
   { to: "/atlas", label: "Atlas" },
+  { to: "/room", label: "Floor Live", live: true },
   { to: "/journal", label: "Journal" },
 ];
 
@@ -80,9 +81,15 @@ export default function ScreenShell({
                   <Link
                     key={n.to}
                     to={n.to}
-                    className="font-plexmono text-[11px] uppercase tracking-[0.12em] text-journal-ink-soft underline-offset-4 hover:text-journal-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
+                    className="inline-flex items-center gap-1.5 font-plexmono text-[11px] uppercase tracking-[0.12em] text-journal-ink-soft underline-offset-4 hover:text-journal-ink hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
                   >
                     {n.label}
+                    {n.live && (
+                      <span className="flex h-1.5 w-1.5">
+                        <span className="absolute inline-flex h-1.5 w-1.5 animate-ping rounded-full bg-journal-stamp opacity-75" />
+                        <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-journal-stamp" />
+                      </span>
+                    )}
                   </Link>
                 ))}
               </nav>

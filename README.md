@@ -19,6 +19,7 @@ Most of us have no idea that a £120 hoodie probably crossed six countries and 2
 | **Read the label** | Snap the care tag and the "made in" country becomes a fact. That stage is stamped *read from the label*; everything else stays *estimated*. |
 | **Follow the money** | Guess first, then reveal. A torn receipt shows where the money went, with the labour line circled in red pen. |
 | **Your journal** | Every trace is saved to your private journal. You can choose to publish any entry to the shared **Atlas** map. |
+| **Live Floor Mode (`/room`)** | Guest trace station for live event attendees: instant curated or AI trace without login, real-time count of today's traces, and verified Stellar-anchored transaction feed. |
 | **Proof, if you want it** | Any entry can be fingerprinted on a public ledger (Stellar), so no one can quietly change it later. |
 
 ## Automations: Jejak does the legwork

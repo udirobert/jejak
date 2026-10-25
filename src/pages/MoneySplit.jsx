@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { base44 } from "@/api/base44Client";
 import { computeSplit, formatMoney, labourPerUnit, getRoute } from "@/lib/money";
@@ -163,61 +163,77 @@ export default function MoneySplit() {
             {product.name} · {product.markets[market].retailer} · every figure is a range with a confidence level.
           </p>
 
-          {revealed ? (
-            <div className="relative mt-6">
-              <Receipt
-                title={compareMode ? "Jejak field receipt · a fairer version" : "Jejak field receipt"}
-                lines={receiptLines}
-                total={price}
-                currency={currency}
-                highlightKey="labour"
-                highlightNote={`${formatMoney(labour.amount, currency)} to the people who sewed it · ${guessNote}`}
-                onLineClick={(key) => setDetailCategory(key)}
-                className="w-full max-w-md shadow-[0_16px_36px_-16px_rgba(30,27,22,0.3)]"
-              />
-              <p className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
-                tap a line for its basis
-              </p>
-              <div className="mt-5 max-w-md">
-                <StoryCard
-                  scanId={savedScanId}
-                  productName={product.name}
-                  routeCodes={routeCodes}
-                  labourLine={`≈ ${formatMoney(labour.amount, currency)} to the people who made it`}
+          <AnimatePresence mode="wait">
+            {revealed ? (
+              <motion.div
+                key="revealed-receipt"
+                initial={reduce ? false : { opacity: 0, scale: 0.98, y: 14 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.98, y: -10 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="relative mt-6"
+              >
+                <Receipt
+                  title={compareMode ? "Jejak field receipt · a fairer version" : "Jejak field receipt"}
+                  lines={receiptLines}
+                  total={price}
                   currency={currency}
+                  highlightKey="labour"
+                  highlightNote={`${formatMoney(labour.amount, currency)} to the people who sewed it · ${guessNote}`}
+                  onLineClick={(key) => setDetailCategory(key)}
+                  className="w-full max-w-md shadow-[0_16px_36px_-16px_rgba(30,27,22,0.3)]"
                 />
-              </div>
-            </div>
-          ) : (
-            <div className="mt-6 max-w-md border border-journal-rule bg-journal-card p-5 shadow-[0_10px_30px_-16px_rgba(30,27,22,0.3)]">
-              <p className="font-serif-display text-2xl text-journal-ink" style={displayFont}>
-                Guess first
-              </p>
-              <p className="mt-1 font-grotesk text-sm text-journal-ink-soft">
-                How much of your {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })} reached the people who made it?
-              </p>
-              <input
-                type="range"
-                min={1}
-                max={40}
-                step={1}
-                value={guess}
-                onChange={(e) => { vibrate(4); setGuess(Number(e.target.value)); }}
-                aria-label="Guess the maker share percent"
-                className="mt-4 w-full cursor-pointer accent-journal-stamp"
-              />
-              <div className="mt-1 flex justify-between font-plexmono text-[10px] text-journal-ink-soft">
-                <span>1%</span>
-                <span className="font-medium text-journal-stamp">{guess}% · ≈{formatMoney((price * guess) / 100, currency)}</span>
-                <span>40%</span>
-              </div>
-              <div className="mt-4">
-                <JournalButton onClick={() => { vibrate(10); setGuessedLabourPct(guess); }}>
-                  Reveal the split
-                </JournalButton>
-              </div>
-            </div>
-          )}
+                <p className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
+                  tap a line for its basis
+                </p>
+                <div className="mt-5 max-w-md">
+                  <StoryCard
+                    scanId={savedScanId}
+                    productName={product.name}
+                    routeCodes={routeCodes}
+                    labourLine={`≈ ${formatMoney(labour.amount, currency)} to the people who made it`}
+                    currency={currency}
+                  />
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="guess-box"
+                initial={reduce ? false : { opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.97, y: -10 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="mt-6 max-w-md border border-journal-rule bg-journal-card p-5 shadow-[0_10px_30px_-16px_rgba(30,27,22,0.3)]"
+              >
+                <p className="font-serif-display text-2xl text-journal-ink" style={displayFont}>
+                  Guess first
+                </p>
+                <p className="mt-1 font-grotesk text-sm text-journal-ink-soft">
+                  How much of your {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })} reached the people who made it?
+                </p>
+                <input
+                  type="range"
+                  min={1}
+                  max={40}
+                  step={1}
+                  value={guess}
+                  onChange={(e) => { vibrate(4); setGuess(Number(e.target.value)); }}
+                  aria-label="Guess the maker share percent"
+                  className="mt-4 w-full cursor-pointer accent-journal-stamp"
+                />
+                <div className="mt-1 flex justify-between font-plexmono text-[10px] text-journal-ink-soft">
+                  <span>1%</span>
+                  <span className="font-medium text-journal-stamp">{guess}% · ≈{formatMoney((price * guess) / 100, currency)}</span>
+                  <span>40%</span>
+                </div>
+                <div className="mt-4">
+                  <JournalButton onClick={() => { vibrate(10); setGuessedLabourPct(guess); }}>
+                    Reveal the split
+                  </JournalButton>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Actions / notes */}

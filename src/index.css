@@ -41,10 +41,10 @@
     --j-freight: #2F5D8A;
     --j-brand: #7A4E8C;
     --j-retail: #B8456B;
-    --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    --font-heading: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Fraunces", ui-serif, Georgia, serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
@@ -75,8 +75,8 @@
   }
   body {
     @apply bg-background text-foreground font-body antialiased;
-    font-family: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
-    color: #1B1B3A;
+    font-family: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+    color: var(--j-ink);
   }
 }
 

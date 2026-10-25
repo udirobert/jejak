@@ -97,10 +97,10 @@ module.exports = {
   			grotesk: ['"Schibsted Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   			plexmono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
   			hand: ['Caveat', 'cursive'],
-  			heading: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  			body: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  			display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-  			mono: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace']
+  			heading: ['"Schibsted Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			body: ['"Schibsted Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			display: ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+  			mono: ['"IBM Plex Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', '"Liberation Mono"', '"Courier New"', 'monospace']
   		},
   		keyframes: {
   			'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },

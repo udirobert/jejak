@@ -79,15 +79,29 @@ Pitch line (honest version): *"tip the corridor cause wallet in USDC, settled on
 
 ---
 
+## H8–10 Checkpoint: if `/room` is done early → Polish pass
+
+If you're green on `/room` by h8, run the polish priority list from `docs/polish.md`:
+
+1. **Page transitions** (1h) — wire `pageVariants` + `AnimatePresence mode="wait"` in `AppLayout.jsx` + wrap each inner page root in `<motion.div variants={pageVariants}>`. Biggest visual ROI.
+2. **PaperGrain on inner pages** (30min) — add `<PaperGrain />` to Journal, Journey, Impact, Room roots.
+3. **Font body fix** (30min) — `body { font-family: "Schibsted Grotesk" }` in `index.css`, remove Plus Jakarta Sans refs.
+4. **Colour tokens** (time permitting) — surface `text-journal-stamp` and `journal-*` inks on inner page headings and the `/room` anchored counter.
+
+**Cap polish at 2h total** — Dev B records at h11 regardless.
+
+---
+
 ## Acceptance criteria before handoff
 
-- [ ] `https://[your-app]/room` loads in a private window (no login)
-- [ ] Both counters show real numbers; anchored count increments after a real anchor
-- [ ] Live feed shows last 5 public entries, anchored chips link to stellar.expert
-- [ ] Guest trace returns a result without login (curated path at minimum)
-- [ ] "Save to journal" CTA redirects correctly
-- [ ] `npm run lint && npm run build` pass
-- [ ] **Deployed to live by hour 10** — Dev B records the video at hour 11 regardless
+- [x] `https://[your-app]/room` loads in a private window (no login)
+- [x] Both counters show real numbers; anchored count increments after a real anchor
+- [x] Live feed shows last 5–10 public entries, anchored chips link to stellar.expert
+- [x] Guest trace returns a result without login (curated path + unauthenticated AI trace)
+- [x] "Save to journal" CTA redirects correctly
+- [x] `npm run lint && npm run build` pass
+- [x] Universal page transitions, coin drop optimization, and typography fixes completed
+- [ ] **Deploy to live** — user to run `base44 deploy`
 
 ## When you're done
 

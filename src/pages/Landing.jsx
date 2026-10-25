@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion, useReducedMotion, useInView, animate } from "framer-motion";
 import { PaperGrain, Stamp, MarginNote, JournalButton, RouteMap, Receipt } from "@/components/journal";
 import Specimen from "@/components/journal/Specimen";
@@ -240,13 +241,20 @@ export default function Landing() {
             Field journal · No. 001
           </span>
         </div>
-        <nav className="flex items-center gap-5">
+        <nav className="flex items-center gap-4 sm:gap-5">
           <a href="#legwork" onClick={(e) => { e.preventDefault(); document.getElementById("legwork")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); }} className="hidden font-grotesk text-sm text-journal-ink underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp sm:inline">
             How it works
           </a>
           <a href="/atlas" onClick={(e) => { e.preventDefault(); document.getElementById("receipt")?.scrollIntoView({ behavior: reduce ? "auto" : "smooth" }); }} className="hidden font-grotesk text-sm text-journal-ink underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp md:inline">
             The Atlas
           </a>
+          <Link
+            to="/room"
+            className="inline-flex items-center gap-1.5 font-plexmono text-[11px] uppercase tracking-wider text-journal-stamp border border-journal-stamp/50 px-2.5 py-1 bg-journal-stamp/5 hover:bg-journal-stamp/10 transition"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-journal-stamp animate-pulse" />
+            <span>Floor Live</span>
+          </Link>
           <JournalButton to="/trace">Trace something</JournalButton>
         </nav>
       </header>
