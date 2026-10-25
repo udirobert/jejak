@@ -1,0 +1,72 @@
+{
+  "name": "BrandRequest",
+  "type": "object",
+  "properties": {
+    "scan_id": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "product_name": {
+      "type": "string"
+    },
+    "subject": {
+      "type": "string"
+    },
+    "body": {
+      "type": "string"
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "drafted",
+        "sent",
+        "replied",
+        "closed"
+      ],
+      "default": "drafted"
+    },
+    "sent_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "remind_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "reminded": {
+      "type": "boolean",
+      "default": false
+    },
+    "reply_note": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "brand",
+    "product_name",
+    "subject",
+    "body"
+  ],
+  "rls": {
+    "read": {
+      "created_by_id": "{{user.id}}"
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "created_by_id": "{{user.id}}"
+    },
+    "delete": {
+      "created_by_id": "{{user.id}}"
+    }
+  }
+}

@@ -1,12 +1,12 @@
 {
-  "name": "Jejak — Trace what you pay for",
+  "name": "Jejak — a field journal for the things you own",
   "short_name": "Jejak",
-  "description": "A photo-first receipt for the physical supply chain. Scan a product, see its journey and where your money goes.",
-  "start_url": "/",
+  "description": "Every thing has a journey. Snap anything to see where it came from, who made it, and where your money went.",
+  "start_url": "/trace",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#EDE7FF",
-  "theme_color": "#FF8A65",
+  "background_color": "#F3EDE2",
+  "theme_color": "#F3EDE2",
   "icons": [
     {
       "src": "/jejak-icon.svg",

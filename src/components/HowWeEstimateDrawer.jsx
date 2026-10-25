@@ -3,88 +3,63 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { BASIS_LABELS } from "@/lib/tokens";
 
-// "How we estimate this" — methodology drawer, accessible from every screen.
+// "How we work it out" — methodology drawer, accessible from every screen.
 export default function HowWeEstimateDrawer() {
-  const { showHowTo, setShowHowTo, startGuidedTour } = useApp();
+  const { showHowTo, setShowHowTo } = useApp();
   return (
     <AnimatePresence>
       {showHowTo && (
-        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm" onClick={() => setShowHowTo(false)} />
+        <motion.div className="fixed inset-0 z-[60] flex items-end justify-center lg:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <div className="absolute inset-0 bg-journal-ink/40" onClick={() => setShowHowTo(false)} />
           <motion.div
-            className="relative w-full max-w-[420px] frosted-strong rounded-t-3xl p-6 pb-8 max-h-[85vh] overflow-y-auto scrollbar-hide"
+            className="relative w-full max-w-[560px] border border-journal-rule bg-journal-card p-6 pb-8 font-grotesk text-journal-ink shadow-[0_24px_60px_-20px_rgba(30,27,22,0.4)] max-h-[85vh] overflow-y-auto scrollbar-hide lg:mx-4"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
           >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-jejak-navy/20" />
-            <h3 className="text-lg font-extrabold text-jejak-navy">How we estimate this</h3>
+            <p className="font-plexmono text-[10px] uppercase tracking-[0.16em] text-journal-stamp">Method</p>
+            <h3 className="mt-1 font-serif-display text-3xl text-journal-ink" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' }}>
+              How we work it out
+            </h3>
 
-            <div className="mt-4 space-y-3 text-sm text-jejak-navy/80">
+            <div className="mt-4 space-y-3 text-sm leading-relaxed text-journal-ink-soft">
               <p>
-                Jejak turns a photo into a <strong>receipt for the physical supply chain</strong>. We estimate two things:
+                Jejak turns a photo into a <strong className="text-journal-ink">receipt for the physical supply chain</strong>. We estimate two things:
                 where a product likely travelled, and how your payment splits across the people and steps behind it.
               </p>
               <p>
-                Every figure you see is an <strong>estimate</strong>, shown as a range (low–high), not a precise fact.
-                Confidence is labelled <strong>high</strong>, <strong>medium</strong> or <strong>low</strong>:
+                Every figure you see is an <strong className="text-journal-ink">estimate</strong>, shown as a range — not a precise fact.
+                We say how sure we are:
               </p>
               <ul className="ml-4 list-disc space-y-1">
-                <li><strong>High</strong> — backed by multiple public benchmarks.</li>
-                <li><strong>Medium</strong> — a reasonable estimate from partial data.</li>
-                <li><strong>Low</strong> — an AI inference, treat as indicative only.</li>
+                <li><strong className="text-journal-ink">Sure</strong> — backed by multiple public benchmarks.</li>
+                <li><strong className="text-journal-ink">Fairly sure</strong> — a reasonable estimate from partial data.</li>
+                <li><strong className="text-journal-ink">Rough guess</strong> — indicative only.</li>
               </ul>
-              <p>Each figure carries a <strong>basis label</strong> from this set only:</p>
+              <p>Each figure carries a <strong className="text-journal-ink">basis label</strong> from this set only:</p>
               <div className="flex flex-wrap gap-2">
                 {BASIS_LABELS.map((b) => (
-                  <span key={b} className="rounded-full bg-jejak-navy/8 px-2.5 py-1 text-xs font-semibold text-jejak-navy">{b}</span>
+                  <span key={b} className="border border-journal-rule bg-journal-paper px-2.5 py-1 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink">{b}</span>
                 ))}
               </div>
-              <p className="mt-2">
-                <strong>What we do NOT know:</strong> specific factories, suppliers or worker names. We name countries and
-                stage types only — never a facility as fact.
+              <p>
+                <strong className="text-journal-ink">What we do not know:</strong> specific factories, suppliers or worker names.
+                We name countries and stage types only — never a facility as fact.
               </p>
               <p>
-                <strong>Your photo isn't stored on your profile.</strong> It's uploaded privately and used only for the
-                one-time recognition call, then discarded — we never keep it.
+                <strong className="text-journal-ink">Your photo isn't stored on your profile.</strong> It's uploaded
+                privately, used once for recognition, then discarded.
               </p>
-              <div className="rounded-2xl bg-jejak-navy/6 border border-jejak-navy/15 p-3.5 text-xs space-y-1.5">
-                <p className="font-extrabold text-jejak-navy uppercase tracking-wide text-[11px]">
-                  What’s real vs. mocked in this prototype
-                </p>
-                <p>
-                  <strong>Real:</strong> AI vision product recognition (via short-lived private signed URLs), live Stellar Testnet transactions (<code className="font-mono">payment</code>, <code className="font-mono">createClaimableBalance</code>, and <code className="font-mono">MEMO_TEXT</code> estimate records verifiable on Stellar.Expert), and the live Explore database feed.
-                </p>
-                <p>
-                  <strong>Mocked / Future:</strong> “Give to a cause” sends a testnet payment to a <strong>Demo cause (testnet)</strong> wallet (demo testnet donation; no real-world disbursement). In production, donations would go to a vetted organisation. The Embedded Bank screen is an illustrative concept preview.
-                </p>
-              </div>
-              <p className="text-jejak-navy/60 italic">
+              <p className="italic text-journal-ink-soft">
                 We're not telling you what to buy — we're making the payment visible.
               </p>
             </div>
 
-            <a
-              href="mailto:errors@jejak.example?subject=Report%20an%20estimate%20error"
-              className="mt-4 block w-full rounded-xl border border-jejak-navy/20 py-3 text-center text-sm font-bold text-jejak-navy no-tap"
-            >
-              Report an error (mock)
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                setShowHowTo(false);
-                startGuidedTour();
-              }}
-              className="mt-2 w-full rounded-xl bg-sunrise py-3 text-sm font-extrabold text-white shadow-sm no-tap"
-            >
-              Launch 15-second Guided Tour
-            </button>
             <button
               type="button"
               onClick={() => setShowHowTo(false)}
-              className="mt-2 w-full rounded-xl bg-jejak-navy py-3 text-sm font-bold text-white no-tap"
+              className="mt-6 w-full rounded-[2px] bg-journal-ink py-3 font-grotesk text-sm font-medium text-journal-paper no-tap shadow-[3px_3px_0_0_var(--j-stamp)] hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
             >
               Got it
             </button>

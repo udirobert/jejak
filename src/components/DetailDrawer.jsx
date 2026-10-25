@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { computeSplit, formatMoney } from "@/lib/money";
 import { CATEGORY_MAP } from "@/lib/tokens";
-import ConfidenceBadge from "./ConfidenceBadge";
 
 // "Follow the money" — per-category detail drawer.
 export default function DetailDrawer() {
@@ -16,58 +15,60 @@ export default function DetailDrawer() {
   return (
     <AnimatePresence>
       {open && (
-        <motion.div className="fixed inset-0 z-50 flex items-end justify-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-          <div className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm" onClick={() => setDetailCategory(null)} />
+        <motion.div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+          <div className="absolute inset-0 bg-journal-ink/40" onClick={() => setDetailCategory(null)} />
           <motion.div
-            className="relative w-full max-w-[420px] frosted-strong rounded-t-3xl p-6 pb-8"
+            className="relative w-full max-w-[560px] border border-journal-rule bg-journal-card p-6 pb-8 font-grotesk text-journal-ink shadow-[0_24px_60px_-20px_rgba(30,27,22,0.4)] lg:mx-4"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
           >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-jejak-navy/20" />
             <div className="flex items-center gap-3">
-              <span className="inline-flex h-9 w-9 items-center justify-center rounded-full" style={{ background: `${cat.color}22` }}>
-                <span className="block h-4 w-4 rounded-full" style={{ background: cat.color }} />
-              </span>
-              <h3 className="text-lg font-extrabold text-jejak-navy">{cat.label}</h3>
-              <ConfidenceBadge level={entry.confidence} />
+              <span className="inline-block h-3.5 w-3.5" style={{ background: cat.color }} aria-hidden="true" />
+              <h3 className="font-serif-display text-2xl text-journal-ink" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' }}>{cat.label}</h3>
             </div>
 
-            <div className="mt-4 rounded-2xl bg-white/70 p-4">
-              <p className="text-xs uppercase tracking-wide text-jejak-navy/50">Estimated share</p>
-              <p className="text-2xl font-extrabold text-jejak-navy">
+            <div className="mt-5 border border-journal-rule bg-journal-paper p-4">
+              <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">Estimated share</p>
+              <p className="mt-1 font-serif-display text-3xl text-journal-ink">
                 {entry.pct.low}–{entry.pct.high}%
               </p>
-              <p className="mt-1 text-sm font-bold" style={{ color: cat.color }}>
+              <p className="mt-1 font-plexmono text-sm font-medium" style={{ color: cat.color }}>
                 ≈ {formatMoney(entry.amountLow, currency)} – {formatMoney(entry.amountHigh, currency)}
               </p>
-              <p className="mt-0.5 text-xs text-jejak-navy/50">of {formatMoney(product.markets[market].price, currency)} paid</p>
+              <p className="mt-1 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+                of {formatMoney(product.markets[market].price, currency)} paid
+              </p>
             </div>
 
-            <div className="mt-3 text-sm text-jejak-navy/75">
+            <div className="mt-4 text-sm leading-relaxed text-journal-ink-soft">
               <p>{cat.blurb}</p>
               {detailCategory === "labour" && product.labourContext && (
                 <p className="mt-2">{product.labourContext}</p>
               )}
             </div>
 
-            <div className="mt-3 flex items-center justify-between rounded-xl bg-jejak-navy/5 px-3 py-2">
-              <span className="text-xs text-jejak-navy/60">Basis</span>
-              <span className="text-xs font-semibold text-jejak-navy">{entry.basis}</span>
+            <div className="mt-4 flex items-center justify-between border-t border-dotted border-journal-rule py-2.5 font-plexmono text-[11px] uppercase tracking-[0.1em]">
+              <span className="text-journal-ink-soft">Basis</span>
+              <span className="font-medium text-journal-ink">{entry.basis}</span>
+            </div>
+            <div className="flex items-center justify-between border-t border-dotted border-journal-rule py-2.5 font-plexmono text-[11px] uppercase tracking-[0.1em]">
+              <span className="text-journal-ink-soft">Confidence</span>
+              <span className="font-medium text-journal-ink">{entry.confidence}</span>
             </div>
 
             <button
               type="button"
               onClick={() => { setDetailCategory(null); setShowHowTo(true); }}
-              className="mt-4 w-full rounded-xl bg-jejak-navy py-3 text-sm font-bold text-white no-tap"
+              className="mt-4 w-full rounded-[2px] bg-journal-ink py-3 font-grotesk text-sm font-medium text-journal-paper no-tap shadow-[3px_3px_0_0_var(--j-stamp)] hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
             >
-              How we estimate this
+              How we work it out
             </button>
             <button
               type="button"
               onClick={() => setDetailCategory(null)}
-              className="mt-2 w-full rounded-xl py-2 text-sm font-semibold text-jejak-navy/60 no-tap"
+              className="mt-2 w-full py-2 font-grotesk text-sm text-journal-ink-soft no-tap hover:text-journal-ink"
             >
               Close
             </button>

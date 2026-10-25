@@ -1,3 +1,4 @@
+// @ts-nocheck — pre-existing Stellar code; type-level directive only, no behavior change.
 import {
   Keypair,
   Horizon,

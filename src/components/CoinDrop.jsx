@@ -29,13 +29,13 @@ export default function CoinDrop({ split }) {
         return (
           <div key={cat.key} className="flex flex-1 flex-col items-center" role="listitem" aria-label={`${cat.label}: ${cat.pct.mid}%`}>
             <div
-              className="relative w-full overflow-hidden rounded-2xl frosted border border-white/70"
+              className="relative w-full overflow-hidden border border-journal-rule bg-journal-card"
               style={{ height: COL_H, maxWidth: 64 }}
             >
               {/* fill glow */}
               <motion.div
                 className="absolute inset-x-0 bottom-0 rounded-2xl"
-                style={{ background: `linear-gradient(180deg, ${cat.color}22, ${cat.color}66)` }}
+                style={{ background: `linear-gradient(180deg, ${cat.color}14, ${cat.color}38)` }}
                 initial={{ height: 0 }}
                 animate={{ height: fillH }}
                 transition={reduce ? { duration: 0.2 } : { type: "spring", stiffness: 120, damping: 18, delay: 0.1 }}
@@ -52,9 +52,9 @@ export default function CoinDrop({ split }) {
                       left: "50%",
                       marginLeft: -COIN_R,
                       bottom: 4 + i * spacing,
-                      background: "radial-gradient(circle at 38% 32%, #FFF3C4, #FFC24B 55%, #E8921A)",
-                      border: "1px solid #B5750E",
-                      boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                      background: coin.color,
+                      border: "1.5px solid var(--j-ink)",
+                      boxShadow: "inset 0 0 0 2px var(--j-card), inset 0 0 0 3px var(--j-ink)",
                     }}
                     initial={{ y: -COL_H - 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -68,12 +68,12 @@ export default function CoinDrop({ split }) {
                 ))}
               {reduce && (
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-xl font-extrabold" style={{ color: cat.color }}>{count}</span>
+                  <span className="font-plexmono text-xl font-medium" style={{ color: cat.color }}>{count}</span>
                 </div>
               )}
             </div>
-            <span className="mt-2 text-[11px] font-bold" style={{ color: cat.color }}>{cat.label.split(" ")[0]}</span>
-            <span className="text-[11px] font-extrabold text-jejak-navy">{cat.pct.mid}%</span>
+            <span className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.08em]" style={{ color: cat.color }}>{cat.label.split(" ")[0]}</span>
+            <span className="font-plexmono text-[11px] font-medium text-journal-ink">{cat.pct.mid}%</span>
           </div>
         );
       })}

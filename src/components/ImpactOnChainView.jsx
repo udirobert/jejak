@@ -197,7 +197,7 @@ export default function ImpactOnChainView({ traceRecords = [], reduce = false })
               onClick={() => {
                 vibrate(6);
                 reset();
-                navigate("/");
+                navigate("/trace");
               }}
               className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-jejak-navy px-3 py-1.5 text-[11px] font-extrabold text-amber-300 no-tap"
             >

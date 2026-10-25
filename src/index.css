@@ -29,6 +29,18 @@
     --chart-4: 258 90% 66%;
     --chart-5: 333 100% 62%;
     --radius: 0.75rem;
+    --j-paper: #F3EDE2;
+    --j-paper-deep: #E8DFCF;
+    --j-card: #FBF8F2;
+    --j-ink: #1E1B16;
+    --j-ink-soft: #5B544A;
+    --j-rule: #CFC4B1;
+    --j-stamp: #C8442B;
+    --j-materials: #3F7D4E;
+    --j-labour: #D9822B;
+    --j-freight: #2F5D8A;
+    --j-brand: #7A4E8C;
+    --j-retail: #B8456B;
     --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
     --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;

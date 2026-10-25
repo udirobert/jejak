@@ -1,17 +1,26 @@
 import { Toaster } from "@/components/ui/toaster"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import ScrollToTop from './components/ScrollToTop';
 import { AppProvider } from '@/lib/AppContext';
-import Flow from '@/pages/Flow';
-import Embedded from '@/pages/Embedded';
-import Impact from '@/pages/Impact';
-import Explore from '@/pages/Explore';
+import React, { Suspense } from 'react';
 import AppLayout from '@/components/AppLayout';
+const Flow = React.lazy(() => import('@/pages/Flow'));
+const Embedded = React.lazy(() => import('@/pages/Embedded'));
+const Impact = React.lazy(() => import('@/pages/Impact'));
+const Explore = React.lazy(() => import('@/pages/Explore'));
+const Landing = React.lazy(() => import('@/pages/Landing'));
+const Journal = React.lazy(() => import('@/pages/Journal'));
+
+const PageFallback = () => (
+  <div className="flex min-h-screen items-center justify-center bg-[#F3EDE2]">
+    <span className="font-serif-display text-xl italic text-[#1E1B16]" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' }}>Jejak</span>
+  </div>
+);
 // Add page imports here
 
 const AuthenticatedApp = () => {
@@ -40,16 +49,22 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <AppProvider>
+      <Suspense fallback={<PageFallback />}>
       <Routes>
         {/* Add your page Route elements here */}
         <Route element={<AppLayout />}>
-          <Route path="/" element={<Flow />} />
+          <Route path="/trace" element={<Flow />} />
+          <Route path="/atlas" element={<Explore />} />
+          <Route path="/explore" element={<Navigate to="/atlas" replace />} />
+          <Route path="/journal" element={<Journal />} />
           <Route path="/impact" element={<Impact />} />
-          <Route path="/explore" element={<Explore />} />
           <Route path="/embedded" element={<Embedded />} />
         </Route>
+        <Route path="/" element={<Landing />} />
+        <Route path="/landing" element={<Navigate to="/" replace />} />
         <Route path="*" element={<PageNotFound />} />
       </Routes>
+      </Suspense>
     </AppProvider>
   );
 };

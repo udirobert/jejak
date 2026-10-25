@@ -1,0 +1,14 @@
+{
+  "name": "writeJourneyStory",
+  "entry": "entry.ts",
+  "automations": [
+    {
+      "type": "entity",
+      "name": "on_scan_create",
+      "description": "Writes a journal story when a new trace is saved.",
+      "is_active": true,
+      "entity_name": "Scan",
+      "event_types": ["create"]
+    }
+  ]
+}

@@ -6,8 +6,6 @@ import worldTopo from "world-atlas/countries-110m.json";
 import {
   Info,
   RotateCcw,
-  Globe2,
-  Map as MapIcon,
   Camera,
   X,
   Plus,
@@ -17,8 +15,8 @@ import { ORIGIN_COORDS } from "./exploreUtils";
 import { UNTRACED_CANDIDATE_ORIGINS } from "./exploreSeaRoutes";
 import { MapSvgFlag } from "./OriginFlagChip";
 import OriginFlagChip from "./OriginFlagChip";
-import ExploreAmbientSea from "./ExploreAmbientSea";
-import Globe from "@/components/Globe";
+import InkRoute from "./InkRoute";
+
 import { vibrate } from "@/lib/haptics";
 
 const worldGeo = feature(worldTopo, worldTopo.objects.countries);
@@ -34,13 +32,7 @@ const BASE_CLUSTER_RADIUS_PX = 36;
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 
-const CATEGORY_ACCENTS = [
-  "#FFC24B", // gold
-  "#FF7A1A", // labour orange
-  "#2FBF71", // materials green
-  "#38BDF8", // bright sky-teal
-  "#FF3D81", // retail magenta
-];
+
 
 export default function ExploreFullBleedMap({
   originChips,
@@ -53,7 +45,6 @@ export default function ExploreFullBleedMap({
   globeRoute,
   reduce,
 }) {
-  const [viewMode, setViewMode] = useState("map"); // "map" | "globe"
   const [expandedClusterId, setExpandedClusterId] = useState(null);
   const [hoveredOrigin, setHoveredOrigin] = useState(null);
   const [untracedPromptOrigin, setUntracedPromptOrigin] = useState(null);
@@ -189,7 +180,6 @@ export default function ExploreFullBleedMap({
             ...chip,
             x: xy[0],
             y: xy[1],
-            color: CATEGORY_ACCENTS[idx % CATEGORY_ACCENTS.length],
             active: originFilter === chip.origin,
           };
         })
@@ -347,11 +337,11 @@ export default function ExploreFullBleedMap({
 
   return (
     <div
-      className="absolute inset-0 h-full w-full overflow-hidden select-none bg-[#0E2847] touch-none"
+      className="absolute inset-0 h-full w-full overflow-hidden select-none bg-journal-paper touch-none lg:!right-[400px]"
       style={{ touchAction: "none" }}
     >
       <AnimatePresence mode="wait">
-        {viewMode === "map" ? (
+        {true && (
           <motion.div
             key="2d-map"
             initial={reduce ? false : { opacity: 0, scale: 0.96 }}
@@ -379,78 +369,15 @@ export default function ExploreFullBleedMap({
               onClick={handleBackgroundClick}
             >
               <defs>
-                <radialGradient id="deepOpenOceanBg" cx="48%" cy="46%" r="75%">
-                  <stop offset="0%" stopColor="#174472" />
-                  <stop offset="55%" stopColor="#113257" />
-                  <stop offset="100%" stopColor="#0C223D" />
-                </radialGradient>
-
-                <filter
-                  id="coastalShelfBlur"
-                  x="-15%"
-                  y="-15%"
-                  width="130%"
-                  height="130%"
-                >
-                  <feGaussianBlur stdDeviation="8" />
-                </filter>
-
-                <filter
-                  id="nightShadowBlur"
-                  x="-20%"
-                  y="-10%"
-                  width="140%"
-                  height="120%"
-                >
-                  <feGaussianBlur stdDeviation="16" />
-                </filter>
-
-                <linearGradient
-                  id="tracedLandFill"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="100%"
-                >
-                  <stop offset="0%" stopColor="#FF8A65" />
-                  <stop offset="55%" stopColor="#FFC24B" />
-                  <stop offset="100%" stopColor="#FF5E7E" />
-                </linearGradient>
-
-                <linearGradient
-                  id="selectedLandFill"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="100%"
-                >
-                  <stop offset="0%" stopColor="#FFC24B" />
-                  <stop offset="100%" stopColor="#2FBF71" />
-                </linearGradient>
-
-                <filter
-                  id="originGlow"
-                  x="-50%"
-                  y="-50%"
-                  width="200%"
-                  height="200%"
-                >
-                  <feGaussianBlur stdDeviation="3.5" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
+                <pattern id="atlasHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="0" y2="7" stroke="#D8CBB4" strokeWidth="0.7" />
+                </pattern>
+                <pattern id="atlasHatchTraced" width="7" height="7" patternTransform="rotate(-45)" patternUnits="userSpaceOnUse">
+                  <line x1="0" y1="0" x2="0" y2="7" stroke="#C8A17F" strokeWidth="0.9" />
+                </pattern>
               </defs>
 
-              {/* Open-water backdrop */}
-              <rect
-                x="0"
-                y="0"
-                width={W}
-                height={H}
-                fill="url(#deepOpenOceanBg)"
-              />
+
 
               {/* Pan & Zoom Group */}
               <g
@@ -460,69 +387,49 @@ export default function ExploreFullBleedMap({
                   viewTransform.scale
                 }) translate(${-W / 2}, ${-H / 2})`}
               >
-                {/* Lighter coastal shelf depth halo around all landmasses */}
-                <path
-                  d={allLandPath}
-                  fill="none"
-                  stroke="#38BDF8"
-                  strokeWidth="16"
-                  strokeLinejoin="round"
-                  filter="url(#coastalShelfBlur)"
-                  opacity="0.24"
-                />
-
-                {/* Subtle graticule */}
+                {/* Faint rule graticule */}
                 <path
                   d={graticulePath}
                   fill="none"
-                  stroke="#6395CC"
+                  stroke="var(--j-rule)"
                   strokeWidth={0.5 * invScale}
-                  strokeDasharray="4 6"
-                  opacity="0.24"
+                  strokeDasharray="3 6"
+                  opacity="0.6"
                 />
 
                 {/* Continents (Antarctica cropped) */}
+                {/* Paper landmasses: hatched fill, ink coastlines; traced = denser hatch */}
+                <path d={allLandPath} fill="#E8DFCF" stroke="var(--j-ink)" strokeWidth={0.6 * invScale} strokeLinejoin="round" />
+                <path d={allLandPath} fill="url(#atlasHatch)" opacity="0.55" pointerEvents="none" />
                 {countries.map((c) => (
-                  <path
-                    key={c.key}
-                    d={c.d}
-                    fill={
-                      c.isSelected
-                        ? "url(#selectedLandFill)"
-                        : c.isTraced
-                        ? "url(#tracedLandFill)"
-                        : "#235280"
-                    }
-                    fillOpacity={
-                      c.isSelected ? 0.96 : c.isTraced ? 0.84 : 0.92
-                    }
-                    stroke={
-                      c.isSelected
-                        ? "#FFFFFF"
-                        : c.isTraced
-                        ? "#FFE49E"
-                        : "#4982B8"
-                    }
-                    strokeWidth={
-                      (c.isSelected ? 1.25 : c.isTraced ? 0.9 : 0.5) * invScale
-                    }
-                    onClick={(e) => {
-                      if (gestureRef.current.moved || !c.isTraced) return;
-                      e.stopPropagation();
-                      vibrate(5);
-                      setUntracedPromptOrigin(null);
-                      onSelectOrigin(c.name);
-                    }}
-                    style={{ cursor: c.isTraced ? "pointer" : "default" }}
-                  />
+                  <g key={c.key}>
+                    {(c.isTraced || c.isSelected) && (
+                      <path
+                        d={c.d}
+                        fill={c.isSelected ? "#E0CBA8" : "transparent"}
+                        stroke={c.isSelected ? "var(--j-stamp)" : "var(--j-ink-soft)"}
+                        strokeWidth={(c.isSelected ? 1.4 : 0.7) * invScale}
+                        pointerEvents="none"
+                      />
+                    )}
+                    <path
+                      d={c.d}
+                      fill="transparent"
+                      onClick={(e) => {
+                        if (gestureRef.current.moved || !c.isTraced) return;
+                        e.stopPropagation();
+                        vibrate(5);
+                        setUntracedPromptOrigin(null);
+                        onSelectOrigin(c.name);
+                      }}
+                      style={{ cursor: c.isTraced ? "pointer" : "default" }}
+                    />
+                  </g>
                 ))}
 
                 {/* Ambient Mixed Transport (Ships, Planes, Trains, Lorries), Day/Night Shadow, Wave Shimmer, Whale/Fin, Multi-Leg Route Sequence */}
-                <ExploreAmbientSea
+                <InkRoute
                   projection={projection}
-                  W={W}
-                  H={H}
-                  zoom={viewTransform.scale}
                   activeRoute={activeRoute}
                   reduce={reduce}
                 />
@@ -552,35 +459,25 @@ export default function ExploreFullBleedMap({
                       style={{ cursor: "pointer" }}
                     >
                       {!reduce && (
-                        <circle r="11" fill="#BAE6FD" opacity="0.22">
-                          <animate
-                            attributeName="r"
-                            values="7;13;7"
-                            dur="2.6s"
-                            repeatCount="indefinite"
-                          />
-                          <animate
-                            attributeName="opacity"
-                            values="0.32;0.05;0.32"
-                            dur="2.6s"
-                            repeatCount="indefinite"
-                          />
+                        <circle r="11" fill="var(--j-ink-soft)" opacity="0.15">
+                          <animate attributeName="r" values="7;13;7" dur="2.6s" repeatCount="indefinite" />
+                          <animate attributeName="opacity" values="0.25;0.05;0.25" dur="2.6s" repeatCount="indefinite" />
                         </circle>
                       )}
                       <circle
                         r={isPromptOpen ? 8 : 6.5}
-                        fill={isPromptOpen ? "#FFC24B" : "#153860"}
-                        stroke="#BAE6FD"
-                        strokeWidth="1.3"
+                        fill={isPromptOpen ? "var(--j-card)" : "var(--j-paper)"}
+                        stroke="var(--j-ink-soft)"
+                        strokeWidth="1.2"
                         strokeDasharray="2 1.5"
                       />
                       <text
                         y="2.8"
                         textAnchor="middle"
-                        fill={isPromptOpen ? "#0F2440" : "#E0F2FE"}
+                        fill="var(--j-ink)"
                         fontSize="8.5"
-                        fontWeight="900"
-                        fontFamily="Plus Jakarta Sans, sans-serif"
+                        fontWeight="500"
+                        fontFamily="'IBM Plex Mono', monospace"
                       >
                         ?
                       </text>
@@ -593,21 +490,21 @@ export default function ExploreFullBleedMap({
                             y="-6.5"
                             width="104"
                             height="13.5"
-                            rx="6.75"
-                            fill="rgba(15, 36, 64, 0.92)"
-                            stroke="#BAE6FD"
+                            rx="2"
+                            fill="var(--j-card)"
+                            stroke="var(--j-rule)"
                             strokeWidth="0.75"
                           />
                           <text
                             x="0"
                             y="2.4"
                             textAnchor="middle"
-                            fill="#E0F2FE"
+                            fill="var(--j-ink-soft)"
                             fontSize="6.7"
-                            fontWeight="800"
-                            fontFamily="Plus Jakarta Sans, sans-serif"
+                            fontWeight="500"
+                            fontFamily="'IBM Plex Mono', monospace"
                           >
-                            No traces from here yet
+                            NO TRACES FROM HERE YET
                           </text>
                         </g>
                       )}
@@ -639,35 +536,30 @@ export default function ExploreFullBleedMap({
                         style={{ cursor: "pointer" }}
                       >
                         {!reduce && (
-                          <circle r="18" fill="#FFC24B" opacity="0.28">
-                            <animate
-                              attributeName="r"
-                              values="13;23;13"
-                              dur="2.1s"
-                              repeatCount="indefinite"
-                            />
-                            <animate
-                              attributeName="opacity"
-                              values="0.45;0.06;0.45"
-                              dur="2.1s"
-                              repeatCount="indefinite"
-                            />
+                          <circle r="18" fill="none" stroke="var(--j-stamp)" strokeWidth="0.8" opacity="0.5">
+                            <animate attributeName="r" values="13;23;13" dur="2.1s" repeatCount="indefinite" />
+                            <animate attributeName="opacity" values="0.5;0.06;0.5" dur="2.1s" repeatCount="indefinite" />
                           </circle>
                         )}
                         <circle
-                          r="13"
-                          fill="#173861"
-                          stroke="#FFC24B"
-                          strokeWidth="2.2"
-                          filter="url(#originGlow)"
+                          r="12"
+                          fill="var(--j-card)"
+                          stroke="var(--j-stamp)"
+                          strokeWidth="1.4"
+                        />
+                        <circle
+                          r="9"
+                          fill="none"
+                          stroke="var(--j-stamp)"
+                          strokeWidth="0.6"
                         />
                         <text
-                          y="3.8"
+                          y="3.4"
                           textAnchor="middle"
-                          fill="#FFC24B"
-                          fontSize="10.5"
-                          fontWeight="900"
-                          fontFamily="Plus Jakarta Sans, sans-serif"
+                          fill="var(--j-stamp)"
+                          fontSize="9.5"
+                          fontWeight="500"
+                          fontFamily="'IBM Plex Mono', monospace"
                         >
                           {cluster.members.length}
                         </text>
@@ -711,8 +603,8 @@ export default function ExploreFullBleedMap({
                                 y1={pin.y}
                                 x2={px}
                                 y2={py}
-                                stroke="#FFC24B"
-                                strokeWidth={1.2 * invScale}
+                                stroke="var(--j-ink-soft)"
+                                strokeWidth={1 * invScale}
                                 strokeDasharray={`${2 * invScale} ${
                                   2 * invScale
                                 }`}
@@ -736,21 +628,21 @@ export default function ExploreFullBleedMap({
                             >
                               {!reduce && (
                                 <circle
-                                  r={pin.active ? 18 : 13}
-                                  fill={pin.active ? "#2FBF71" : pin.color}
-                                  opacity="0.32"
+                                  r={pin.active ? 16 : 11}
+                                  fill="none"
+                                  stroke={pin.active ? "var(--j-stamp)" : "var(--j-ink-soft)"}
+                                  strokeWidth="0.8"
+                                  opacity="0.5"
                                 >
                                   <animate
                                     attributeName="r"
-                                    values={
-                                      pin.active ? "10;22;10" : "7;16;7"
-                                    }
+                                    values={pin.active ? "9;20;9" : "6;14;6"}
                                     dur="1.9s"
                                     repeatCount="indefinite"
                                   />
                                   <animate
                                     attributeName="opacity"
-                                    values="0.5;0.06;0.5"
+                                    values="0.55;0.05;0.55"
                                     dur="1.9s"
                                     repeatCount="indefinite"
                                   />
@@ -758,11 +650,10 @@ export default function ExploreFullBleedMap({
                               )}
 
                               <circle
-                                r={pin.active ? 8.5 : 6.5}
-                                fill={pin.active ? "#2FBF71" : pin.color}
-                                stroke="#FFFFFF"
-                                strokeWidth={pin.active ? 2.4 : 1.8}
-                                filter="url(#originGlow)"
+                                r={pin.active ? 8 : 6}
+                                fill={pin.active ? "var(--j-stamp)" : "var(--j-card)"}
+                                stroke={pin.active ? "var(--j-stamp)" : "var(--j-ink)"}
+                                strokeWidth={pin.active ? 1.4 : 1.1}
                               />
 
                               {showFullLabel ? (
@@ -772,14 +663,14 @@ export default function ExploreFullBleedMap({
                                     y="-9"
                                     width={pillW}
                                     height="18"
-                                    rx="9"
+                                    rx="2"
                                     fill={
                                       pin.active
-                                        ? "#2FBF71"
-                                        : "rgba(19, 44, 78, 0.94)"
+                                        ? "var(--j-stamp)"
+                                        : "var(--j-card)"
                                     }
-                                    stroke="#FFFFFF"
-                                    strokeWidth="1"
+                                    stroke="var(--j-ink)"
+                                    strokeWidth="0.8"
                                   />
                                   <MapSvgFlag
                                     country={pin.origin}
@@ -790,14 +681,14 @@ export default function ExploreFullBleedMap({
                                   />
                                   <text
                                     x="7"
-                                    y="3"
+                                    y="3.4"
                                     textAnchor="middle"
-                                    fill={pin.active ? "#0F2440" : "#FFFFFF"}
-                                    fontSize="8.8"
-                                    fontWeight="800"
-                                    fontFamily="Plus Jakarta Sans, sans-serif"
+                                    fill={pin.active ? "var(--j-card)" : "var(--j-ink)"}
+                                    fontSize="7.5"
+                                    fontWeight="500"
+                                    fontFamily="'IBM Plex Mono', monospace"
                                   >
-                                    {pin.origin}
+                                    {pin.origin.toUpperCase()}
                                   </text>
                                 </g>
                               ) : (
@@ -821,52 +712,26 @@ export default function ExploreFullBleedMap({
               </g>
             </svg>
           </motion.div>
-        ) : (
-          /* Morph to 3D Globe view */
-          <motion.div
-            key="3d-globe"
-            initial={reduce ? false : { opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={reduce ? undefined : { opacity: 0, scale: 0.9 }}
-            transition={{ duration: 0.3, ease: "easeOut" }}
-            onClick={handleBackgroundClick}
-            className="flex h-full w-full flex-col items-center justify-center pb-20"
-            style={{
-              background:
-                "radial-gradient(circle at 50% 42%, #1B4D7E 0%, #113257 60%, #0C223D 100%)",
-            }}
-          >
-            <Globe
-              route={globeRoute}
-              activeStop={globeRoute.length}
-              size={340}
-              onSelectStop={(_, stop) => {
-                if (stop?.country && tracedSet.has(stop.country)) {
-                  onSelectOrigin(stop.country);
-                }
-              }}
-            />
-          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Prompt Card when tapping an untraced "?" origin dot */}
       <AnimatePresence>
-        {untracedPromptOrigin && viewMode === "map" && (
+        {untracedPromptOrigin && (
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={reduce ? undefined : { opacity: 0, y: 6, scale: 0.95 }}
             onPointerDown={(e) => e.stopPropagation()}
-            className="pointer-events-auto absolute left-4 right-4 top-28 z-30 flex items-center justify-between gap-2.5 rounded-2xl bg-[#102A49]/95 backdrop-blur-md border border-white/25 px-3.5 py-2.5 text-white shadow-xl"
+            className="pointer-events-auto absolute left-4 right-4 top-28 z-30 flex items-center justify-between gap-2.5 border border-journal-rule bg-journal-card px-3.5 py-2.5 text-journal-ink shadow-[4px_4px_0_0_var(--j-ink)]"
           >
             <div className="flex items-center gap-2.5 min-w-0">
               <OriginFlagChip country={untracedPromptOrigin} size="xs" />
               <div className="min-w-0">
-                <p className="text-xs font-extrabold text-white truncate">
+                <p className="font-grotesk text-xs font-semibold text-journal-ink truncate">
                   {untracedPromptOrigin} · No traces from here yet
                 </p>
-                <p className="text-[11px] font-semibold text-sky-200/90">
+                <p className="font-grotesk text-[11px] text-journal-ink-soft">
                   Be the first to trace something from here
                 </p>
               </div>
@@ -879,7 +744,7 @@ export default function ExploreFullBleedMap({
                   vibrate(6);
                   onTraceUntracedOrigin();
                 }}
-                className="inline-flex items-center gap-1 rounded-xl bg-jejak-gold px-3 py-1.5 text-[11px] font-extrabold text-jejak-navy shadow-sm hover:brightness-105 no-tap"
+                className="inline-flex items-center gap-1 border border-journal-ink bg-journal-ink px-3 py-1.5 font-grotesk text-[11px] font-semibold text-journal-card no-tap"
               >
                 <Camera size={12} /> Trace
               </button>
@@ -887,7 +752,7 @@ export default function ExploreFullBleedMap({
                 type="button"
                 aria-label="Dismiss prompt"
                 onClick={() => setUntracedPromptOrigin(null)}
-                className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-white/80 hover:bg-white/20 no-tap"
+                className="flex h-7 w-7 items-center justify-center border border-journal-rule text-journal-ink-soft hover:bg-journal-paper-deep no-tap"
               >
                 <X size={12} />
               </button>
@@ -897,10 +762,10 @@ export default function ExploreFullBleedMap({
       </AnimatePresence>
 
       {/* Compact Zoom In / Out / Reset Control (only captures pointer events on its own buttons) */}
-      {viewMode === "map" && (
+      {(
         <div
           onPointerDown={(e) => e.stopPropagation()}
-          className="pointer-events-auto absolute right-4 top-32 z-20 flex flex-col items-center gap-1 rounded-2xl bg-[#122D4F]/85 backdrop-blur-md border border-white/25 p-1 shadow-lg"
+          className="pointer-events-auto absolute right-4 top-32 z-20 flex flex-col items-center gap-1 border border-journal-rule bg-journal-card p-1 shadow-[3px_3px_0_0_rgba(30,27,22,0.15)]"
         >
           <button
             type="button"
@@ -909,7 +774,7 @@ export default function ExploreFullBleedMap({
               vibrate(4);
               zoomAroundPoint(viewTransform.scale * 1.45);
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-xl text-white hover:bg-white/15 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="flex h-9 w-9 items-center justify-center text-journal-ink hover:bg-journal-paper-deep no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
           >
             <Plus size={14} strokeWidth={2.5} />
           </button>
@@ -925,7 +790,7 @@ export default function ExploreFullBleedMap({
                 zoomAroundPoint(next);
               }
             }}
-            className="flex h-7 w-7 items-center justify-center rounded-xl text-white hover:bg-white/15 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="flex h-9 w-9 items-center justify-center text-journal-ink hover:bg-journal-paper-deep no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
           >
             <Minus size={14} strokeWidth={2.5} />
           </button>
@@ -938,7 +803,7 @@ export default function ExploreFullBleedMap({
                 vibrate(4);
                 setViewTransform({ scale: 1, x: 0, y: 0 });
               }}
-              className="flex h-6 w-7 items-center justify-center rounded-lg bg-jejak-gold/90 text-[9px] font-extrabold text-jejak-navy no-tap"
+              className="flex h-8 w-9 items-center justify-center font-plexmono text-[9px] font-medium text-journal-stamp no-tap"
             >
               1x
             </button>
@@ -953,20 +818,20 @@ export default function ExploreFullBleedMap({
           <div className="flex items-center gap-1.5 min-w-0">
             <div
               onPointerDown={(e) => e.stopPropagation()}
-              className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-[#122D4F]/85 backdrop-blur-md border border-white/25 px-2.5 py-1 shadow-md"
+              className="pointer-events-auto inline-flex items-center gap-1.5 border border-journal-rule bg-journal-card px-2.5 py-1 shadow-[2px_2px_0_0_rgba(30,27,22,0.12)]"
             >
               <span
                 className={`h-2 w-2 shrink-0 rounded-full bg-jejak-materials ${
                   reduce ? "" : "animate-pulse"
                 }`}
               />
-              <span className="text-[11px] font-extrabold tracking-tight text-white truncate">
+              <span className="font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink truncate">
                 {originFilter === "All"
                   ? `${originChips.length} origins`
                   : originFilter}
               </span>
               {liveCount > 0 && (
-                <span className="text-[10px] font-bold text-amber-300 tabular-nums">
+                <span className="font-plexmono text-[9px] uppercase text-journal-stamp tabular-nums">
                   · {liveCount} live
                 </span>
               )}
@@ -980,52 +845,15 @@ export default function ExploreFullBleedMap({
                   vibrate(5);
                   onSelectOrigin("All");
                 }}
-                className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-jejak-gold px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy border border-white shadow-md hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                className="pointer-events-auto inline-flex items-center gap-1 border border-journal-ink bg-journal-ink px-2.5 py-1 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-card no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
               >
                 <RotateCcw size={10} /> All
               </button>
             )}
           </div>
-
-          {/* Right: Map / Globe Morph Toggle */}
-          <div
-            onPointerDown={(e) => e.stopPropagation()}
-            className="pointer-events-auto inline-flex items-center rounded-full bg-[#122D4F]/85 backdrop-blur-md border border-white/25 p-0.5 shadow-md"
-          >
-            <button
-              type="button"
-              onClick={() => {
-                vibrate(4);
-                setViewMode("map");
-              }}
-              aria-pressed={viewMode === "map"}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold transition-colors no-tap ${
-                viewMode === "map"
-                  ? "bg-jejak-gold text-jejak-navy shadow-sm"
-                  : "text-white/80 hover:text-white"
-              }`}
-            >
-              <MapIcon size={11} /> Map
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                vibrate(4);
-                setViewMode("globe");
-              }}
-              aria-pressed={viewMode === "globe"}
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-extrabold transition-colors no-tap ${
-                viewMode === "globe"
-                  ? "bg-jejak-gold text-jejak-navy shadow-sm"
-                  : "text-white/80 hover:text-white"
-              }`}
-            >
-              <Globe2 size={11} /> Globe
-            </button>
-          </div>
         </div>
 
-        {/* Honesty Info Chip: "Illustrative routes, not live tracking" */}
+        {/* Honesty Info Chip */}
         <div className="flex justify-start">
           <button
             type="button"
@@ -1035,10 +863,10 @@ export default function ExploreFullBleedMap({
               onOpenInfo();
             }}
             aria-label="Community privacy and illustrative routes notice"
-            className="pointer-events-auto inline-flex items-center gap-1.5 rounded-full bg-[#122D4F]/80 backdrop-blur-md border border-white/20 px-2.5 py-1 text-[10px] font-bold text-sky-100/95 shadow-sm hover:bg-[#122D4F] no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="pointer-events-auto inline-flex items-center gap-1.5 border border-journal-rule bg-journal-card px-2.5 py-1 font-plexmono text-[9px] uppercase tracking-[0.1em] text-journal-ink-soft shadow-[2px_2px_0_0_rgba(30,27,22,0.1)] no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
           >
-            <Info size={11} className="text-amber-300 shrink-0" />
-            <span>Illustrative routes, not live tracking</span>
+            <Info size={11} className="text-journal-stamp shrink-0" />
+            <span>Illustrative routes</span>
           </button>
         </div>
       </div>

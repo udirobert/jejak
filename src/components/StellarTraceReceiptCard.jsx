@@ -245,7 +245,7 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
     step === "tracing" ? 0 : step === "anchoring" ? 1 : step === "anchored" ? 2 : 1;
 
   return (
-    <div className="mt-3 rounded-2xl bg-jejak-navy p-3.5 text-white shadow-lg border border-amber-300/40">
+    <div className="mt-3 rounded-[2px] bg-journal-ink p-3.5 text-journal-paper shadow-lg border border-journal-rule">
       {/* Top 3-State Stepper: Tracing -> Anchoring -> Anchored (✓) + (i) Explainer Trigger */}
       <div className="flex items-center justify-between gap-2">
         <div

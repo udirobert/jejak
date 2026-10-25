@@ -6,11 +6,11 @@ import { DEMO_CHIPS, getProduct } from "@/data";
 import causes from "@/data/causes.json";
 import { getRoute } from "@/lib/money";
 import ScreenShell from "@/components/ScreenShell";
-import Globe from "@/components/Globe";
+import RouteMap from "@/components/journal/RouteMap";
 import ImpactOnChainView from "@/components/ImpactOnChainView";
 import StellarExplainerSheet from "@/components/StellarExplainerSheet";
 import { VectorFlagSvg } from "@/components/explore/OriginFlagChip";
-import ProductIllustrationIcon from "@/components/explore/ProductIllustrationIcon";
+import Specimen from "@/components/journal/Specimen";
 import { vibrate } from "@/lib/haptics";
 import {
   ExternalLink,
@@ -219,15 +219,11 @@ export default function Impact() {
               type="button"
               onClick={cycleProduct}
               aria-label={`Current product: ${activeProduct.name}. Tap to change product`}
-              className="inline-flex items-center gap-2 rounded-full bg-white/85 border border-white/90 pl-1.5 pr-3 py-1 text-xs font-extrabold text-jejak-navy shadow-sm hover:bg-white whitespace-nowrap shrink-0 no-tap"
+              className="inline-flex items-center gap-2  bg-journal-card border border-journal-rule pl-1.5 pr-3 py-1 text-xs font-extrabold text-journal-ink shadow-sm hover:bg-white whitespace-nowrap shrink-0 no-tap"
             >
-              <ProductIllustrationIcon
-                productId={activeProduct.id}
-                size="sm"
-                className="!h-6 !w-6 !rounded-full"
-              />
+              <Specimen id={activeProduct.id} className="h-6 w-6" />
               <span className="whitespace-nowrap">{activeProduct.name}</span>
-              <span className="inline-flex items-center gap-1 rounded-full bg-jejak-navy/10 px-2 py-0.5 text-[10px] font-extrabold text-jejak-navy whitespace-nowrap">
+              <span className="inline-flex items-center gap-1  bg-journal-rule/40 px-2 py-0.5 text-[10px] font-extrabold text-journal-ink whitespace-nowrap">
                 <RefreshCw size={10} /> Change
               </span>
             </button>
@@ -239,29 +235,29 @@ export default function Impact() {
                 setShowInfoSheet(true);
               }}
               aria-label="About testnet demo wallets and data"
-              className="inline-flex items-center gap-1 rounded-full bg-white/85 border border-white/90 px-2.5 py-1 text-[11px] font-extrabold text-jejak-navy shadow-sm whitespace-nowrap shrink-0 no-tap"
+              className="inline-flex items-center gap-1  bg-journal-card border border-journal-rule px-2.5 py-1 text-[11px] font-extrabold text-journal-ink shadow-sm whitespace-nowrap shrink-0 no-tap"
             >
-              <span className="text-jejak-freight font-black">ⓘ</span>
+              <span className="text-journal-freight font-black">ⓘ</span>
               <span>Info</span>
             </button>
           </div>
 
           {/* Short stat chips row ("2 traced", "62,254 km", "6 stops") */}
           <div className="mt-2 px-5 grid grid-cols-3 gap-2">
-            <div className="rounded-2xl frosted-strong border border-white/85 px-3 py-1.5 text-center shadow-sm">
-              <p className="text-xs font-extrabold text-jejak-navy tabular-nums whitespace-nowrap">
+            <div className=" bg-journal-card border border-journal-rule px-3 py-1.5 text-center shadow-sm">
+              <p className="text-xs font-extrabold text-journal-ink tabular-nums whitespace-nowrap">
                 {animTraced.toLocaleString()} traced
               </p>
             </div>
 
-            <div className="rounded-2xl frosted-strong border border-white/85 px-3 py-1.5 text-center shadow-sm">
-              <p className="text-xs font-extrabold text-jejak-freight tabular-nums whitespace-nowrap">
+            <div className=" bg-journal-card border border-journal-rule px-3 py-1.5 text-center shadow-sm">
+              <p className="text-xs font-extrabold text-journal-freight tabular-nums whitespace-nowrap">
                 {animKm.toLocaleString()} km
               </p>
             </div>
 
-            <div className="rounded-2xl bg-jejak-navy border border-white/20 px-3 py-1.5 text-center text-white shadow-sm">
-              <p className="text-xs font-extrabold text-amber-300 tabular-nums whitespace-nowrap">
+            <div className=" bg-journal-ink border border-journal-rule px-3 py-1.5 text-center text-white shadow-sm">
+              <p className="text-xs font-extrabold text-journal-stamp tabular-nums whitespace-nowrap">
                 {sessionRecordsAnchored > 0
                   ? `${animAnchored.toLocaleString()} anchored`
                   : `${activeRoute.length} stops`}
@@ -271,32 +267,34 @@ export default function Impact() {
 
           {/* Reduced-height globe so tabs + corridor card fit above nav without scrolling */}
           <div className="relative mt-0.5 flex items-center justify-center">
-            <Globe
-              route={activeRoute}
-              activeStop={activeRoute.length}
-              size={212}
-              focusedIdx={safeStopIdx}
-              currency={currency}
-              onSelectStop={(idx, _stop, offset) => {
-                if (offset) setCardOrigin(offset);
-                setFocusedStopIdx(idx);
-                setShowWalletBalance(false);
-                setActiveTab("corridors");
-              }}
-            />
+            <div className="relative h-[240px] w-full">
+              <RouteMap
+                stops={activeRoute}
+                progress={1}
+                fill
+                reducedMotion={false}
+                activeIndex={safeStopIdx}
+                onSelectStop={(idx) => {
+                  setFocusedStopIdx(idx);
+                  setShowWalletBalance(false);
+                  setActiveTab("corridors");
+                }}
+                aria-label="Map of recorded entries"
+              />
+            </div>
           </div>
 
-          <p className="px-5 text-center text-[10px] font-bold text-jejak-navy/65">
-            Tap any stop on the globe · Illustrative routes, not live tracking
+          <p className="px-5 text-center text-[10px] font-bold text-journal-ink/65">
+            Tap a stop · Illustrative routes, not live tracking
           </p>
         </div>
 
         {/* 2-Pill Segmented Control: Corridors | On-chain */}
         <div className="px-5">
-          <div className="grid grid-cols-2 gap-1 rounded-2xl bg-white/65 p-1 border border-white/85 shadow-sm">
+          <div className="grid grid-cols-2 gap-1  bg-journal-card p-1 border border-journal-rule shadow-sm">
             {[
-              { id: "corridors", label: "Corridors" },
-              { id: "onchain", label: "On-chain" },
+              { id: "corridors", label: "Stops" },
+              { id: "onchain", label: "The record" },
             ].map((tab) => {
               const active = activeTab === tab.id;
               return (
@@ -307,10 +305,10 @@ export default function Impact() {
                     vibrate(5);
                     setActiveTab(tab.id);
                   }}
-                  className={`relative rounded-xl py-2 text-xs font-extrabold transition-colors no-tap ${
+                  className={`relative  py-2 text-xs font-extrabold transition-colors no-tap ${
                     active
                       ? "text-white"
-                      : "text-jejak-navy/65 hover:text-jejak-navy"
+                      : "text-journal-ink/65 hover:text-journal-ink"
                   }`}
                 >
                   {active && (
@@ -321,7 +319,7 @@ export default function Impact() {
                           ? { duration: 0 }
                           : { type: "spring", stiffness: 380, damping: 30 }
                       }
-                      className="absolute inset-0 rounded-xl bg-jejak-navy shadow-sm"
+                      className="absolute inset-0  bg-journal-ink shadow-sm"
                     />
                   )}
                   <span className="relative z-10">{tab.label}</span>
@@ -353,11 +351,11 @@ export default function Impact() {
                   ? { duration: 0 }
                   : { type: "spring", stiffness: 340, damping: 28 }
               }
-              className="rounded-3xl frosted-strong border border-white/85 p-3.5 shadow-md"
+              className="rounded-3xl bg-journal-card border border-journal-rule p-3.5 shadow-md"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-jejak-navy/8">
+                  <span className="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center  bg-journal-ink/8">
                     <VectorFlagSvg
                       country={selectedStop?.country || matchedCause.region}
                       className="h-4 w-6"
@@ -365,14 +363,14 @@ export default function Impact() {
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-base font-extrabold text-jejak-navy">
+                      <h2 className="text-base font-extrabold text-journal-ink">
                         {selectedStop?.country || matchedCause.region}
                       </h2>
-                      <span className="rounded-full bg-jejak-navy/8 px-2 py-0.5 text-[9px] font-semibold text-jejak-navy/60 whitespace-nowrap">
+                      <span className=" bg-journal-ink/8 px-2 py-0.5 text-[9px] font-semibold text-journal-ink/60 whitespace-nowrap">
                         Demo wallet · testnet
                       </span>
                     </div>
-                    <p className="mt-1 text-xs font-semibold leading-snug text-jejak-navy/75 break-words">
+                    <p className="mt-1 text-xs font-semibold leading-snug text-journal-ink/75 break-words">
                       {cleanCorridorSubtitle(selectedStop, matchedCause)}
                     </p>
                   </div>
@@ -382,7 +380,7 @@ export default function Impact() {
                   href={`https://stellar.expert/explorer/testnet/account/${matchedCause.walletAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="shrink-0 inline-flex items-center gap-1 rounded-full bg-jejak-freight/10 px-2.5 py-1 text-[11px] font-extrabold text-jejak-freight hover:bg-jejak-freight/15 whitespace-nowrap"
+                  className="shrink-0 inline-flex items-center gap-1  bg-jejak-freight/10 px-2.5 py-1 text-[11px] font-extrabold text-journal-freight hover:bg-jejak-freight/15 whitespace-nowrap"
                 >
                   View on Stellar <ExternalLink size={11} />
                 </a>
@@ -390,7 +388,7 @@ export default function Impact() {
 
               {/* Single activity line + expandable wallet balance detail */}
               <div className="mt-3 pt-2.5 border-t border-jejak-navy/10 flex items-center justify-between gap-2">
-                <p className="text-xs font-bold text-jejak-navy/80">
+                <p className="text-xs font-bold text-journal-ink/80">
                   {activityLine}
                 </p>
                 <button
@@ -399,7 +397,7 @@ export default function Impact() {
                     vibrate(4);
                     setShowWalletBalance((v) => !v);
                   }}
-                  className="shrink-0 inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-navy/60 hover:text-jejak-navy no-tap"
+                  className="shrink-0 inline-flex items-center gap-1 text-[11px] font-extrabold text-journal-ink/60 hover:text-journal-ink no-tap"
                 >
                   <span>{showWalletBalance ? "Hide details" : "Details"}</span>
                   <ChevronDown
@@ -419,9 +417,9 @@ export default function Impact() {
                     exit={reduce ? undefined : { opacity: 0, height: 0 }}
                     className="overflow-hidden"
                   >
-                    <div className="mt-2.5 rounded-2xl bg-jejak-navy/6 px-3 py-2 text-[11px] font-semibold text-jejak-navy/75 flex items-center justify-between gap-2">
+                    <div className="mt-2.5  bg-journal-ink/6 px-3 py-2 text-[11px] font-semibold text-journal-ink/75 flex items-center justify-between gap-2">
                       <span>Testnet funding balance (Friendbot)</span>
-                      <span className="font-mono font-extrabold text-jejak-navy tabular-nums">
+                      <span className="font-mono font-extrabold text-journal-ink tabular-nums">
                         {(matchedVault?.xlmBalance ?? 10000).toLocaleString()}{" "}
                         XLM
                       </span>

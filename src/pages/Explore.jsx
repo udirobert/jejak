@@ -4,7 +4,7 @@ import { base44 } from "@/api/base44Client";
 import ScreenShell from "@/components/ScreenShell";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/lib/AppContext";
-import { PRODUCTS, getProduct } from "@/data";
+import { PRODUCTS, getProduct, productFromScan } from "@/data";
 import { getRoute } from "@/lib/money";
 import { vibrate } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
@@ -46,7 +46,7 @@ export default function Explore() {
         { sort: "-created_date", limit: 50 }
       );
       const items = page.items || [];
-      setScans(items);
+      setScans(items.filter((s) => s.visibility !== "private"));
     } catch {
       setScans([]);
     }
@@ -68,6 +68,7 @@ export default function Explore() {
     const unsub = base44.entities.Scan.subscribe((event) => {
       if (event.type !== "create") return;
       const s = event.data;
+      if (s.visibility === "private") return;
       setScans((prev) =>
         prev.some((p) => p.id === s.id) ? prev : [s, ...prev]
       );
@@ -140,7 +141,7 @@ export default function Explore() {
         ? originFilter
         : activeRoute?.origin || scans[0]?.origin || "Bangladesh";
     const matchingScan = scans.find((s) => s.origin === targetOrigin);
-    const prod = getProduct(matchingScan?.product_id || "hoodie") || getProduct("hoodie");
+    const prod = productFromScan(matchingScan) || getProduct("hoodie");
     const base = getRoute(prod, market);
     const coords = ORIGIN_COORDS[targetOrigin];
     if (coords && base.length > 0) {
@@ -161,7 +162,7 @@ export default function Explore() {
       return;
     }
     const leadScan = scans.find((s) => s.origin === origin);
-    const prod = getProduct(leadScan?.product_id || "hoodie") || getProduct("hoodie");
+    const prod = productFromScan(leadScan) || getProduct("hoodie");
     setOriginFilter(origin);
     setActiveRoute({
       key: `${origin}-${market}-${Date.now()}`,
@@ -181,20 +182,23 @@ export default function Explore() {
     }
   };
 
-  const handleTraceProduct = (productId) => {
+  const handleTraceProduct = (scanOrId) => {
     vibrate(8);
-    const prod = getProduct(productId) || getProduct("hoodie");
+    // Accept a Scan record (resolves curated or AI-traced product) or a product id.
+    const prod = typeof scanOrId === "object"
+      ? productFromScan(scanOrId) || getProduct("hoodie")
+      : getProduct(scanOrId) || getProduct("hoodie");
     setProduct(prod);
     setCompareMode(false);
     setLowConfidence(false);
     setScreen("journey");
-    navigate("/");
+    navigate("/trace");
   };
 
   const handleTraceYours = () => {
     vibrate(8);
     reset();
-    navigate("/");
+    navigate("/trace");
   };
 
   // Camera button floats right above the current sheet height (above peek on load) and never overlaps sheet content
@@ -212,7 +216,6 @@ export default function Explore() {
           onOpenInfo={() => setShowInfoSheet(true)}
           onTraceUntracedOrigin={handleTraceYours}
           activeRoute={activeRoute}
-          globeRoute={globeRoute}
           reduce={reduce}
         />
 
@@ -226,7 +229,7 @@ export default function Explore() {
               ? { duration: 0 }
               : { type: "spring", stiffness: 360, damping: 34 }
           }
-          className="absolute right-4 z-30 pointer-events-none"
+          className="absolute right-4 z-30 pointer-events-none lg:right-[424px]"
         >
           <motion.button
             type="button"
@@ -234,7 +237,7 @@ export default function Explore() {
             onClick={handleTraceYours}
             aria-label="Trace a product with camera"
             title="Trace yours"
-            className="pointer-events-auto flex h-12 w-12 items-center justify-center rounded-full bg-jejak-gold text-jejak-navy shadow-[0_8px_24px_rgba(255,194,75,0.45)] border-2 border-white/95 hover:brightness-105 no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="pointer-events-auto flex h-12 w-12 items-center justify-center bg-journal-ink text-journal-card border border-journal-ink shadow-[3px_3px_0_0_var(--j-stamp)] hover:-translate-y-0.5 transition-transform no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
           >
             <Camera size={20} strokeWidth={2.4} />
           </motion.button>
@@ -276,34 +279,33 @@ export default function Explore() {
               exit={{ opacity: 0 }}
             >
               <div
-                className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm"
+                className="absolute inset-0 bg-journal-ink/40"
                 onClick={() => setShowInfoSheet(false)}
               />
               <motion.div
-                className="relative w-full max-w-[420px] rounded-t-3xl frosted-strong p-5 pb-8"
+                className="relative w-full max-w-[420px] border-t border-journal-rule bg-journal-card p-5 pb-8"
                 initial={reduce ? { opacity: 0 } : { y: "100%" }}
                 animate={reduce ? { opacity: 1 } : { y: 0 }}
                 exit={reduce ? { opacity: 0 } : { y: "100%" }}
                 transition={{ type: "spring", stiffness: 360, damping: 34 }}
               >
                 <div className="flex items-center justify-between">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-extrabold uppercase tracking-wider text-jejak-navy">
-                    <Sparkles size={13} className="text-jejak-coral" />{" "}
-                    Community map & privacy
+                  <span className="inline-flex items-center gap-1.5 font-plexmono text-[11px] uppercase tracking-[0.14em] text-journal-ink">
+                    <Sparkles size={13} className="text-journal-stamp" />{" "}
+                    The Atlas · privacy
                   </span>
                   <button
                     type="button"
                     onClick={() => setShowInfoSheet(false)}
-                    className="flex h-7 w-7 items-center justify-center rounded-full bg-jejak-navy/10 text-jejak-navy no-tap"
+                    className="flex h-8 w-8 items-center justify-center border border-journal-rule text-journal-ink no-tap"
                   >
                     <X size={14} />
                   </button>
                 </div>
-                <p className="mt-2.5 text-xs font-semibold leading-relaxed text-jejak-navy/80">
-                  Illustrative routes, not live vessel tracking. Every trace is
-                  private by default and only appears here when a user
-                  explicitly opts in; seeded demo entries are covered by the
-                  single “Sample data” banner and excluded from live counts.
+                <p className="mt-2.5 font-grotesk text-sm leading-relaxed text-journal-ink-soft">
+                  Illustrative routes, not live tracking. Every trace is
+                  private by default and only appears here when you choose to
+                  share it; sample entries are excluded from live counts.
                 </p>
               </motion.div>
             </motion.div>

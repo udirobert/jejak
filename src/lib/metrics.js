@@ -7,7 +7,7 @@ import { getRoute, formatMoney } from "./money";
 const EARTH_KM = 6371;
 const toRad = (d) => (d * Math.PI) / 180;
 
-function haversine(a, b) {
+export function haversine(a, b) {
   const dLat = toRad(b.lat - a.lat);
   const dLng = toRad(b.lng - a.lng);
   const s =

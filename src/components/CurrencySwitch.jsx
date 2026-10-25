@@ -1,9 +1,8 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 
-// S$ | £ switch. Never converts via exchange rate — each product has its own
-// per-market price, so switching currency also switches the market.
+// £ | S$ — journal segmented control. Never converts via exchange rate: each
+// product has its own per-market price, so switching currency switches market.
 export default function CurrencySwitch() {
   const { currency, setCurrency } = useApp();
   const options = [
@@ -12,31 +11,28 @@ export default function CurrencySwitch() {
   ];
   return (
     <div
-      className="relative flex items-center rounded-full p-1 frosted border border-white/60"
+      className="flex items-center font-plexmono text-sm"
       role="group"
       aria-label="Switch currency"
     >
-      {options.map((o) => {
+      {options.map((o, i) => {
         const active = currency === o.value;
         return (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => setCurrency(o.value)}
-            aria-pressed={active}
-            className="relative z-10 px-3 py-1.5 text-sm font-bold no-tap transition-colors"
-            style={{ color: active ? "#fff" : "#1B1B3A" }}
-          >
-            {active && (
-              <motion.span
-                layoutId="currencyPill"
-                className="absolute inset-0 rounded-full"
-                style={{ background: "#1B1B3A", zIndex: -1 }}
-                transition={{ type: "spring", stiffness: 500, damping: 38 }}
-              />
-            )}
-            {o.label}
-          </button>
+          <React.Fragment key={o.value}>
+            {i > 0 && <span className="px-1 text-journal-rule" aria-hidden="true">|</span>}
+            <button
+              type="button"
+              onClick={() => setCurrency(o.value)}
+              aria-pressed={active}
+              className={`min-h-[44px] px-2 py-1 no-tap focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp ${
+                active
+                  ? "font-medium text-journal-ink underline decoration-journal-stamp decoration-2 underline-offset-4"
+                  : "text-journal-ink-soft hover:text-journal-ink"
+              }`}
+            >
+              {o.label}
+            </button>
+          </React.Fragment>
         );
       })}
     </div>

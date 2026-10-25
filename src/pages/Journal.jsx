@@ -1,0 +1,308 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { base44 } from "@/api/base44Client";
+import { useAuth } from "@/lib/AuthContext";
+import { useApp } from "@/lib/AppContext";
+import { productFromScan } from "@/data";
+import { formatMoney, computeSplit } from "@/lib/money";
+import ScreenShell from "@/components/ScreenShell";
+import Specimen from "@/components/journal/Specimen";
+import MarginNote from "@/components/journal/MarginNote";
+import JournalButton from "@/components/journal/JournalButton";
+
+import RouteMap from "@/components/journal/RouteMap";
+import Receipt from "@/components/journal/Receipt";
+import StoryCard from "@/components/journal/StoryCard";
+import AskBrandSheet from "@/components/journal/AskBrandSheet";
+import { toast } from "sonner";
+
+const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
+
+function LiveReceiptCard({ receiptId }) {
+  const [rec, setRec] = useState(null);
+  useEffect(() => {
+    if (!receiptId) return;
+    let mounted = true;
+    base44.entities.Receipt.get(receiptId).then((r) => mounted && setRec(r)).catch(() => {});
+    const unsub = base44.entities.Receipt.subscribe((event) => {
+      if (event.data?.id === receiptId) setRec(event.data);
+    });
+    return () => { mounted = false; unsub && unsub(); };
+  }, [receiptId]);
+  if (!rec) return null;
+  const currency = rec.currency || "GBP";
+  const lines = (rec.items || []).map((it, i) => ({
+    key: `${i}-${it.description}`,
+    label: it.description,
+    struck: it.status === "skipped" || it.status === "failed",
+    amount: it.unit_price || 0,
+    sub: it.status === "traced" ? "traced" : it.status === "skipped" ? "not traceable" : it.status === "failed" ? "couldn't trace" : "reading…",
+  }));
+  return (
+    <div className="mb-10">
+      <p className="font-plexmono text-[11px] uppercase tracking-[0.16em] text-journal-stamp">
+        {rec.merchant || "Receipt"} {rec.purchase_date ? `· ${rec.purchase_date}` : ""} · {rec.status}
+      </p>
+      <div className="mt-3 max-w-md">
+        <Receipt
+          title="Shop receipt · tracing"
+          lines={lines}
+          total={(rec.items || []).reduce((a, i) => a + (i.unit_price || 0) * (i.quantity || 1), 0)}
+          currency={currency}
+        />
+      </div>
+    </div>
+  );
+}
+
+function EntrySheet({ scan, onClose, onOpenJourney }) {
+  const product = productFromScan(scan);
+  const [askOpen, setAskOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  if (!scan) return null;
+  const split = product ? computeSplit(product, scan.market || "GB") : [];
+  const labour = split.find((s) => s.key === "labour");
+  const routeCodes = (product?.route || []).map((s) => s.code || s.country?.slice(0, 2).toUpperCase()).join(" → ");
+
+  const toggleVisibility = async () => {
+    const v = scan.visibility === "public" ? "private" : "public";
+    try {
+      await base44.entities.Scan.update(scan.id, { visibility: v });
+    } catch {
+      toast.error("Couldn't update that.");
+    }
+  };
+
+  const del = async () => {
+    try {
+      await base44.entities.Scan.delete(scan.id);
+      onClose();
+    } catch {
+      toast.error("Couldn't delete it.");
+    }
+  };
+
+  return (
+    <motion.div className="fixed inset-0 z-50 flex items-end justify-center lg:items-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <div className="absolute inset-0 bg-journal-ink/40" onClick={onClose} />
+      <motion.div
+        className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-journal-rule bg-journal-card p-6 pb-8 scrollbar-hide lg:mx-4"
+        initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }}
+        transition={{ type: "spring", stiffness: 360, damping: 34 }}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">
+              {new Date(scan.created_date || Date.now()).toLocaleDateString("en-GB", { day: "numeric", month: "short" })} · {scan.source || "trace"} · {scan.visibility === "public" ? "on the Atlas" : "private"}
+            </p>
+            <h3 className="mt-1 font-serif-display text-3xl text-journal-ink" style={displayFont}>{scan.product_name}</h3>
+          </div>
+          <Specimen product={product} className="h-14 w-14 shrink-0" />
+        </div>
+
+        <div className="mt-5 grid gap-5 sm:grid-cols-2">
+          <StoryCard
+            scanId={scan.id}
+            productName={scan.product_name}
+            routeCodes={routeCodes}
+            labourLine={labour ? `≈ ${formatMoney(labour.amount, scan.currency || "GBP")} to the people who made it` : ""}
+            currency={scan.currency || "GBP"}
+          />
+          <div>
+            {product?.route?.length > 0 && (
+              <div className="border border-journal-rule bg-journal-paper p-2">
+                <RouteMap stops={product.route} progress={1} width={400} height={240} padDegrees={8} stampAt={[]} aria-label={`Map of ${scan.product_name}'s route`} />
+              </div>
+            )}
+            <div className="mt-3 space-y-1 font-plexmono text-[11px] uppercase tracking-[0.1em] text-journal-ink-soft">
+              <p>{scan.origin} → {scan.market === "SG" ? "SG" : "UK"} · {(scan.distance_km || 0).toLocaleString()} km</p>
+              <p>{formatMoney(scan.price || 0, scan.currency || "GBP")} · ~{scan.labour_pct}% to makers</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 flex flex-wrap gap-4 border-t border-journal-rule pt-4">
+          {product && <JournalButton onClick={() => onOpenJourney(scan)}>Open full journey</JournalButton>}
+          <JournalButton variant="secondary" onClick={() => setAskOpen(true)}>Ask the brand</JournalButton>
+          <JournalButton variant="secondary" onClick={toggleVisibility}>
+            {scan.visibility === "public" ? "Make private" : "Put on the Atlas"}
+          </JournalButton>
+          {!confirmDelete ? (
+            <button type="button" onClick={() => setConfirmDelete(true)} className="ml-auto min-h-[44px] font-grotesk text-sm text-journal-ink-soft underline underline-offset-4 no-tap hover:text-journal-stamp">Tear out</button>
+          ) : (
+            <span className="ml-auto flex items-center gap-2">
+              <span className="font-grotesk text-sm text-journal-stamp">Tear this page out?</span>
+              <button type="button" onClick={del} className="min-h-[44px] font-grotesk text-sm font-medium text-journal-ink underline no-tap">Yes</button>
+              <button type="button" onClick={() => setConfirmDelete(false)} className="min-h-[44px] font-grotesk text-sm text-journal-ink-soft no-tap">Keep</button>
+            </span>
+          )}
+        </div>
+        <AskBrandSheet open={askOpen} onClose={() => setAskOpen(false)} scan={scan} product={product} />
+      </motion.div>
+    </motion.div>
+  );
+}
+
+export default function Journal() {
+  const { user, isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
+  const { setProduct, setScreen } = useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [scans, setScans] = useState([]);
+  const [letters, setLetters] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const receiptParam = searchParams.get("receipt");
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+    let mounted = true;
+    // Scan read RLS also returns everyone's public Atlas entries; the journal shows only the user's own.
+    const isMine = (s) => s && (s.created_by_id === user.id || s.owner_id === user.id);
+    base44.entities.Scan.filter({ $or: [{ created_by_id: user.id }, { owner_id: user.id }] }, "-created_date", 50).then((r) => {
+      if (mounted) setScans((r.items || r || []).filter(isMine));
+    }).catch(() => {});
+    base44.entities.BrandRequest.filter({}, "-created_date", 50).then((r) => {
+      if (mounted) setLetters(r.items || r || []);
+    }).catch(() => {});
+    const unsub = base44.entities.Scan.subscribe((e) => {
+      if (e.type !== "delete" && !isMine(e.data)) return;
+      if (e.type === "create") setScans((p) => (p.some((x) => x.id === e.data.id) ? p : [e.data, ...p]));
+      if (e.type === "update") setScans((p) => p.map((x) => (x.id === e.data.id ? e.data : x)));
+      if (e.type === "delete") setScans((p) => p.filter((x) => x.id !== e.data.id));
+      setSelected((sel) => (sel && e.data?.id === sel.id ? (e.type === "delete" ? null : e.data) : sel));
+    });
+    return () => { mounted = false; unsub && unsub(); };
+  }, [isAuthenticated, user?.id]);
+
+  const stats = useMemo(() => {
+    const countries = new Set();
+    let km = 0, labour = 0;
+    for (const s of scans) {
+      if (s.origin) countries.add(s.origin);
+      km += s.distance_km || 0;
+      labour += s.labour_amount || 0;
+    }
+    return { entries: scans.length, countries: countries.size, km, labour };
+  }, [scans]);
+
+  const openJourney = (scan) => {
+    const p = productFromScan(scan);
+    if (!p) return;
+    setProduct(p);
+    setScreen("journey");
+    navigate("/trace");
+  };
+
+  const setLetterStatus = async (rec, status, note) => {
+    try {
+      await base44.entities.BrandRequest.update(rec.id, { status, ...(note ? { reply_note: note } : {}) });
+      setLetters((p) => p.map((x) => (x.id === rec.id ? { ...x, status } : x)));
+    } catch {
+      toast.error("Couldn't update that letter.");
+    }
+  };
+
+  if (isLoadingAuth) return <ScreenShell section="Journal"><div /></ScreenShell>;
+
+  if (!isAuthenticated) {
+    return (
+      <ScreenShell section="Journal">
+        <div className="flex flex-1 flex-col items-start justify-center px-5 py-24 lg:px-10">
+          <p className="font-plexmono text-[11px] uppercase tracking-[0.18em] text-journal-stamp">Your journal</p>
+          <h1 className="mt-3 font-serif-display text-5xl text-journal-ink" style={displayFont}>Your journal</h1>
+          <p className="mt-4 max-w-sm font-grotesk text-[15px] text-journal-ink-soft">
+            Sign in and everything you trace gets pressed into these pages — stories, receipts, and the letters you send brands.
+          </p>
+          <div className="mt-6"><JournalButton onClick={navigateToLogin}>Sign in</JournalButton></div>
+        </div>
+      </ScreenShell>
+    );
+  }
+
+  return (
+    <ScreenShell section={`Journal · ${stats.entries} entries`}>
+      <div className="px-5 pt-6 lg:px-10 lg:pt-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif-display text-5xl text-journal-ink" style={displayFont}>Your journal</h1>
+            <p className="mt-2 font-plexmono text-[11px] uppercase tracking-[0.14em] text-journal-ink-soft">
+              {stats.entries} entries · {stats.countries} countries · {stats.km.toLocaleString()} km · ≈{formatMoney(stats.labour, "GBP")} estimated to makers
+            </p>
+          </div>
+          <JournalButton to="/trace">Trace something</JournalButton>
+        </div>
+
+        <div className="mt-8">
+          {(receiptParam || scans.length === 0) && receiptParam && <LiveReceiptCard receiptId={receiptParam} />}
+        </div>
+
+        {scans.length === 0 && !receiptParam && (
+          <div className="mt-10 max-w-sm">
+            <MarginNote>nothing pressed yet — trace something</MarginNote>
+          </div>
+        )}
+
+        <div className="mt-8 grid gap-4 pb-16 sm:grid-cols-2 lg:grid-cols-3">
+          {scans.map((s) => {
+            const p = productFromScan(s);
+            const codes = (p?.route || []).map((x) => x.code || x.country?.slice(0, 2).toUpperCase()).join(" → ");
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setSelected(s)}
+                className="border border-journal-rule bg-journal-card p-4 text-left shadow-[3px_3px_0_0_transparent] transition-all no-tap hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--j-stamp)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
+              >
+                <div className="flex items-start justify-between">
+                  <Specimen product={p} className="h-14 w-14" />
+                  <span className="font-plexmono text-[9px] uppercase tracking-[0.12em] text-journal-ink-soft">
+                    {s.visibility === "public" ? "on the Atlas" : "private"}
+                  </span>
+                </div>
+                <p className="mt-3 font-serif-display text-lg leading-tight text-journal-ink" style={displayFont}>{s.product_name}</p>
+                <p className="mt-1 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">{codes || s.origin}</p>
+                <p className="mt-2 border-t border-dotted border-journal-rule pt-2 font-hand text-lg leading-tight text-journal-ink-soft">
+                  {s.story_status === "done" && s.story_title ? s.story_title : "story on its way"}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {letters.length > 0 && (
+          <section className="border-t border-journal-rule pb-16 pt-8">
+            <h2 className="font-serif-display text-3xl text-journal-ink" style={displayFont}>Letters to brands</h2>
+            <div className="mt-4 space-y-3">
+              {letters.map((l) => (
+                <div key={l.id} className="flex flex-wrap items-center gap-3 border border-journal-rule bg-journal-card p-4">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-grotesk text-sm font-medium text-journal-ink">{l.brand} · {l.product_name}</p>
+                    <p className="truncate font-grotesk text-[13px] text-journal-ink-soft">{l.subject}</p>
+                  </div>
+                  <span className={`font-plexmono text-[10px] uppercase tracking-[0.12em] ${l.status === "replied" ? "text-journal-materials" : "text-journal-ink-soft"}`}>
+                    {l.status}
+                  </span>
+                  {l.status !== "replied" && l.status !== "closed" && (
+                    <button type="button" onClick={() => setLetterStatus(l, "replied")} className="min-h-[44px] px-2 font-grotesk text-sm text-journal-ink underline decoration-journal-stamp underline-offset-4 no-tap">
+                      Mark replied
+                    </button>
+                  )}
+                  {l.status !== "closed" && (
+                    <button type="button" onClick={() => setLetterStatus(l, "closed")} className="min-h-[44px] px-2 font-grotesk text-sm text-journal-ink-soft no-tap hover:text-journal-ink">
+                      Close
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      <AnimatePresence>
+        {selected && <EntrySheet scan={selected} onClose={() => setSelected(null)} onOpenJourney={openJourney} />}
+      </AnimatePresence>
+    </ScreenShell>
+  );
+}

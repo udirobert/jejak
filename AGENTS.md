@@ -32,3 +32,16 @@ npx skills add base44/skills
 - Prefer the existing Base44 CLI workflow over adding new npm scripts for Base44-specific tasks.
 - Reuse the existing SDK client and Vite plugin patterns before adding new Base44 integration paths.
 - Run the relevant checks from `package.json` before finishing code changes.
+
+## Checks before finishing
+
+- `npm run lint` and `npm run build`
+- `deno test base44/shared/` (trace normalisation tests)
+- `deno check base44/functions/*/entry.ts base44/shared/*.ts`. The two Stellar functions fail locally on `npm:@stellar/stellar-sdk` resolution only; that's expected, because Base44 resolves `npm:` specifiers at deploy. Never vendor node_modules into a function dir (deploy uploads every file in it).
+
+## Design system ("field journal")
+
+- Primitives: `src/components/journal/` (PaperGrain, Stamp, MarginNote, RouteMap, Receipt, JournalButton, Specimen, ProofDrawer, StoryCard, AskBrandSheet).
+- Tokens: `journal-*` Tailwind colours / `--j-*` CSS vars; fonts `font-serif-display` (Fraunces), `font-grotesk`, `font-plexmono`, `font-hand` (Caveat, margin notes only).
+- No emojis in UI. Plain copy: blockchain/hash terms only inside ProofDrawer and the Impact detail rows.
+- AI prompts/schemas live in `base44/shared/prompts.ts`; their honesty rules are product requirements.

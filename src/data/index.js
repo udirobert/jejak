@@ -29,3 +29,17 @@ export const CATEGORY_TO_PRODUCT = {
   coffee: "coffee",
   phone_case: "phone_case",
 };
+// Resolve a Scan record to a usable product object: curated match, else the
+// stored AI-traced product from trace_json, else null.
+export function productFromScan(scan) {
+  if (!scan) return null;
+  const curated = getProduct(scan.product_id);
+  if (curated) return curated;
+  if (scan.trace_json) {
+    try {
+      const p = JSON.parse(scan.trace_json);
+      if (p && p.route && p.split) return p;
+    } catch {}
+  }
+  return null;
+}

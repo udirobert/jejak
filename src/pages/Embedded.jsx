@@ -206,7 +206,7 @@ export default function Embedded() {
     setCompareMode(false);
     setLowConfidence(false);
     setScreen("journey");
-    navigate("/");
+    navigate("/trace");
   };
 
   const handleOpenPassport = (reason = null) => {
@@ -229,6 +229,10 @@ export default function Embedded() {
 
   return (
     <ScreenShell variant="host-bank" header={false}>
+      <div className="flex items-center justify-between border-b border-[#E2E8F0] bg-white px-4 py-2">
+        <a href="/" className="font-grotesk text-xs font-medium text-slate-500 hover:text-slate-900">← Back to Jejak</a>
+        <span className="font-plexmono text-[9px] uppercase tracking-[0.14em] text-slate-400">Demo · Jejak inside a banking app</span>
+      </div>
       <div className="relative h-[100dvh] w-full overflow-hidden flex flex-col px-5 pt-4">
         {/* Header: Demo Bank + Currency Toggle + Small (i) Icon */}
         <header className="flex items-center justify-between gap-2 shrink-0">

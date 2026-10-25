@@ -1,15 +1,76 @@
-# Jejak — Know the story behind what you buy
+# Jejak — a field journal for the things you own
 
-> **Lead:** _"Know the story behind what you buy: where your clothes, coffee and gear really came from."_  
-> **Layer 2:** _"Follow the money."_
+> **Every thing has a journey.**
+> *jejak* /jə·dʒak/ (n.) Malay & Indonesian — a trace; a footprint left behind.
 
-Jejak is an open-source, photo-first **supply-chain provenance and cost-split receipt** built on **Stellar Testnet** for the **Stellar "Find Your Way" Hackathon (General Track)**.
+Snap anything you own and Jejak traces where it likely came from, who made it, and where your money went. It also tells you how sure it is. Every entry is a page in your field journal: a hand-drawn route, postmarks for each country, and a torn receipt showing how your £120 was split between materials, the people who made it, freight, the brand and the shop.
 
-Photograph an item (or pick a sample product), scan its **care / Made-in label** to attach high-confidence provenance facts, inspect its multi-stage route across a 3D globe, and **anchor a tamper-evident SHA-256 provenance record (`MEMO_HASH`) on Stellar Testnet**—verifiable in one click against Stellar Horizon. Then step into Layer 2 ("Follow the money") to see the estimated 5-way cost split and optionally send a Testnet payment to a demo cause wallet.
+Built with **Base44** for the **#Base44Challenge**. The frontend, data, auth, AI, automations and hosting all run on Base44.
+
+## Why
+
+Most of us have no idea that a £120 hoodie probably crossed six countries and 21,000 km, or that roughly £9 of it reached the people who sewed it. Jejak makes that visible without preaching. It gives a starting point, not a verdict: every figure is a range with a confidence level, and the app always says which facts were read from a label and which are estimates.
+
+## What it does
+
+| | |
+|---|---|
+| **Trace anything** | Take a photo, upload one, or just describe the item ("grey merino jumper from Uniqlo"). Base44 AI vision identifies it and sketches its likely supply chain: 2–5 stages, the countries, and a five-way cost split with low/mid/high ranges. |
+| **Read the label** | Snap the care tag and the "made in" country becomes a fact. That stage is stamped *read from the label*; everything else stays *estimated*. |
+| **Follow the money** | Guess first, then reveal. A torn receipt shows where the money went, with the labour line circled in red pen. |
+| **Your journal** | Every trace is saved to your private journal. You can choose to publish any entry to the shared **Atlas** map. |
+| **Proof, if you want it** | Any entry can be fingerprinted on a public ledger (Stellar), so no one can quietly change it later. |
+
+## Automations: Jejak does the legwork
+
+All three run as Base44 backend functions with **automations**. Nothing needs a manual step.
+
+1. **A story written for every entry.** This is an entity automation on `Scan` create (`base44/functions/writeJourneyStory`). When you save a trace, an LLM writes a short second-person journal entry. It hedges estimated stages and states label facts plainly. The entry appears live in the app through a realtime subscription, and one tap turns it into a shareable postcard image.
+2. **Snap a receipt and every item gets traced.** This is an entity automation on `Receipt` create (`base44/functions/processReceipt`). It reads the receipt photo, turns abbreviations like "MNS CTN TEE BLK" into "Men's black cotton t-shirt", skips fees and bags, then traces up to 8 items in parallel. Each traced item becomes a journal entry and gets its own story, because each new `Scan` triggers automation 1. The receipt fills in line by line on screen as each item finishes.
+3. **Ask the brand, without the awkwardness.** `draftBrandLetter` writes a polite, specific transparency request built around the stages Jejak could only estimate. You send it from your own email app; Jejak never emails brands on your behalf. A **scheduled automation** (`brandFollowUps`, daily 09:00 UTC) emails you a nudge if the brand hasn't replied after 14 days.
+
+What this saves: researching one product's supply chain by hand takes hours of reading trade data and brand reports. Jejak gives a first answer in seconds, turns a whole shopping receipt into a journal in about a minute, and does the follow-up for you.
+
+## Design
+
+The art direction is *a field journal of things*: warm paper with grain, ink, vermilion postmarks, hand-drawn routes and honest notes in the margins.
+
+- **Type:** Fraunces for headlines (variable: SOFT/WONK/opsz), Schibsted Grotesk for body text, IBM Plex Mono for stamps and data, Caveat for margin notes only.
+- **Colour:** paper `#F3EDE2`, ink `#1E1B16`, stamp `#C8442B`, plus one printing ink per money category (fern, turmeric, indigo, plum and rose madder).
+- **Signature interactions:** routes that draw themselves (an SVG map built with d3-geo, no 3D engine), postmarks that thud into place, a scroll-driven "Follow one hoodie" story, a guess-then-reveal receipt, and a live receipt that fills in as it's traced.
+- **Responsive:** desktop is a real editorial website, not a phone in a frame, and mobile is a first-class single column. Reduced motion is respected everywhere.
+- Shared design pieces live in `src/components/journal/`.
+
+## Architecture (Base44)
+
+| Piece | Where |
+|---|---|
+| Entities: `Scan` (journal entries; private by default, `visibility` controls the Atlas), `Receipt`, `BrandRequest` | `base44/entities/` |
+| AI prompts and JSON schemas (honesty rules live here) | `base44/shared/prompts.ts` |
+| Trace engine and output normalisation (ranges fixed, mids always sum to 100, label rule enforced) | `base44/shared/trace.ts` (+ `trace.test.ts`) |
+| Vision: product + care label | `base44/functions/identifyProduct` |
+| Trace any described item | `base44/functions/traceAnything` |
+| Automations | `writeJourneyStory`, `processReceipt`, `brandFollowUps` (see each `function.jsonc`) |
+| Brand letters | `base44/functions/draftBrandLetter` |
+| Proof layer (Stellar) | `stellarMakerPayout`, `stellarFeeRelayer` |
+
+Row-level security: entries, receipts and letters are owner-only. An entry is readable by everyone only once its owner publishes it to the Atlas.
+
+## Deploying
+
+```bash
+base44 login          # with the account that owns the app
+base44 link           # choose "Link an existing project"
+base44 deploy         # entities, functions + automations, site
+```
+
+Optional function env var: `JEJAK_APP_URL` (e.g. `https://your-app.base44.app`) adds an "Open your journal" link to the reminder emails. Set it as an environment variable or secret for the app in the Base44 dashboard.
+
+Note: Base44 rejects `function.jsonc` automations (HTTP 409) on apps that have **Workflows** enabled. If that happens, recreate the three triggers as Workflows (`Scan` created → `writeJourneyStory`, `Receipt` created → `processReceipt`, daily 09:00 → `brandFollowUps`) and deploy the functions without their `automations` blocks.
 
 ---
 
-## Architecture & Meaningful Use of Stellar
+## Proof layer: Stellar
 
 Stellar is a **first-class provenance and settlement primitive** in Jejak:
 
@@ -32,7 +93,7 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
    - Includes a **Test altered JSON** toggle that modifies one field in the off-chain JSON and re-runs verification against Horizon to prove that any post-anchor tampering triggers a **HASH MISMATCH**.
 
 3. **Secondary Maker Bridge (`Operation.payment` & `Operation.createClaimableBalance`):**
-   - In Layer 2 ("Follow the money"), users can send an optional Testnet XLM payment or create an unconditional `ClaimableBalance` (`Operation.createClaimableBalance`) to a **Demo cause wallet (testnet)** with a structured `MEMO_TEXT` (`CAUSE:<PRODUCT>:<REGION>`).
+   - On the money view, users can send an optional Testnet XLM payment or create an unconditional `ClaimableBalance` (`Operation.createClaimableBalance`) to a **Demo cause wallet (testnet)** with a structured `MEMO_TEXT` (`CAUSE:<PRODUCT>:<REGION>`).
    - Small cross-border payments are costly on card and bank rails; Stellar network fees are a fraction of a cent (`0.00001 XLM` base fee).
 
 4. **Zero-Fail Testnet Resilience:**
@@ -54,21 +115,23 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
 
 ### Real (Live in this build)
 - **Product & Care-Label AI Vision (`base44/functions/identifyProduct/entry.ts`):**
-  - `mode: "product"`: classifies photographed items into the curated product set (`hoodie`, `trainers`, `coffee`, `phone_case`) and extracts visual attributes (`colour`, `material`, `category`, `likely_origin`). Unsafe or unmatched images return `unknown` and fall back to the manual picker.
+  - `mode: "product"`: matches photographed items to the curated product set (`hoodie`, `trainers`, `coffee`, `phone_case`), extracts visual attributes, and returns a plain-English `description` and any visible `brand`. Items outside the curated set are traced by the AI trace engine (`traceAnything`); unsafe images are refused.
   - `mode: "label"`: extracts `country_of_manufacture`, `fibre_composition`, and `care_or_brand_text` from photographed care tags or "Made in" labels as structured JSON.
-- **Private-by-Default Photo Handling:**
+- **Private-by-Default:**
   - Product and label photos for vision recognition use `UploadPrivateFile` + short-lived `CreateFileSignedUrl` (stored privately).
-  - Community sharing defaults to **Private (`shareMode = "private"`)**. Switching to **Public feed** requires an explicit confirmation before a product photo is uploaded to a public URL (label photos are never uploaded publicly).
+  - Journal entries save with `visibility: "private"`. Publishing to the Atlas is an explicit per-entry toggle; label photos are never uploaded publicly.
 - **Live Stellar Testnet & Horizon Integration (`base44/functions/stellarMakerPayout/entry.ts`):**
   - Real `MEMO_HASH` provenance anchoring, live Horizon transaction lookup and SHA-256 verification, live `payment` and `createClaimableBalance` operations on Stellar Testnet, and live Horizon account telemetry on the Impact screen.
 - **Jejak Passport Smart Wallet (`src/lib/wallet.js`, `base44/functions/stellarFeeRelayer/entry.ts`):**
   - **Real** Soroban Testnet contract deployment via `createContractV2` — each passport is a real `C...` smart-account instance, fee-sponsored by an isolated relayer account. Admin actions (recovery signer, spending policy) are journaled on the sponsor account rather than executed — labelled honestly as such.
-- **Live Explore Feed & "Others Traced This":**
-  - Backed by the `Scan` entity with realtime subscriptions. Seeded records carry `is_sample: true` and are badged **Sample** in the UI; single-person real counts (`count === 1`) are hidden so an individual cannot be singled out.
+- **Live Atlas (`/atlas`):**
+  - A shared paper map backed by the `Scan` entity with realtime subscriptions. Only records with `visibility: "public"` appear; new public entries animate in live. Seeded records carry `is_sample: true` and are badged **Sample** in the UI; single-person real counts (`count === 1`) are hidden so an individual cannot be singled out.
 
 ### Mocked / Illustrative (Clearly labelled in the UI)
 - **Supply-Chain Route & Cost-Split Percentages:**
   - Upstream stages, country routes, and 5-category cost-split ranges (`low` / `mid` / `high`) are curated category-level estimates, not data from specific named factories or suppliers. Every stage and figure is labelled **Estimated** (unless a care label was scanned for the final-manufacture stage, which is labelled **Read from label**).
+  - **AI-traced items** (anything outside the four curated samples, and every receipt line) are generated by an LLM following typical trade patterns. Their confidence is capped at *medium*/*low*, their basis labels come from the same fixed set, and `normalizeTrace` enforces the rules in code: mids sum to exactly 100, low ≤ mid ≤ high, and *Read from label* applies only when the stage's country matches a scanned label. Prices for the second market are converted at a fixed rate (1 GBP = 1.70 SGD).
+- **Journal stories and brand letters** are AI-written from the trace data and use hedged language for estimated stages.
 - **Demo Cause Wallets & Future Off-Ramps:**
   - Destination wallets (`Bangladesh`, `Vietnam`, `Ethiopia`, `China`) are **Demo cause wallets (testnet)**, not real partner cooperatives, and funds do not reach individual workers. Local-currency anchor off-ramps (SEP-24) are described strictly as a **future integration**.
 - **Embedded Bank Screen (`/embedded`):**
@@ -88,6 +151,7 @@ npm run dev                  # Start Vite dev server
 npm run build                # Production build check
 npm run lint                 # ESLint
 node scripts/validate-data.mjs   # Asserts every product split sums to 100%
+deno test base44/shared/         # Tests for the AI trace engine's normalisation rules
 ```
 
 ### Environment Variables (`.env.example`)
@@ -159,23 +223,9 @@ Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high
 
 ---
 
-## 3-Minute Pitch Video Demo Script (Provenance-First)
+## Walkthrough video & social post
 
-- **0:00 – 0:25 · The Hook & Scan (Home → Identifying):**
-  - Open Jejak on mobile: *"Know the story behind what you buy: where your clothes, coffee and gear really came from."*
-  - Tap the shutter to photograph a hoodie (or tap the **Everyday Hoodie** sample card). Show the private AI vision scan extracting visual attributes and launching into the 3D globe.
-- **0:25 – 1:10 · Provenance & Care-Label Evidence (Journey Screen):**
-  - Spin the 3D route globe across India → China → Bangladesh → Singapore → Netherlands → UK. Point out that each stage carries an honest provenance badge: **Estimated (Medium)**.
-  - Tap **Scan label** (or **Try sample label**) on the *Add provenance evidence* card. Show how Jejak extracts `"Made in Bangladesh · 80% cotton, 20% recycled polyester"` and upgrades the final-manufacture stage badge to **Read from label (High)** while keeping upstream stages **Estimated**.
-- **1:10 – 2:05 · Core Stellar Feature: Anchor & Verify On-Chain Provenance Record:**
-  - Tap **Preview JSON** to show the canonical `jejak.provenance.v1` JSON (stages, label facts, estimate ranges, basis, timestamp — no photos or personal data).
-  - Tap **Anchor this trace on Stellar**. Show the SHA-256 digest written as a `MEMO_HASH` transaction on Stellar Testnet, complete with ledger number, QR code, and `stellar.expert` link.
-  - Tap **Verify hash on Horizon** — show the live **HASH MATCH** against Horizon Testnet. Then tap **Test altered JSON** to demonstrate how altering a single field in the off-chain JSON produces an immediate **HASH MISMATCH**.
-- **2:05 – 2:40 · Layer 2: Follow the Money & Demo Cause Wallet (Money Split Screen):**
-  - Tap **Follow the money** to drop the 100 coins across Materials, Labour, Freight, Brand, and Retail.
-  - Switch to **Flow & Boost** and send a Testnet payment (or Claimable Balance) to the **Demo cause wallet (testnet)**, noting that Stellar fees are a fraction of a cent (`0.00001 XLM`).
-- **2:40 – 3:00 · Explore & Honest Methodology:**
-  - Open **Explore** to show community traces with clickable `stellar.expert` links and **Sample** badges on seeded items, then open the **?** drawer to highlight the **What's real vs. mocked** transparency box.
+See [`docs/submission.md`](./docs/submission.md) for the 30-second and 2-minute walkthrough scripts, the shot list, and post copy for X and LinkedIn.
 
 ---
 

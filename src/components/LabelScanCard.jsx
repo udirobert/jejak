@@ -2,17 +2,15 @@ import React, { useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useApp } from "@/lib/AppContext";
-import ConfidenceBadge from "./ConfidenceBadge";
 import { vibrate } from "@/lib/haptics";
-import { TAP } from "@/lib/motion";
+import Stamp from "./journal/Stamp";
+import MarginNote from "./journal/MarginNote";
+import JournalButton from "./journal/JournalButton";
 import {
-  Tag,
   Camera,
-  Image as ImageIcon,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Sparkles,
   RotateCcw,
 } from "lucide-react";
 
@@ -107,14 +105,14 @@ export default function LabelScanCard() {
 
   if (skipped && !labelEvidence) {
     return (
-      <div className="mt-2.5 flex items-center justify-between rounded-2xl bg-white/55 px-3 py-2 text-xs text-jejak-navy">
-        <span className="font-semibold text-jejak-navy/75">
-          Label scan skipped · all stages shown as Estimated
+      <div className="mt-4 flex items-center justify-between border border-journal-rule bg-journal-card px-3 py-2 text-xs text-journal-ink">
+        <span className="font-grotesk text-journal-ink-soft">
+          Label scan skipped · all stages shown as estimated
         </span>
         <button
           type="button"
           onClick={() => setSkipped(false)}
-          className="font-extrabold text-jejak-navy underline no-tap"
+          className="font-medium text-journal-ink underline decoration-journal-stamp underline-offset-4 no-tap"
         >
           Scan label
         </button>
@@ -123,7 +121,7 @@ export default function LabelScanCard() {
   }
 
   return (
-    <div className="mt-2.5 rounded-2xl frosted-strong border border-white/85 p-3 shadow-sm">
+    <div className="mt-4 border border-journal-rule bg-journal-card p-4 shadow-[0_10px_30px_-16px_rgba(30,27,22,0.3)]">
       <input
         ref={camRef}
         type="file"
@@ -141,26 +139,21 @@ export default function LabelScanCard() {
       />
 
       <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5">
-          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg bg-jejak-navy text-amber-300">
-            <Tag size={13} />
-          </span>
-          <div>
-            <p className="text-xs font-extrabold text-jejak-navy">
-              {labelEvidence ? "Provenance evidence · Read from label" : "Add provenance evidence · Scan care or Made-in label"}
-            </p>
-            <p className="text-[10px] font-semibold text-jejak-navy/60">
-              {labelEvidence
-                ? "Anchors final manufacture country & fibre content; upstream stages stay Estimated."
-                : "Optional: extract stated origin country & fibre composition via private AI vision."}
-            </p>
-          </div>
+        <div>
+          <p className="font-serif-display text-xl text-journal-ink" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' }}>
+            {labelEvidence ? "Read from the label" : "Got the label?"}
+          </p>
+          <p className="mt-0.5 font-grotesk text-[13px] text-journal-ink-soft">
+            {labelEvidence
+              ? "This stage is now fact; everything upstream stays estimated."
+              : "Snap the care tag and we'll read where it was really made."}
+          </p>
         </div>
         {labelEvidence && (
           <button
             type="button"
             onClick={() => setLabelEvidence(null)}
-            className="flex items-center gap-0.5 text-[10px] font-bold text-jejak-navy/55 hover:text-jejak-navy no-tap shrink-0"
+            className="flex shrink-0 items-center gap-0.5 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft no-tap hover:text-journal-ink"
           >
             <RotateCcw size={10} /> Clear
           </button>
@@ -174,10 +167,10 @@ export default function LabelScanCard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="mt-2.5 flex items-center gap-2 rounded-xl bg-jejak-navy px-3 py-2 text-xs font-bold text-white"
+            className="mt-3 flex items-center gap-2 bg-journal-ink px-3 py-2 font-plexmono text-[11px] uppercase tracking-[0.1em] text-journal-paper"
           >
-            <Loader2 size={14} className="animate-spin text-amber-300" />
-            <span>Reading country of manufacture & fibre content from label…</span>
+            <Loader2 size={14} className="animate-spin text-journal-stamp" />
+            <span>Reading the label…</span>
           </motion.div>
         )}
 
@@ -186,11 +179,14 @@ export default function LabelScanCard() {
             key="evidence"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-2.5 rounded-xl bg-jejak-materials/15 border border-jejak-materials/40 p-2.5"
+            className="relative mt-3 border border-journal-rule bg-journal-paper p-3"
           >
+            <div className="absolute -right-3 -top-4">
+              <Stamp shape="rect" country="Verified" code="LABEL" date="READ" rotation={6} animate />
+            </div>
             <div className="flex flex-wrap items-center justify-between gap-1.5">
-              <span className="inline-flex items-center gap-1 text-xs font-extrabold text-jejak-navy">
-                <CheckCircle2 size={13} className="text-jejak-materials shrink-0" />
+              <span className="inline-flex items-center gap-1 font-grotesk text-sm font-medium text-journal-ink">
+                <CheckCircle2 size={14} className="shrink-0 text-journal-materials" />
                 {labelEvidence.country_of_manufacture
                   ? `Made in ${labelEvidence.country_of_manufacture}`
                   : "Origin read from label"}
@@ -198,17 +194,12 @@ export default function LabelScanCard() {
                   ? ` · ${labelEvidence.fibre_composition}`
                   : ""}
               </span>
-              <div className="flex items-center gap-1">
-                <span className="rounded-full bg-jejak-navy px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-amber-300">
-                  Read from label
-                </span>
-                <ConfidenceBadge level="high" />
-              </div>
+              <MarginNote tone="stamp">read from the label</MarginNote>
             </div>
             {labelEvidence.care_or_brand_text && (
-              <p className="mt-1 text-[10px] font-semibold text-jejak-navy/70">
-                Label text: “{labelEvidence.care_or_brand_text}”
-                {labelEvidence.isSampleLabel ? " (sample label)" : ""}
+              <p className="mt-1 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft">
+                “{labelEvidence.care_or_brand_text}”
+                {labelEvidence.isSampleLabel ? " · sample label" : ""}
               </p>
             )}
           </motion.div>
@@ -217,40 +208,25 @@ export default function LabelScanCard() {
         {!scanning && !labelEvidence && (
           <motion.div key="actions" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
             {errorMsg && (
-              <div className="mt-2 flex items-start gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/35 p-2 text-[11px] font-semibold text-jejak-navy">
-                <AlertCircle size={14} className="text-jejak-labour shrink-0 mt-0.5" />
+              <div className="mt-2 flex items-start gap-1.5 border border-journal-stamp/40 bg-journal-stamp/10 p-2 text-[12px] text-journal-ink">
+                <AlertCircle size={14} className="mt-0.5 shrink-0 text-journal-stamp" />
                 <span>{errorMsg}</span>
               </div>
             )}
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              <motion.button
-                type="button"
-                whileTap={TAP}
-                onClick={() => camRef.current?.click()}
-                className="flex items-center gap-1 rounded-xl bg-jejak-navy px-2.5 py-1.5 text-[11px] font-extrabold text-white no-tap"
-              >
-                <Camera size={12} className="text-amber-300" /> Scan label
-              </motion.button>
-              <motion.button
-                type="button"
-                whileTap={TAP}
-                onClick={() => libRef.current?.click()}
-                className="flex items-center gap-1 rounded-xl bg-white/80 border border-jejak-navy/15 px-2.5 py-1.5 text-[11px] font-extrabold text-jejak-navy no-tap"
-              >
-                <ImageIcon size={12} /> Upload tag photo
-              </motion.button>
-              <motion.button
-                type="button"
-                whileTap={TAP}
-                onClick={applySampleLabel}
-                className="flex items-center gap-1 rounded-xl bg-amber-300/30 border border-amber-500/40 px-2.5 py-1.5 text-[11px] font-extrabold text-jejak-navy no-tap"
-              >
-                <Sparkles size={11} /> Try sample label
-              </motion.button>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <JournalButton onClick={() => camRef.current?.click()}>
+                <Camera size={13} /> Snap the label
+              </JournalButton>
+              <JournalButton variant="secondary" onClick={() => libRef.current?.click()}>
+                Upload tag photo
+              </JournalButton>
+              <JournalButton variant="secondary" onClick={applySampleLabel}>
+                Try a sample label
+              </JournalButton>
               <button
                 type="button"
                 onClick={() => setSkipped(true)}
-                className="ml-auto px-1.5 py-1 text-[10px] font-bold text-jejak-navy/55 hover:text-jejak-navy no-tap"
+                className="ml-auto min-h-[44px] px-1.5 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft no-tap hover:text-journal-ink"
               >
                 Skip
               </button>

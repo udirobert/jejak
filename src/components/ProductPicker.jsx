@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DEMO_CHIPS } from "@/data";
 import { useApp } from "@/lib/AppContext";
 import { getProduct } from "@/data";
+import Specimen from "./journal/Specimen";
 
 // Product picker — the graceful fallback for any camera or AI failure.
 export default function ProductPicker({ open, onClose, message, onPick }) {
@@ -23,37 +24,41 @@ export default function ProductPicker({ open, onClose, message, onPick }) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className="fixed inset-0 z-50 flex items-end justify-center"
+          className="fixed inset-0 z-50 flex items-end justify-center lg:items-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-jejak-navy/40 backdrop-blur-sm" onClick={onClose} />
+          <div className="absolute inset-0 bg-journal-ink/40" onClick={onClose} />
           <motion.div
-            className="relative w-full max-w-[420px] frosted-strong rounded-t-3xl p-6 pb-8"
+            className="relative w-full max-w-[560px] border border-journal-rule bg-journal-card p-6 pb-8 shadow-[0_24px_60px_-20px_rgba(30,27,22,0.4)] lg:mx-4"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", stiffness: 360, damping: 34 }}
           >
-            <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-jejak-navy/20" />
-            <h3 className="text-lg font-extrabold text-jejak-navy">Pick a product</h3>
-            {message && <p className="mt-1 text-sm text-jejak-navy/70">{message}</p>}
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <h3
+              className="font-serif-display text-2xl text-journal-ink"
+              style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' }}
+            >
+              Pick a specimen
+            </h3>
+            {message && <p className="mt-1 font-grotesk text-sm text-journal-ink-soft">{message}</p>}
+            <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {DEMO_CHIPS.map((c) => (
                 <button
                   key={c.id}
                   type="button"
                   onClick={() => pick(c.id)}
-                  className="flex items-center gap-3 rounded-2xl bg-white/80 border border-white p-4 text-left no-tap hover:bg-white transition-colors"
+                  className="flex flex-col items-center gap-2 border border-journal-rule bg-journal-paper p-4 no-tap transition-all hover:-translate-y-0.5 hover:shadow-[3px_3px_0_0_var(--j-stamp)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
                 >
-                  <span className="text-2xl">{c.emoji}</span>
-                  <span className="font-bold text-jejak-navy">{c.label}</span>
+                  <Specimen id={c.id} className="h-16 w-16" title={`${c.label} illustration`} />
+                  <span className="font-grotesk text-sm font-medium text-journal-ink">{c.label}</span>
                 </button>
               ))}
             </div>
-            <p className="mt-4 text-xs text-jejak-navy/50">
-              We'll show a category-level estimate with a low-confidence badge.
+            <p className="mt-4 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
+              Category-level estimate · rough guess
             </p>
           </motion.div>
         </motion.div>

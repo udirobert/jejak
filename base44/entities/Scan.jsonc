@@ -63,6 +63,63 @@
     "is_sample": {
       "type": "boolean",
       "default": false
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "private",
+        "public"
+      ],
+      "default": "private"
+    },
+    "owner_id": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "sample",
+        "photo",
+        "describe",
+        "receipt"
+      ]
+    },
+    "trace_json": {
+      "type": "string"
+    },
+    "route_json": {
+      "type": "string"
+    },
+    "brand": {
+      "type": "string"
+    },
+    "receipt_id": {
+      "type": "string"
+    },
+    "distance_km": {
+      "type": "number"
+    },
+    "labour_amount": {
+      "type": "number"
+    },
+    "story_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "writing",
+        "done",
+        "failed",
+        "skipped"
+      ]
+    },
+    "story_title": {
+      "type": "string"
+    },
+    "story_text": {
+      "type": "string"
+    },
+    "story_caption": {
+      "type": "string"
     }
   },
   "required": [
@@ -72,15 +129,43 @@
     "labour_pct"
   ],
   "rls": {
-    "read": {},
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.owner_id": "{{user.id}}"
+        },
+        {
+          "data.visibility": {
+            "$ne": "private"
+          }
+        }
+      ]
+    },
     "create": {
       "created_by_id": "{{user.id}}"
     },
     "update": {
-      "created_by_id": "{{user.id}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.owner_id": "{{user.id}}"
+        }
+      ]
     },
     "delete": {
-      "created_by_id": "{{user.id}}"
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "data.owner_id": "{{user.id}}"
+        }
+      ]
     }
   }
 }

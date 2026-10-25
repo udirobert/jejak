@@ -72,6 +72,8 @@ export function AppProvider({ children }) {
     loadSavedAnchoredRecords()
   );
   const [walletSession, setWalletSession] = useState(() => getWalletSession());
+  const [pendingDescribe, setPendingDescribe] = useState(null); // {description, price, brand} for the describe-it flow
+  const [savedScanId, setSavedScanId] = useState(null); // Scan record id for the current trace session
 
   const recordAnchoredTrace = useCallback((rec) => {
     if (!rec || !rec.txHash) return;
@@ -205,6 +207,8 @@ export function AppProvider({ children }) {
     setStellarError(null);
     setLabelEvidence(null);
     setProvenanceRecord(null);
+    setPendingDescribe(null);
+    setSavedScanId(null);
   }, []);
 
   const value = {
@@ -253,6 +257,10 @@ export function AppProvider({ children }) {
     setWalletSession,
     addTrace,
     addToWorkerFund,
+    pendingDescribe,
+    setPendingDescribe,
+    savedScanId,
+    setSavedScanId,
     setCurrency: switchCurrency,
     setMarket,
     setProduct,

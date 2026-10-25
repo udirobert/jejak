@@ -6,7 +6,7 @@ import { createClientFromRequest } from "npm:@base44/sdk@0.8.53";
 //    manufacture, fibre/material composition, and visible care or brand text as structured JSON.
 const VALID_IDS = ["hoodie", "trainers", "coffee", "phone_case"];
 
-export default async function (req) {
+export default async function (req: Request) {
   try {
     const base44 = createClientFromRequest(req);
     let body;
@@ -58,6 +58,8 @@ export default async function (req) {
         "Return the matching id, a short human label (max 3 words), your confidence, and the " +
         "visual attributes you can detect from the photo: the dominant colour, the likely material, " +
         "the product category, and the likely region of origin. Keep each attribute to 1-3 words. " +
+        "Also return description: a plain-English description of the item including colour and material (max 8 words), " +
+        "and brand: any visible brand text (empty string if none). " +
         "If the photo is unclear, matches none of these, or contains any explicit, sexual, violent, " +
         "or otherwise unsafe content, return product_id \"unknown\" with confidence \"low\".",
       file_urls: [fileUrl],
@@ -76,6 +78,8 @@ export default async function (req) {
               likely_origin: { type: "string" },
             },
           },
+          description: { type: "string" },
+          brand: { type: "string" },
         },
         required: ["product_id", "label", "confidence"],
       },
@@ -83,6 +87,6 @@ export default async function (req) {
 
     return Response.json(result);
   } catch (error) {
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: (error as Error).message }, { status: 500 });
   }
 }

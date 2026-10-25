@@ -1,15 +1,10 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronUp, ChevronDown, Sparkles, X } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
-import ProductIllustrationIcon from "./ProductIllustrationIcon";
-import OriginFlagChip from "./OriginFlagChip";
-import {
-  isSampleScan,
-  getMaterialName,
-  relativeTracedTime,
-  hasOwnAnchoredRecord,
-} from "./exploreUtils";
+import Specimen from "@/components/journal/Specimen";
+
+import { isSampleScan, relativeTracedTime } from "./exploreUtils";
 
 export const SNAP_HEIGHTS = {
   peek: 58,
@@ -19,19 +14,11 @@ export const SNAP_HEIGHTS = {
 
 const SNAP_ORDER = ["peek", "half", "full"];
 
-function CompactProductRow({
-  group,
-  isHighlighted,
-  onSelectScan,
-}) {
+function CompactProductRow({ group, isHighlighted, onSelectScan }) {
   const { items } = group;
   const [activeIdx, setActiveIdx] = useState(0);
   const safeIdx = Math.min(activeIdx, items.length - 1);
   const scan = items[safeIdx] || items[0];
-  const anchored = hasOwnAnchoredRecord(scan);
-  const origins = Array.from(
-    new Set(items.map((i) => i.origin).filter(Boolean))
-  );
 
   return (
     <div
@@ -47,62 +34,24 @@ function CompactProductRow({
           onSelectScan(scan);
         }
       }}
-      className={`group flex items-center justify-between gap-3 py-2.5 px-2.5 rounded-2xl transition-colors cursor-pointer no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-jejak-navy/50 ${
-        isHighlighted ? "bg-jejak-gold/25" : "hover:bg-white/65"
+      className={`group flex items-center justify-between gap-3 border-b border-dotted border-journal-rule px-2.5 py-3 cursor-pointer no-tap transition-colors focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp ${
+        isHighlighted ? "bg-journal-paper-deep/60" : "hover:bg-journal-paper-deep/40"
       }`}
     >
-      {/* Left: Small illustrated product icon or user photo + "Product · Origin" */}
-      <div className="flex items-center gap-2.5 min-w-0 flex-1">
-        <ProductIllustrationIcon
-          productId={scan.product_id}
-          photoUrl={scan.photo_url}
-          size="sm"
-        />
+      <div className="flex items-center gap-3 min-w-0 flex-1">
+        <Specimen id={scan.product_id} className="h-10 w-10 shrink-0" />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <p className="text-xs sm:text-[13px] font-extrabold text-jejak-navy truncate">
-              {scan.product_name} · {scan.origin}
-            </p>
-            {anchored && (
-              <span
-                title="Anchored on Stellar Testnet"
-                className="h-2 w-2 shrink-0 rounded-full bg-jejak-materials shadow-[0_0_6px_rgba(47,191,113,0.75)]"
-              />
-            )}
-          </div>
-          <p className="text-[11px] font-semibold text-jejak-navy/60 truncate">
-            {getMaterialName(scan)} · {relativeTracedTime(scan.created_date)}
+          <p className="font-grotesk text-[13px] font-semibold text-journal-ink truncate">
+            {scan.product_name} · {scan.origin}
+          </p>
+          <p className="font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft truncate">
+            {scan.story_title ? scan.story_title : relativeTracedTime(scan.created_date)}
           </p>
         </div>
       </div>
-
-      {/* Right: Shared OriginFlagChip switcher pills */}
-      <div className="flex items-center gap-1 shrink-0">
-        {origins.length > 1 ? (
-          origins.map((orig) => {
-            const active = scan.origin === orig;
-            return (
-              <OriginFlagChip
-                key={orig}
-                country={orig}
-                size="xs"
-                active={active}
-                title={`View ${orig} trace`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const idx = items.findIndex((it) => it.origin === orig);
-                  if (idx >= 0) {
-                    vibrate(4);
-                    setActiveIdx(idx);
-                  }
-                }}
-              />
-            );
-          })
-        ) : (
-          <OriginFlagChip country={scan.origin} size="xs" />
-        )}
-      </div>
+      <span className="shrink-0 border border-journal-rule px-1.5 py-0.5 font-plexmono text-[9px] uppercase tracking-[0.1em] text-journal-ink-soft">
+        {scan.origin?.slice(0, 12)}
+      </span>
     </div>
   );
 }
@@ -120,6 +69,16 @@ export default function ExploreBottomSheet({
   loading,
   reduce,
 }) {
+  const [isDesktop, setIsDesktop] = useState(
+    typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const fn = () => setIsDesktop(mq.matches);
+    mq.addEventListener("change", fn);
+    return () => mq.removeEventListener("change", fn);
+  }, []);
+
   const hasAnySample = productGroups.some((g) =>
     g.items.some((it) => isSampleScan(it))
   );
@@ -161,29 +120,30 @@ export default function ExploreBottomSheet({
 
   return (
     <motion.div
-      drag={reduce ? false : "y"}
+      drag={reduce || isDesktop ? false : "y"}
       dragConstraints={{ top: 0, bottom: 0 }}
       dragElastic={0.14}
       onDragEnd={handleDragEnd}
-      animate={{ height: SNAP_HEIGHTS[snap] || SNAP_HEIGHTS.peek }}
+      animate={isDesktop ? {} : { height: SNAP_HEIGHTS[snap] || SNAP_HEIGHTS.peek }}
       transition={
         reduce
           ? { duration: 0 }
           : { type: "spring", stiffness: 360, damping: 34 }
       }
-      style={{
-        bottom: "calc(4.5rem + env(safe-area-inset-bottom, 0px))",
-        background:
-          "linear-gradient(170deg, rgba(255,255,255,0.96) 0%, rgba(255,238,226,0.95) 55%, rgba(237,231,255,0.96) 100%)",
-      }}
+      style={isDesktop
+        ? { top: "3.5rem", right: 0, left: "auto", bottom: 0, width: 400, height: "auto", background: "var(--j-card)", borderTop: "none", borderLeft: "1px solid var(--j-rule)" }
+        : {
+            bottom: "calc(4.5rem + env(safe-area-inset-bottom, 0px))",
+            background: "var(--j-card)",
+          }}
       onPointerDown={(e) => e.stopPropagation()}
-      className="pointer-events-auto absolute left-0 right-0 z-30 w-full rounded-t-3xl frosted-strong border-t border-white/85 shadow-[0_-10px_32px_rgba(18,45,79,0.34)] flex flex-col overflow-hidden"
+      className="pointer-events-auto absolute left-0 right-0 z-30 w-full border-t border-journal-rule bg-journal-card shadow-[0_-6px_24px_rgba(30,27,22,0.14)] flex flex-col overflow-hidden"
     >
       {/* Sheet Drag Handle + One-Line Peek / Header */}
       <div
         role="button"
         tabIndex={0}
-        onClick={handleHeaderTap}
+        onClick={isDesktop ? undefined : handleHeaderTap}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
@@ -192,7 +152,7 @@ export default function ExploreBottomSheet({
         }}
         className="shrink-0 pt-2.5 pb-2.5 px-5 cursor-grab active:cursor-grabbing select-none no-tap focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-jejak-navy/50"
       >
-        <div className="mx-auto h-1.5 w-10 rounded-full bg-jejak-navy/25" />
+        <div className="mx-auto h-1 w-10 bg-journal-rule" />
 
         <motion.div
           animate={
@@ -211,8 +171,8 @@ export default function ExploreBottomSheet({
                 }`}
               />
             )}
-            <span className="text-xs font-extrabold tracking-tight text-jejak-navy truncate">
-              {peekLabel}
+            <span className="font-serif-display text-base text-journal-ink truncate" style={{ fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' }}>
+              The Atlas · <span className="font-plexmono text-[10px] uppercase tracking-[0.1em] not-italic">{peekLabel}</span>
             </span>
 
             {originFilter !== "All" && (
@@ -223,14 +183,14 @@ export default function ExploreBottomSheet({
                   vibrate(4);
                   onClearOrigin();
                 }}
-                className="inline-flex items-center gap-0.5 rounded-full bg-jejak-navy px-2 py-0.5 text-[10px] font-extrabold text-amber-300 no-tap"
+                className="inline-flex items-center gap-0.5 border border-journal-ink bg-journal-ink px-2 py-0.5 font-plexmono text-[9px] uppercase text-journal-card no-tap"
               >
                 <X size={10} /> All
               </button>
             )}
           </div>
 
-          <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-navy/55 shrink-0">
+          <span className="inline-flex items-center gap-1 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft shrink-0">
             {snap === "peek" ? (
               <>
                 Open <ChevronUp size={13} />
@@ -245,7 +205,7 @@ export default function ExploreBottomSheet({
       </div>
 
       {/* Expanded Sheet Content (visible in half & full snap states) */}
-      {snap !== "peek" && (
+      {(isDesktop || snap !== "peek") && (
         <div className="flex-1 overflow-y-auto px-3.5 pb-6 scrollbar-hide">
           {loading ? (
             <div className="space-y-2 py-2">
@@ -254,10 +214,10 @@ export default function ExploreBottomSheet({
                   key={i}
                   className="flex items-center gap-2.5 px-2.5 py-2 animate-pulse"
                 >
-                  <div className="h-9 w-9 rounded-xl bg-jejak-navy/10" />
+                  <div className="h-9 w-9 bg-journal-rule/50" />
                   <div className="space-y-1.5 flex-1">
-                    <div className="h-3.5 w-36 rounded bg-jejak-navy/10" />
-                    <div className="h-2.5 w-24 rounded bg-jejak-navy/10" />
+                    <div className="h-3.5 w-36 bg-journal-rule/40" />
+                    <div className="h-2.5 w-24 bg-journal-rule/30" />
                   </div>
                 </div>
               ))}
@@ -265,18 +225,23 @@ export default function ExploreBottomSheet({
           ) : (
             <div className="space-y-1">
               {hasAnySample && (
-                <div className="mb-1.5 flex items-center justify-between gap-2 rounded-xl bg-jejak-navy/6 border border-jejak-navy/10 px-3 py-1.5">
-                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-jejak-navy/75">
+                <div className="mb-1.5 flex items-center justify-between gap-2 border border-journal-rule bg-journal-paper px-3 py-1.5">
+                  <span className="inline-flex items-center gap-1.5 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft">
                     <Sparkles
                       size={12}
                       className="text-jejak-labour shrink-0"
                     />
-                    Sample data · Seeded demo traces (excluded from live counts)
+                    Sample data · excluded from live counts
                   </span>
                 </div>
               )}
 
-              <div className="divide-y divide-jejak-navy/8">
+              <div className="">
+                {!loading && productGroups.length === 0 && (
+                  <p className="px-3 py-6 text-center font-hand text-xl text-journal-ink-soft">
+                    No public entries from here yet — yours could be the first.
+                  </p>
+                )}
                 {productGroups.map((group) => (
                   <CompactProductRow
                     key={group.productId}
@@ -301,20 +266,16 @@ export default function ExploreBottomSheet({
                         onTraceProduct(prod.id);
                       }
                     }}
-                    className="flex items-center justify-between gap-3 py-2.5 px-2.5 rounded-2xl hover:bg-white/65 transition-colors cursor-pointer no-tap"
+                    className="flex items-center justify-between gap-3 border-b border-dotted border-journal-rule px-2.5 py-3 hover:bg-journal-paper-deep/40 transition-colors cursor-pointer no-tap"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
-                      <ProductIllustrationIcon
-                        productId={prod.id}
-                        size="sm"
-                        className="opacity-75"
-                      />
+                      <Specimen id={prod.id} className="h-10 w-10 opacity-75" />
                       <div className="min-w-0">
-                        <p className="text-xs sm:text-[13px] font-extrabold text-jejak-navy/65 truncate">
+                        <p className="font-grotesk text-[13px] font-semibold text-journal-ink-soft truncate">
                           {prod.name} · Not traced yet
                         </p>
-                        <p className="text-[11px] font-bold text-jejak-coral">
-                          Tap to trace first →
+                        <p className="font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-stamp">
+                          Tap to trace first
                         </p>
                       </div>
                     </div>

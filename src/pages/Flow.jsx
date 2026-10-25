@@ -1,17 +1,48 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
+import { getProduct } from "@/data";
 import Home from "./Home";
 import Identifying from "./Identifying";
 import Journey from "./Journey";
 import MoneySplit from "./MoneySplit";
 import DetailDrawer from "@/components/DetailDrawer";
 import HowWeEstimateDrawer from "@/components/HowWeEstimateDrawer";
-import Onboarding from "@/components/Onboarding";
 
 // Orchestrates the main demo flow based on the shared screen state.
 export default function Flow() {
-  const { screen, setImmersive } = useApp();
+  const {
+    screen,
+    setImmersive,
+    setProduct,
+    setPhoto,
+    setPhotoFile,
+    setPhotoUrl,
+    setLowConfidence,
+    setCustomPrice,
+    setMakerTip,
+    setScreen,
+  } = useApp();
+  const [searchParams] = useSearchParams();
+  const deepLinked = useRef(false);
+
+  // Deep link: /trace?sample=<id> jumps straight into that specimen's flow.
+  useEffect(() => {
+    if (deepLinked.current) return;
+    const sample = searchParams.get("sample");
+    const p = sample && getProduct(sample);
+    if (!p) return;
+    deepLinked.current = true;
+    setProduct(p);
+    setLowConfidence(false);
+    setCustomPrice(null);
+    setMakerTip(0);
+    setPhoto(null);
+    setPhotoFile(null);
+    setPhotoUrl(null);
+    setScreen("identifying");
+  }, [searchParams]);
   const Current =
     {
       home: Home,
@@ -44,7 +75,6 @@ export default function Flow() {
       </motion.div>
       <DetailDrawer />
       <HowWeEstimateDrawer />
-      <Onboarding />
     </>
   );
 }

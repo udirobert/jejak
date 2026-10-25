@@ -54,6 +54,20 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
+  			journal: {
+  				paper: 'var(--j-paper)',
+  				'paper-deep': 'var(--j-paper-deep)',
+  				card: 'var(--j-card)',
+  				ink: 'var(--j-ink)',
+  				'ink-soft': 'var(--j-ink-soft)',
+  				rule: 'var(--j-rule)',
+  				stamp: 'var(--j-stamp)',
+  				materials: 'var(--j-materials)',
+  				labour: 'var(--j-labour)',
+  				freight: 'var(--j-freight)',
+  				brand: 'var(--j-brand)',
+  				retail: 'var(--j-retail)'
+  			},
   			jejak: {
   				navy: '#1B1B3A',
   				materials: '#2FBF71',
@@ -79,6 +93,10 @@ module.exports = {
   			}
   		},
   		fontFamily: {
+  			'serif-display': ['Fraunces', 'ui-serif', 'Georgia', 'serif'],
+  			grotesk: ['"Schibsted Grotesk"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+  			plexmono: ['"IBM Plex Mono"', 'ui-monospace', 'monospace'],
+  			hand: ['Caveat', 'cursive'],
   			heading: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   			body: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
   			display: ['"Plus Jakarta Sans"', 'ui-sans-serif', 'system-ui', 'sans-serif'],
