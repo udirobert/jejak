@@ -5,7 +5,7 @@
 
 Snap anything you own and Jejak traces where it likely came from, who made it, and where your money went. It also tells you how sure it is. Every entry is a page in your field journal: a hand-drawn route, postmarks for each country, and a torn receipt showing how your £120 was split between materials, the people who made it, freight, the brand and the shop.
 
-Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridian** (Genesis · Stellar Composed). The frontend, data, auth, AI, automations and hosting all run on Base44; the Stellar proof layer is documented below and pitched in `docs/hackmeridian.md`.
+Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridian** (Scale · Stellar Composed). The frontend, data, auth, AI, automations and hosting all run on Base44; the Stellar proof layer is documented below and pitched in `docs/hackmeridian.md`.
 
 ## Why
 

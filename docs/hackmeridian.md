@@ -1,66 +1,104 @@
-# Jejak — HackMeridian submission kit
+# HackMeridian 2026 — Jejak Hackathon Plan
+**Event:** HackMeridian 2026, Lisbon · **Track:** Scale + Stellar Composed  
+**Started:** 2026-10-25 · **Budget: ~17h hard deadline**
 
-Track: **Genesis** (builder) · **Stellar Composed** (thematic).
-Sibling doc: `docs/submission.md` covers the #Base44Challenge post and walkthrough.
-
-**One-line pitch:** Jejak is a field journal for the things you own — snap anything and it traces where it came from, where your money went, anchors that record on Stellar so it can't be quietly changed, and opens your wallet with a fingerprint instead of a seed phrase.
+> Work is split between **Dev A** (new Stellar feature + `/room`) and **Dev B** (GTM + polish + submission). Read your individual file: `docs/dev-a.md` or `docs/dev-b.md`.
 
 ---
 
-## 0. Track rationale (why Composed, not Unlocked)
+## The pitch in one sentence
+> *"Jejak is the field journal for things you own — snap anything, trace where it came from, follow the money, and anchor the proof on Stellar forever."*
 
-Jejak composes four ecosystem pieces into one product:
+---
 
-1. **OpenZeppelin Protocol 27 smart-account kit** — real `createContractV2` deployments with a WebAuthn secp256r1 signer (the Jejak Passport).
-2. **The Stellar DEX** — mainnet XLM/USDC orderbook midpoint used as a live price oracle for the donation conversion.
-3. **Horizon** — provenance verification (memo_hash decode + compare) and the Impact screen's live account telemetry.
-4. **The payment/asset layer** — corridor cause-wallet payments + `createClaimableBalance`, with a documented SEP-24 anchor off-ramp as future work.
+## Why we're on Scale track, and what "built today" means
 
-It also exercises core-protocol primitives (Unlocked-adjacent): `MEMO_HASH`, `manageData`, `createContractV2`, `ClaimableBalance`. Enter **Composed** as primary — the product is literally defined by the composition ("what none of them could do alone"), which is exactly what the track asks for.
+We arrive with a working product. The Scale requirement is **clearly new work during the event**. That new work is:
 
-## 1. The 2-minute demo arc (Stellar-forward)
+1. 🆕 **`/room` — Hackathon Floor Mode**: ledger-backed live counter (reads from Stellar, not just DB), guest trace (no sign-up), live feed with anchored-on-Stellar chips → stellar.expert links — **Dev A**
+2. 🆕 **Brand attestation stretch**: a second deterministic keypair `manageData`s a reference to the user's anchor hash — "estimate today, attested claim when the brand co-signs" — **Dev A stretch**
+3. 🆕 **Fresh on-chain evidence**: anchor a trace during the event so the submission cites a hash timestamped today, not Oct 13 — **Dev B**
+4. 🆕 **Performance + visual polish pass**: page transitions, colour system, font consistency — **both (context below)**
 
-Judges want meaningful use of Stellar, not a garnish. Lead with the product, land on the ledger.
+### What "built today" answer for judges:
+> "The `/room` page — guest trace with no sign-up, plus a live counter and feed that are ledger-backed: it counts records anchored on Stellar today, reading the signer's transaction feed from Horizon, not just rows in our DB."
 
-| Time | On screen | Voiceover |
+---
+
+## Confirmed probes (Dev B verified at h0)
+
+| Check | Result |
+|---|---|
+| Live site up | ✅ `https://jejak.base44.app` 200 |
+| Landing crash fixes deployed | ✅ `cf00100` live |
+| `traceAnything` unauthenticated | ✅ HTTP 200 ~4s — guest AI-trace viable |
+| Public Scan entity reads | ✅ world-readable via RLS |
+| `stellar_tx_hash` on Scan records | ✅ already persisted — no schema change for ledger counter |
+| GitHub repo | ✅ public |
+
+---
+
+## 17-Hour Timeline
+
+| Hour | Dev A | Dev B |
 |---|---|---|
-| 0:00–0:15 | Landing hero → scroll "Follow one hoodie" | "A £120 hoodie crosses six countries, and about £9 of it reaches the people who sewed it. Jejak traces that journey — and it says how sure it is." |
-| 0:15–0:35 | Snap/label flow: stamp flips to *read from the label* | "Scan the care tag and that stage becomes a fact; everything upstream stays honestly labelled an estimate." |
-| 0:35–1:05 | Proof drawer → **Anchor this trace on Stellar** → ledger + tx hash appear → **Verify hash on Horizon** → **Test altered JSON** → HASH MISMATCH | "One tap fingerprints the record — the JSON, the estimates, the label evidence — into a MEMO_HASH on Stellar Testnet. Anyone can re-verify it. Change one field and the hash fails. Brands change their stories; the ledger doesn't." |
-| 1:05–1:30 | Jejak Passport: create wallet → FaceID → real `C…` contract address + stellar.expert link | "And the wallet isn't a wallet — it's a Soroban smart account deployed for your passkey. No seed phrase. That's the part only Stellar makes native." |
-| 1:30–1:50 | Impact screen: live Horizon feed per corridor + send a £1 cause payment priced off the live DEX orderbook | "The same ledger proves the record and pays the corridor — priced off Stellar's own DEX orderbook, no external oracle." |
-| 1:50–2:00 | Landing margin note / close card | "From 2027 EU law makes brands publish this data. Jejak is the consumer half of the Digital Product Passport." |
+| 0–1 | Scaffold `/room`, verify traceAnything probe | Incognito smoke test, QR, social teaser, start Atlas seeding |
+| 1–8 | Counter + feed (ledger-backed), guest trace (curated-first) | Floor push — 20 conversations, publish on their behalf |
+| 8–10 | Checkpoint: attestation stretch or polish | Collect evidence: fresh anchor tx today, passport contract address |
+| 10–11 | **Code freeze**, deploy, full smoke test | Record video (closing shot = `/room`) |
+| 11–13 | Polish/buffer | Deck (5–7 slides), submission form |
+| 13–15 | — | **Submit by h15** |
+| 15–17 | Buffer | Buffer — portals crash at deadline |
 
-## 2. Judge Q&A cheat sheet
+**Hard rule:** code freeze at h10, video records at h11 regardless.
 
-**Why Stellar?**
-Anchoring a hash is easy anywhere — a wallet anyone can open isn't. Stellar's passkey smart accounts (OpenZeppelin kit, WebAuthn secp256r1 verifier) give users a fingerprint sign-in with no seed phrase — natively, not via an account-abstraction stack. Around that: MEMO_HASH anchors at ~0.00001 XLM make "anchor anything you own" economically real, and the built-in DEX is our price oracle with zero external dependencies. The same rail that proves the record settles the corridor payout.
+---
 
-**Why now?**
-The EU DPP Registry went live 20 July 2026. Textiles are a first-priority group — delegated act expected 2027; battery passports mandatory Feb 2027; EUDR provenance obligations hit large operators 30 Dec 2026. Brands will be legally forced to publish this data; Jejak is the consumer-side wallet and journal ready to hold it. And the tech arrived with the law: vision models can read a care label from a photo, and passkey smart accounts just shipped.
+## Performance + Visual Polish (Dev A h8–10 if `/room` early, Dev B ongoing)
 
-**Market validation?**
-Honest answer: pre-launch, so proxy + pull. Yuka's tens of millions of users prove mass-market scan-a-product behaviour. Brand pilots (Sheep Inc, Asket, Mulberry, Chloé) prove the supply side is spending on transparency UX. And Jejak's own brand-letter loop is a validation engine — every letter sent measures whether a brand answers within 14 days.
+See `docs/polish.md` for the full list. Short version:
 
-**"Isn't this blockchain for its own sake?"**
-The anchor proves the estimate we publish today is the same estimate we show you next year — anti-greenwashing applied to ourselves. It's also the substrate for when brands co-sign records: their signature against our hash turns an estimate into an attested claim.
+- Wire `pageVariants` + `AnimatePresence` properly in `AppLayout.jsx` so route changes fade/slide
+- Apply `font-grotesk` consistently on body text in inner pages (currently falls back to Plus Jakarta Sans — the `--font-body` CSS var points to the wrong family)
+- Surface the existing vivid `jejak.*` colour tokens (labour orange, freight blue, brand purple, retail pink) on inner page headings and accent elements — they're defined and used on Landing but not threaded through Journey/MoneySplit/Impact
+- `PaperGrain` on all inner page backgrounds (already on Landing; inner pages use plain white)
 
-**"The routes are estimates — isn't that misleading?"**
-It's the opposite. Every figure carries a confidence level and a basis label; label-scan facts are stamped *read from the label*; verification honestly returns *unverifiable* when the ledger can't be checked rather than faking a result. Competitors pretend to certainty — we show the seam. The prompts enforcing that live in `base44/shared/prompts.ts`.
+---
 
-**"What did you build during the event?"**
-[Fill in before submission — list the delta clearly, e.g. "today: X". Judges on Scale/Genesis both want a crisp answer.]
+## Judge Q&A
 
-## 3. Submission checklist (HackMeridian requirements)
+| Question | Answer |
+|---|---|
+| "Is the supply chain data real?" | "Category-level estimates, clearly labelled with confidence + basis. Scan a care label and that stage becomes a verified fact. Competitors pretend certainty — we show the seam." |
+| "Why Stellar?" | "Anchoring a hash is easy anywhere — a wallet anyone can open isn't. Stellar's passkey smart accounts sign you in with a fingerprint, no seed phrase — natively, not via an account-abstraction stack. Around that: anchors cost fractions of a cent, and the built-in DEX is our price oracle. The same rail proves the record and pays the corridor." |
+| "What did you build today?" | "The `/room` page — guest trace with no sign-up, plus a live counter and feed that are ledger-backed: it counts records anchored on Stellar today, not just rows in our DB." |
+| "Business model?" | "Freemium consumer + brand-side co-signing. The EU Digital Product Passport makes brands publish provenance from 2027 — Jejak is the consumer half, and our estimate records are built to be upgraded into attested claims." |
+| "Why not just trust the brand's QR code?" | "That's the brand's story. Jejak is the consumer's independent record — anchored on a ledger the brand can't edit." |
+| "Isn't this blockchain for its own sake?" | "The anchor proves the estimate we show today is the same one we show next year — anti-greenwashing applied to ourselves. It's also the substrate for brand co-signing." |
 
-- [ ] Public GitHub repo — README covers summary, problem, setup, env vars (`.env.example`: `VITE_BASE44_APP_ID`, `VITE_BASE44_APP_BASE_URL`, optional `VITE_BASE44_FUNCTIONS_VERSION`), demo instructions
-- [ ] Architecture overview of Stellar usage — README "Proof layer" + contract ID table (`WEBAUTHN_VERIFIER`, account WASM hash, policy contracts)
-- [ ] Live public URL judges can explore — [Base44 app URL]
-- [ ] Video walkthrough (script above) showing the anchor → verify → tamper-mismatch loop live
-- [ ] Onchain evidence on Testnet — [anchor tx hash], [passport contract `C…` address], stellar.expert links
-- [ ] Disclose prior work — app predates the event (built for #Base44Challenge); the pitch must name what was built during HackMeridian vs. before
-- [ ] Save thematic track on the team page: **Stellar Composed**
+---
 
-## 4. The framing sentence to reuse everywhere
+## Success Metrics
 
-> Jejak isn't a blockchain app — it's a consumer product that happens to need a ledger. The Stellar parts stay invisible until you tap *prove it*.
+| Metric | Target |
+|---|---|
+| Real conversations at the venue | 20+ |
+| Public Atlas entries (non-sample) | 10+ |
+| Sign-ups via `/room` CTA | 3+ |
+| Fresh anchor tx today | ✅ — this IS the evidence of work |
+| `/room` live | ✅ before h10 |
+| Demo video | ✅ by h11 |
+| Thematic track saved on team page | ✅ Stellar Composed |
+| Submission filed | ✅ by h15 |
+
+---
+
+## Risk Register
+
+| Risk | Mitigation |
+|---|---|
+| Stellar Testnet slow / down | Already handled — cached tx fallback with clear UI notice |
+| Base44 cold start on demo | Keep a warm browser tab open before pitching |
+| Guest trace breaks | Curated fallback (no backend, no auth) ships first |
+| Nobody scans QR | Walk the room — opening line does the work |
+| `/room` runs long | Ship counter + feed first (2h), add guest trace second |

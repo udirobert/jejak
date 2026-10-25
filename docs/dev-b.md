@@ -79,7 +79,12 @@ Lead with the human story, not the tech — then land the ledger.
 - [ ] **Fresh on-chain evidence TODAY** — anchor a trace on the live app so the submission cites a tx hash created during the event (the cached README hashes are Oct 13 — they're the fallback, not the evidence). Save: tx hash, ledger, stellar.expert link.
 - [ ] **Pre-deploy one Jejak Passport** so the "verified contract on Soroban Testnet" badge + `C…` explorer link render reliably in demos. Save the contract address.
 - [ ] Dev A checkpoint at h8: attestation stretch yes/no. At h10: code freeze, deploy, re-smoke the full loop incognito (anchor → verify → tamper-mismatch → passport → cause payment).
-- [ ] Fill in "what did you build during the event" in `docs/hackmeridian.md` §2 — with real commit refs (`git log --since`).
+- [ ] Fill in "what did you build during the event" in `docs/hackmeridian.md` §2 — with real commit refs (`git log --since=<event-start>`).
+- [ ] **Thematic track saved on the team page: Stellar Composed** — easy to forget, required by the rules.
+
+### If you have downtime during the floor push (parallel polish)
+
+Dev A is heads-down. If you have 30 minutes between conversations, run items 1–2 from `docs/polish.md` (page transitions + PaperGrain) — they're frontend-only changes that don't conflict with Dev A's `/room` work. Skip if the floor is busy — GTM > polish.
 
 ## Hours 11–13: Demo video
 
@@ -99,7 +104,7 @@ Record on a **real device** (phone or 1440px desktop). The feel of the app is a 
 
 ## Hours 13–15: Pitch deck + submission
 
-### Pitch deck (7 slides — Genesis doesn't require a deck; don't over-invest)
+### Pitch deck (REQUIRED on Scale track — cover problem, solution, users, value prop, team, vision, business model, market, GTM; ~8 slides is enough)
 
 | # | Slide |
 |---|---|
