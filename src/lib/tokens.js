@@ -39,9 +39,11 @@ export const CONFIDENCE = {
   low: { label: "Low", color: "#FF7A1A" },
 };
 
+// Route-stop provenance labels, most-evidenced first. Money-split figures use a
+// single basis: "AI inference" (category-level estimate, not sourced).
 export const BASIS_LABELS = [
-  "public price benchmark",
-  "published brand disclosure",
-  "trade data",
-  "AI inference",
+  "Read from label",
+  "Trade data",
+  "Estimated",
+  "Sample label",
 ];

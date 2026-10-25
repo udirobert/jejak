@@ -37,12 +37,22 @@ export default function HowWeEstimateDrawer() {
                 <li><strong className="text-journal-ink">Fairly sure</strong> — a reasonable estimate from partial data.</li>
                 <li><strong className="text-journal-ink">Rough guess</strong> — indicative only.</li>
               </ul>
-              <p>Each figure carries a <strong className="text-journal-ink">basis label</strong> from this set only:</p>
+              <p>Each route stop carries a <strong className="text-journal-ink">basis label</strong> from this set only:</p>
               <div className="flex flex-wrap gap-2">
                 {BASIS_LABELS.map((b) => (
                   <span key={b} className="border border-journal-rule bg-journal-paper px-2.5 py-1 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink">{b}</span>
                 ))}
               </div>
+              <p>
+                Money-split figures are <strong className="text-journal-ink">AI inference</strong> — a category-level
+                estimate, not sourced from any factory or brand disclosure.
+              </p>
+              <p>
+                Where a stop can be checked, we check it against{" "}
+                <a href="https://comtradeplus.un.org/" target="_blank" rel="noopener noreferrer" className="underline decoration-journal-stamp underline-offset-4 text-journal-ink">UN Comtrade</a>{" "}
+                import data (latest year) — which countries supply this market with that kind of product.
+                It shows which countries supply the market, not which factory made your item.
+              </p>
               <p>
                 <strong className="text-journal-ink">What we do not know:</strong> specific factories, suppliers or worker names.
                 We name countries and stage types only — never a facility as fact.

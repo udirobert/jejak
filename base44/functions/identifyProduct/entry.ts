@@ -57,7 +57,7 @@ export default async function (req: Request) {
         "- \"phone_case\": a phone case\n" +
         "Return the matching id, a short human label (max 3 words), your confidence, and the " +
         "visual attributes you can detect from the photo: the dominant colour, the likely material, " +
-        "the product category, and the likely region of origin. Keep each attribute to 1-3 words. " +
+        "and the product category. Keep each attribute to 1-3 words. " +
         "Also return description: a plain-English description of the item including colour and material (max 8 words), " +
         "and brand: any visible brand text (empty string if none). " +
         "If the photo is unclear, matches none of these, or contains any explicit, sexual, violent, " +
@@ -75,7 +75,6 @@ export default async function (req: Request) {
               colour: { type: "string" },
               material: { type: "string" },
               category: { type: "string" },
-              likely_origin: { type: "string" },
             },
           },
           description: { type: "string" },

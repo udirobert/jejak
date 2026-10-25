@@ -152,6 +152,8 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
   - Real `MEMO_HASH` provenance anchoring, live Horizon transaction lookup and SHA-256 verification, live `payment` and `createClaimableBalance` operations on Stellar Testnet, and live Horizon account telemetry on the Impact screen.
 - **Jejak Passport Smart Wallet (`src/lib/wallet.js`, `base44/functions/stellarFeeRelayer/entry.ts`):**
   - **Real** Soroban Testnet contract deployment via `createContractV2` — each passport is a real `C...` smart-account instance, fee-sponsored by an isolated relayer account. Admin actions (recovery signer, spending policy) are journaled on the sponsor account rather than executed — labelled honestly as such.
+- **Trade data (UN Comtrade snapshot):**
+  - Import shares by partner country for 14 HS product codes in both markets (`src/data/trade/imports.json`), from the UN Comtrade public preview API, latest year. Committed snapshot, no live calls at runtime — regenerate with `node scripts/fetch-trade-snapshot.mjs`. It shows which countries supply a market, not which factory made your item.
 - **Live Atlas (`/atlas`):**
   - A shared paper map backed by the `Scan` entity with realtime subscriptions. Only records with `visibility: "public"` appear; new public entries animate in live. Seeded records carry `is_sample: true` and are badged **Sample** in the UI; single-person real counts (`count === 1`) are hidden so an individual cannot be singled out.
 
@@ -194,51 +196,51 @@ The backend functions in `base44/functions/` take no env vars: the Stellar signe
 
 ## Every Claim & Number in the Data Files (and its Basis Label)
 
-Allowed basis labels (`src/lib/tokens.js`): `public price benchmark`, `published brand disclosure`, `trade data`, `AI inference`.  
-Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high confidence, only when extracted from a care/Made-in label) and `Estimated` (medium/low confidence).
+Split basis labels (`src/lib/tokens.js`): every cost-split figure is `AI inference` — a category-level estimate, not sourced.
+Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high confidence, only when extracted from a care/Made-in label), `Sample label` (demo label), `Trade data` (country matches UN Comtrade import partners) and `Estimated` (medium/low confidence).
 
 ### 1. `src/data/hoodie.js` — Everyday Hoodie (GB £120 / SG S$100)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
-| Materials split | 12% – **15%** – 18% | medium | `public price benchmark` | Category estimate; needs named apparel BOM benchmark |
-| Labour split | 6% – **7.5%** – 10% | medium | `published brand disclosure` | Category estimate; needs cited brand tear-down |
-| Freight & duties split | 7% – **9.5%** – 11% | medium | `trade data` | Category estimate; needs UN Comtrade / freight tariff citation |
+| Materials split | 12% – **15%** – 18% | medium | `AI inference` | Category estimate; needs named apparel BOM benchmark |
+| Labour split | 6% – **7.5%** – 10% | medium | `AI inference` | Category estimate; needs cited brand tear-down |
+| Freight & duties split | 7% – **9.5%** – 11% | medium | `AI inference` | Category estimate; needs UN Comtrade / freight tariff citation |
 | Brand margin split | 24% – **28%** – 32% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 36% – **40%** – 44% | medium | `public price benchmark` | Category estimate |
-| Transparent alternative | Mat 22%, Lab 18%, Frt 10%, Brd 20%, Ret 30% | low/medium | `AI inference` / `trade data` | Illustrative scenario (`transparentAlternative.note`) |
+| Retail margin split | 36% – **40%** – 44% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 22%, Lab 18%, Frt 10%, Brd 20%, Ret 30% | low/medium | `AI inference` | Illustrative scenario (`transparentAlternative.note`) |
 | Route (5 stops + final) | India (Cotton) → China (Spinning) → Bangladesh (Cut & sew) → Singapore (Hub) → Netherlands (Warehouse) → UK/SG (Sold) | medium | `Estimated` (final manufacture upgrades to `Read from label` when care tag scanned) | Illustrative route; no specific factory claimed |
 
 ### 2. `src/data/trainers.js` — Running Trainers (GB £90 / SG S$110)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
-| Materials split | 20% – **25%** – 30% | medium | `public price benchmark` | Category estimate; needs footwear BOM source |
-| Labour split | 6% – **8%** – 11% | medium | `published brand disclosure` | Category estimate; needs cited brand disclosure |
-| Freight & duties split | 7% – **9%** – 12% | medium | `trade data` | Category estimate |
+| Materials split | 20% – **25%** – 30% | medium | `AI inference` | Category estimate; needs footwear BOM source |
+| Labour split | 6% – **8%** – 11% | medium | `AI inference` | Category estimate; needs cited brand disclosure |
+| Freight & duties split | 7% – **9%** – 12% | medium | `AI inference` | Category estimate |
 | Brand margin split | 26% – **30%** – 34% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 24% – **28%** – 32% | medium | `public price benchmark` | Category estimate |
-| Transparent alternative | Mat 30%, Lab 18%, Frt 10%, Brd 22%, Ret 20% | low/medium | `AI inference` / `trade data` | Illustrative scenario |
+| Retail margin split | 24% – **28%** – 32% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 30%, Lab 18%, Frt 10%, Brd 22%, Ret 20% | low/medium | `AI inference` | Illustrative scenario |
 | Route (4 stops + final) | Vietnam (Rubber & foam) → China (Components) → Vietnam (Assembly) → Singapore (Freight hub) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
 ### 3. `src/data/coffee.js` — Coffee Bag (GB £6 / SG S$12)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
-| Materials split | 16% – **20%** – 24% | medium | `public price benchmark` | Category estimate; needs ICO / specialty coffee benchmark |
-| Labour split | 8% – **12%** – 16% | medium | `published brand disclosure` | Category estimate |
-| Freight & duties split | 10% – **14%** – 18% | medium | `trade data` | Category estimate |
+| Materials split | 16% – **20%** – 24% | medium | `AI inference` | Category estimate; needs ICO / specialty coffee benchmark |
+| Labour split | 8% – **12%** – 16% | medium | `AI inference` | Category estimate |
+| Freight & duties split | 10% – **14%** – 18% | medium | `AI inference` | Category estimate |
 | Brand margin split | 20% – **24%** – 28% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 26% – **30%** – 34% | medium | `public price benchmark` | Category estimate |
-| Transparent alternative | Mat 34%, Lab 24%, Frt 13%, Brd 15%, Ret 14% | low/medium | `AI inference` / `trade data` | Illustrative scenario |
+| Retail margin split | 26% – **30%** – 34% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 34%, Lab 24%, Frt 13%, Brd 15%, Ret 14% | low/medium | `AI inference` | Illustrative scenario |
 | Route (3 stops + final) | Ethiopia (Cherry harvest) → Ethiopia (Processing) → UK (Roasting) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
 ### 4. `src/data/phoneCase.js` — Phone Case (GB £25 / SG S$32)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
-| Materials split | 14% – **18%** – 22% | medium | `public price benchmark` | Category estimate |
-| Labour split | 7% – **10%** – 13% | medium | `published brand disclosure` | Category estimate |
-| Freight & duties split | 8% – **12%** – 16% | medium | `trade data` | Category estimate |
+| Materials split | 14% – **18%** – 22% | medium | `AI inference` | Category estimate |
+| Labour split | 7% – **10%** – 13% | medium | `AI inference` | Category estimate |
+| Freight & duties split | 8% – **12%** – 16% | medium | `AI inference` | Category estimate |
 | Brand margin split | 26% – **30%** – 34% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 26% – **30%** – 34% | medium | `public price benchmark` | Category estimate |
-| Transparent alternative | Mat 28%, Lab 22%, Frt 14%, Brd 20%, Ret 16% | low/medium | `AI inference` / `trade data` | Illustrative scenario |
+| Retail margin split | 26% – **30%** – 34% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 28%, Lab 22%, Frt 14%, Brd 20%, Ret 16% | low/medium | `AI inference` | Illustrative scenario |
 | Route (3 stops + final) | China (Plastic & silicone) → China (Assembly) → Singapore (Freight hub) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
 ### 5. `src/lib/metrics.js` — Receipt Context Equivalents

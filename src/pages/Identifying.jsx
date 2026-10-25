@@ -13,17 +13,16 @@ import { vibrate } from "@/lib/haptics";
 // The vision-at-work reveal: the photo/specimen stays put while
 // attributes type in one by one in Plex Mono, then a postmark stamps IDENTIFIED.
 const SCAN_MSGS = [
-  "Reading the photo…",
-  "Detecting edges & colour…",
-  "Matching materials…",
-  "Estimating likely origin…",
+  "Uploading your photo privately…",
+  "Asking a vision model what this is…",
+  "Matching it to a product type…",
+  "Looking up trade data…",
 ];
 
 const ATTR_LABELS = {
   colour: "Colour",
   material: "Material",
   category: "Category",
-  likely_origin: "Likely origin",
 };
 
 const CONFIDENCE_WORD = { high: "sure", medium: "fairly sure", low: "rough guess" };
