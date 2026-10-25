@@ -12,12 +12,9 @@ A page at `/room` that works without sign-up and proves adoption live during the
 
 **Three parts, in priority order:**
 
-### Part 0 — Auth probe (hour 0, 15 minutes, do this FIRST)
+### Part 0 — Auth probe (done: ✅ confirmed open)
 
-`traceAnything/function.jsonc` has no auth flag — unknown whether `base44.functions.invoke("traceAnything")` works for a logged-out visitor. Check Dev B's incognito smoke-test result (or curl the functions endpoint yourself with no token).
-
-- If it works unauthenticated → keep AI guest-trace as planned.
-- If it 401s → **do not chase public-invoke config mid-build.** Use the curated-product fallback below for guests.
+Dev B verified: `POST https://jejak.base44.app/api/apps/6ace77fd3de4615d81326900/functions/traceAnything` with `{"description":"...","market":"GB"}` returns **HTTP 200 unauthenticated** (~4s, full AI trace). Guest AI-trace is viable — build it, keep the curated matcher as offline/no-match resilience. Public scans are also world-readable via the entity API (confirmed `GET /api/apps/.../entities/Scan` → 200), and `stellar_tx_hash` is already populated on some records — the ledger-backed feed works as specced.
 
 ### Part 1 — Live counter + live feed, ledger-backed (target: done by hour 5)
 
