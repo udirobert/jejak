@@ -1,5 +1,10 @@
+import React from "react";
+import { useReducedMotion } from "framer-motion";
+
 // Ink line-drawing "specimens" — replaces product emojis/photo icons across the app.
 // id: "hoodie" | "trainers" | "coffee" | "phone_case" (falls back to the tag drawing).
+// drawIn: strokes sketch themselves on, one after another (paths draw,
+// other shapes and already-dashed strokes fade in on the same cadence).
 const DRAWINGS = {
   tag: (
     <g fill="none" stroke="var(--j-ink)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
@@ -92,8 +97,43 @@ function resolveId({ id, product, category }) {
   return "tag";
 }
 
-export default function Specimen({ id, product, category, className = "", title = null }) {
+const SHAPE_FADE = new Set(["circle", "rect", "ellipse", "line", "polyline", "polygon"]);
+
+// Depth-first clone that injects per-shape draw/fade styles. Paths draw via
+// stroke-dashoffset (pathLength=1 normalises the dash); dashed strokes and
+// non-path shapes fade so their texture isn't lost. `tick` counts reveal order.
+function decorate(children, tick, stagger, dur) {
+  return React.Children.map(children, (child) => {
+    if (!React.isValidElement(child)) return child;
+    const props = {};
+    if (child.type === "path" || SHAPE_FADE.has(child.type)) {
+      const delay = tick.i * stagger;
+      tick.i += 1;
+      const dashed = Boolean(child.props.strokeDasharray || child.props["stroke-dasharray"]);
+      if (child.type === "path" && !dashed) {
+        props.pathLength = 1;
+        props.style = {
+          strokeDasharray: 1,
+          strokeDashoffset: 1,
+          animation: `j-spec-draw ${dur}s ease-in-out ${delay}s forwards`,
+        };
+      } else {
+        props.style = { animation: `j-spec-fade 0.45s ease-out ${delay}s backwards` };
+      }
+    }
+    if (child.props?.children) props.children = decorate(child.props.children, tick, stagger, dur);
+    return React.cloneElement(child, props);
+  });
+}
+
+export default function Specimen({ id, product, category, className = "", title = null, drawIn = false, drawStagger = 0.14, drawDuration = 0.8 }) {
+  const reduce = useReducedMotion();
   const resolved = resolveId({ id, product, category });
+  const drawing = DRAWINGS[resolved];
+  const content =
+    drawIn && !reduce
+      ? React.cloneElement(drawing, {}, decorate(drawing.props.children, { i: 0 }, drawStagger, drawDuration))
+      : drawing;
   return (
     <svg
       viewBox="0 0 200 190"
@@ -101,7 +141,7 @@ export default function Specimen({ id, product, category, className = "", title 
       role="img"
       aria-label={title || `${resolved} illustration`}
     >
-      {DRAWINGS[resolved]}
+      {content}
     </svg>
   );
 }

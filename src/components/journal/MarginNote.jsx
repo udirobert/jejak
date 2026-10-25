@@ -1,11 +1,28 @@
+import { motion, useReducedMotion } from "framer-motion";
+
 // Handwritten margin annotation (Caveat). arrow: "left" | "right" | "up" | none.
-export default function MarginNote({ children, tone = "ink", arrow = null, className = "" }) {
+// write: the text scribbles on left-to-right when it scrolls into view.
+export default function MarginNote({ children, tone = "ink", arrow = null, className = "", write = false }) {
+  const reduce = useReducedMotion();
   const color = tone === "stamp" ? "text-journal-stamp" : "text-journal-ink-soft";
   const arrowPaths = {
     left: "M28 12 C 20 10, 12 12, 4 18 M4 18 l5 -4 M4 18 l6 2",
     right: "M4 12 C 12 10, 20 12, 28 18 M28 18 l-5 -4 M28 18 l-6 2",
     up: "M14 26 C 16 20, 16 14, 14 6 M14 6 l-4 5 M14 6 l4 5",
   };
+  const text = write && !reduce ? (
+    <motion.span
+      className="inline-block"
+      initial={{ clipPath: "inset(-10% 102% -10% 0)", opacity: 0 }}
+      whileInView={{ clipPath: "inset(-10% -2% -10% 0)", opacity: 1 }}
+      viewport={{ once: true, margin: "0px 0px -10% 0px" }}
+      transition={{ duration: 0.8, ease: "easeOut" }}
+    >
+      {children}
+    </motion.span>
+  ) : (
+    <span>{children}</span>
+  );
   return (
     <span className={`inline-flex items-center gap-1 font-hand text-lg leading-none ${color} ${className}`}>
       {arrow === "left" && (
@@ -13,7 +30,7 @@ export default function MarginNote({ children, tone = "ink", arrow = null, class
           <path d={arrowPaths.left} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
         </svg>
       )}
-      <span>{children}</span>
+      {text}
       {(arrow === "right" || arrow === "up") && (
         <svg width="30" height="24" viewBox="0 0 32 26" aria-hidden="true" className="shrink-0">
           <path d={arrowPaths[arrow]} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />

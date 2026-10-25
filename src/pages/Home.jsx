@@ -8,6 +8,7 @@ import ProductPicker from "@/components/ProductPicker";
 import JournalButton from "@/components/journal/JournalButton";
 import MarginNote from "@/components/journal/MarginNote";
 import Specimen from "@/components/journal/Specimen";
+import WashiTape from "@/components/journal/WashiTape";
 import { formatMoney } from "@/lib/money";
 import { originCountry } from "@/lib/provenance";
 import { startTour, markSeen, tourSeen } from "@/lib/tour";
@@ -17,21 +18,6 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
-
-function WashiTape() {
-  return (
-    <div
-      aria-hidden="true"
-      className="absolute -top-3 left-8 z-10 h-6 w-24"
-      style={{
-        background: "color-mix(in srgb, var(--j-stamp) 32%, transparent)",
-        opacity: 0.75,
-        transform: "rotate(-4deg)",
-        clipPath: "polygon(2% 0, 98% 4%, 100% 96%, 0 100%)",
-      }}
-    />
-  );
-}
 
 export default function Home() {
   const {

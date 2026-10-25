@@ -59,7 +59,17 @@ export default function Receipt({
               <span className="flex-1 border-b border-dotted border-journal-ink-soft/60" aria-hidden="true" />
               <span className="flex shrink-0 flex-col items-end">
                 <span className="font-medium">{fmt(l.amount)}</span>
-                {l.sub && <span className="text-[9px] text-journal-ink-soft">{l.sub}</span>}
+                {l.sub && (
+                  <motion.span
+                    key={l.sub}
+                    initial={reduce ? false : { opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, ease: "easeOut" }}
+                    className="text-[9px] text-journal-ink-soft"
+                  >
+                    {l.sub}
+                  </motion.span>
+                )}
               </span>
               {highlighted && (
                 <motion.svg

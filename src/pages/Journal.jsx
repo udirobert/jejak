@@ -16,12 +16,16 @@ import RouteMap from "@/components/journal/RouteMap";
 import Receipt from "@/components/journal/Receipt";
 import StoryCard from "@/components/journal/StoryCard";
 import AskBrandSheet from "@/components/journal/AskBrandSheet";
+import PageLoader from "@/components/journal/PageLoader";
+import WashiTape from "@/components/journal/WashiTape";
+import { useCountUp } from "@/lib/useCountUp";
 import { toast } from "sonner";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
 
 function LiveReceiptCard({ receiptId }) {
   const [rec, setRec] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState(null);
   useEffect(() => {
     if (!receiptId) return;
     let mounted = true;
@@ -31,6 +35,16 @@ function LiveReceiptCard({ receiptId }) {
     });
     return () => { mounted = false; unsub && unsub(); };
   }, [receiptId]);
+  // The paper original — shown beside its traced reading so the receipt
+  // visibly becomes journal ink.
+  useEffect(() => {
+    if (!rec?.file_uri) return;
+    let mounted = true;
+    base44.integrations.Core.CreateFileSignedUrl({ file_uri: rec.file_uri })
+      .then((r) => mounted && setPhotoUrl(r?.signed_url || null))
+      .catch(() => {});
+    return () => { mounted = false; };
+  }, [rec?.file_uri]);
   if (!rec) return null;
   const currency = rec.currency || "GBP";
   const lines = (rec.items || []).map((it, i) => ({
@@ -45,13 +59,29 @@ function LiveReceiptCard({ receiptId }) {
       <p className="font-plexmono text-[11px] uppercase tracking-[0.16em] text-journal-stamp">
         {rec.merchant || "Receipt"} {rec.purchase_date ? `· ${rec.purchase_date}` : ""} · {rec.status}
       </p>
-      <div className="mt-3 max-w-md">
-        <Receipt
-          title="Shop receipt · tracing"
-          lines={lines}
-          total={(rec.items || []).reduce((a, i) => a + (i.unit_price || 0) * (i.quantity || 1), 0)}
-          currency={currency}
-        />
+      <div className="mt-3 flex flex-col items-start gap-5 sm:flex-row">
+        {photoUrl && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, rotate: -5 }}
+            animate={{ opacity: 1, y: 0, rotate: -2 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative w-36 shrink-0 border border-journal-rule bg-journal-card p-1.5 shadow-[0_10px_24px_-14px_rgba(30,27,22,0.4)]"
+          >
+            <WashiTape />
+            <img src={photoUrl} alt="Your original receipt" className="aspect-[3/4] w-full object-cover" />
+            <p className="mt-1 pb-0.5 text-center font-hand text-sm leading-none text-journal-ink-soft">
+              the original
+            </p>
+          </motion.div>
+        )}
+        <div className="w-full max-w-md flex-1">
+          <Receipt
+            title="Shop receipt · tracing"
+            lines={lines}
+            total={(rec.items || []).reduce((a, i) => a + (i.unit_price || 0) * (i.quantity || 1), 0)}
+            currency={currency}
+          />
+        </div>
       </div>
     </div>
   );
@@ -221,7 +251,7 @@ function EmptyJournal({ atlasScans, currency, market }) {
       )}
 
       <motion.div {...reveal(0.6)} className="mt-8">
-        <MarginNote>or snap the thing in your hand — photos and receipts work too</MarginNote>
+        <MarginNote write>or snap the thing in your hand — photos and receipts work too</MarginNote>
       </motion.div>
     </div>
   );
@@ -230,6 +260,7 @@ function EmptyJournal({ atlasScans, currency, market }) {
 export default function Journal() {
   const { user, isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
   const { setProduct, setScreen } = useApp();
+  const reduce = useReducedMotion();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [scans, setScans] = useState([]);
@@ -279,6 +310,11 @@ export default function Journal() {
     return { entries: scans.length, countries: countries.size, km, labour };
   }, [scans]);
 
+  const aEntries = useCountUp(stats.entries, 700, reduce);
+  const aCountries = useCountUp(stats.countries, 700, reduce);
+  const aKm = useCountUp(stats.km, 900, reduce);
+  const aLabour = useCountUp(stats.labour, 900, reduce, 2);
+
   const openJourney = (scan) => {
     const p = productFromScan(scan);
     if (!p) return;
@@ -296,7 +332,13 @@ export default function Journal() {
     }
   };
 
-  if (isLoadingAuth) return <ScreenShell section="Journal"><div /></ScreenShell>;
+  if (isLoadingAuth) {
+    return (
+      <ScreenShell section="Journal">
+        <PageLoader label="Opening your journal" note="checking the shelf…" />
+      </ScreenShell>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -321,7 +363,7 @@ export default function Journal() {
           <div>
             <h1 className="font-serif-display text-5xl text-journal-ink" style={displayFont}>Your journal</h1>
             <p className="mt-2 font-plexmono text-[11px] uppercase tracking-[0.14em] text-journal-ink-soft">
-              {stats.entries} entries · {stats.countries} countries · {stats.km.toLocaleString()} km · ≈{formatMoney(stats.labour, "GBP")} estimated to makers
+              {aEntries} entries · {aCountries} countries · {aKm.toLocaleString()} km · ≈{formatMoney(aLabour, "GBP")} estimated to makers
             </p>
           </div>
           <JournalButton to="/trace">Trace something</JournalButton>
@@ -334,14 +376,17 @@ export default function Journal() {
         {scans.length === 0 && !receiptParam && <EmptyJournal atlasScans={atlasScans} currency="GBP" market="GB" />}
 
         <div className="mt-8 grid gap-4 pb-16 sm:grid-cols-2 lg:grid-cols-3">
-          {scans.map((s) => {
+          {scans.map((s, i) => {
             const p = productFromScan(s);
             const codes = (p?.route || []).map((x) => x.code || x.country?.slice(0, 2).toUpperCase()).join(" → ");
             return (
-              <button
+              <motion.button
                 key={s.id}
                 type="button"
                 onClick={() => setSelected(s)}
+                initial={reduce ? false : { opacity: 0, y: 14, rotate: -0.8 }}
+                animate={{ opacity: 1, y: 0, rotate: 0 }}
+                transition={{ delay: Math.min(i, 10) * 0.05, duration: 0.4, ease: "easeOut" }}
                 className="border border-journal-rule bg-journal-card p-4 text-left shadow-[3px_3px_0_0_transparent] transition-all no-tap hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--j-stamp)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
               >
                 <div className="flex items-start justify-between">
@@ -355,7 +400,7 @@ export default function Journal() {
                 <p className="mt-2 border-t border-dotted border-journal-rule pt-2 font-hand text-lg leading-tight text-journal-ink-soft">
                   {s.story_status === "done" && s.story_title ? s.story_title : "story on its way"}
                 </p>
-              </button>
+              </motion.button>
             );
           })}
         </div>

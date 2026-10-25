@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useReducedMotion } from "framer-motion";
+import { motion, animate, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { formatMoney } from "@/lib/money";
 import { annotateRoute, evidenceIndex, getTradeEvidence } from "@/lib/provenance";
@@ -45,11 +45,38 @@ export default function Journey() {
   const price = product?.markets?.[market]?.price ?? 0;
   const [proofOpen, setProofOpen] = useState(false);
   const route = rawRoute;
+  const nLegs = Math.max(route.length - 1, 1);
 
   const [activeIdx, setActiveIdx] = useState(0);
+  const [progress, setProgress] = useState(reduce ? 1 : 0);
+  const introDone = useRef(reduce);
+  const introCtl = useRef(null);
   const stripRef = useRef(null);
   const moneyBtnRef = useRef(null);
   const programmaticScroll = useRef(false);
+
+  // Entry choreography: the route draws on while a marker rides it; the active
+  // stop follows the pen so the strip steps through the journey automatically.
+  useEffect(() => {
+    if (reduce) return;
+    introDone.current = false;
+    const controls = animate(0, 1, {
+      duration: Math.max(1.8, nLegs * 0.55),
+      ease: "easeInOut",
+      onUpdate: (v) => {
+        setProgress(v);
+        if (!introDone.current) {
+          setActiveIdx(Math.min(route.length - 1, Math.floor(v * route.length)));
+        }
+      },
+      onComplete: () => {
+        introDone.current = true;
+      },
+    });
+    introCtl.current = controls;
+    return () => controls.stop();
+     
+  }, [reduce, product?.id, market]);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -101,6 +128,9 @@ export default function Journey() {
 
   const selectStop = (i) => {
     vibrate(6);
+    introDone.current = true;
+    introCtl.current?.stop();
+    setProgress(1);
     setActiveIdx(i);
   };
 
@@ -200,7 +230,9 @@ export default function Journey() {
             <div className="relative h-[38vh] min-h-[200px] flex-1 lg:h-auto">
               <RouteMap
                 stops={route}
-                progress={1}
+                progress={progress}
+                traveller
+                stampStagger={0.08}
                 activeIndex={activeIdx}
                 onSelectStop={selectStop}
                 padDegrees={8}
@@ -242,11 +274,13 @@ export default function Journey() {
             className="-mx-5 flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide lg:mx-0 lg:block lg:snap-none lg:overflow-visible lg:px-0 lg:pb-0"
           >
             {route.map((stop, i) => (
-              <button
+              <motion.button
                 key={i}
                 id={`stop-entry-${i}`}
                 type="button"
                 onClick={() => selectStop(i)}
+                animate={{ opacity: reduce || progress * nLegs >= i - 0.001 ? 1 : 0.3 }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
                 className={`flex w-[85%] shrink-0 snap-center flex-col justify-start border-l-2 py-5 pl-4 text-left no-tap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp lg:block lg:w-full lg:snap-none ${
                   i === activeIdx
                     ? "border-journal-ink bg-journal-card/60"
@@ -257,7 +291,7 @@ export default function Journey() {
                   Stop {String(i + 1).padStart(2, "0")} · {stop.country}
                 </p>
                 <div className="mt-1">{entryBody(stop, i)}</div>
-              </button>
+              </motion.button>
             ))}
           </div>
 

@@ -178,6 +178,7 @@ export default function Identifying() {
     ? Object.entries(recognized.attributes).filter(([, v]) => v && String(v).trim())
     : [];
   const confidenceLevel = recognized?.confidence || (lowConfidence ? "low" : "medium");
+  const sketchOn = phase === "matched" || phase === "launching";
 
   return (
     <ScreenShell section="Trace · identifying">
@@ -189,15 +190,33 @@ export default function Identifying() {
         >
           ← Cancel
         </button>
-        {/* Photo / specimen in a polaroid */}
+        {/* Photo / specimen in a polaroid — on match the photo desaturates and
+            is redrawn as a field sketch, stroke by stroke. */}
         <div className="relative w-full max-w-[320px] rotate-[-1.5deg] border border-journal-rule bg-journal-card p-3 shadow-[0_18px_40px_-18px_rgba(30,27,22,0.35)]">
           <div className="relative aspect-square w-full overflow-hidden border border-journal-rule bg-journal-paper">
-            {photo ? (
-              <img src={photo} alt="Your scan" className="h-full w-full object-cover" />
-            ) : (
-              <div className="h-full w-full p-8">
-                <Specimen product={product} className="h-full w-full" title="Your item" />
-              </div>
+            {photo && (
+              <motion.img
+                src={photo}
+                alt="Your scan"
+                className="absolute inset-0 h-full w-full object-cover"
+                animate={
+                  sketchOn
+                    ? { opacity: 0, filter: "grayscale(0.9) sepia(0.35)" }
+                    : { opacity: 1, filter: "grayscale(0) sepia(0)" }
+                }
+                transition={{ duration: 0.55, ease: "easeOut" }}
+              />
+            )}
+            {(!photo || sketchOn) && (
+              <motion.div
+                key={sketchOn ? "sketch" : "idle"}
+                initial={{ opacity: photo && sketchOn ? 0 : 1 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.35, delay: photo && sketchOn ? 0.3 : 0 }}
+                className="absolute inset-0 p-8"
+              >
+                <Specimen product={product} className="h-full w-full" title="Field sketch of your item" drawIn={sketchOn} />
+              </motion.div>
             )}
 
             {phase === "scanning" && (
@@ -219,7 +238,7 @@ export default function Identifying() {
                   exit={{ opacity: 0 }}
                   className="absolute inset-0 flex items-center justify-center"
                 >
-                  <Stamp shape="rect" country="Identified" code={product.id.toUpperCase().slice(0, 10)} date="FIELD JOURNAL" rotation={-8} animate={!reduce} className="bg-journal-card/80" />
+                  <Stamp shape="rect" country="Identified" code={(product?.id || "item").toUpperCase().slice(0, 10)} date="FIELD JOURNAL" rotation={-8} animate={!reduce} className="bg-journal-card/80" />
                 </motion.div>
               )}
             </AnimatePresence>

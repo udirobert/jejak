@@ -209,10 +209,14 @@ export default function ExploreBottomSheet({
         <div className="flex-1 overflow-y-auto px-3.5 pb-6 scrollbar-hide">
           {loading ? (
             <div className="space-y-2 py-2">
+              <p className="px-2.5 pb-1 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
+                Unfolding the atlas…
+              </p>
               {[0, 1].map((i) => (
                 <div
                   key={i}
                   className="flex items-center gap-2.5 px-2.5 py-2 animate-pulse"
+                  style={{ animationDelay: `${i * 0.22}s` }}
                 >
                   <div className="h-9 w-9 bg-journal-rule/50" />
                   <div className="space-y-1.5 flex-1">

@@ -16,6 +16,7 @@ import RouteMap from "@/components/journal/RouteMap";
 import Receipt from "@/components/journal/Receipt";
 import MarginNote from "@/components/journal/MarginNote";
 import Stamp from "@/components/journal/Stamp";
+import PageLoader from "@/components/journal/PageLoader";
 import { base44 } from "@/api/base44Client";
 import { useApp } from "@/lib/AppContext";
 import { PRODUCT_MAP } from "@/data";
@@ -493,12 +494,27 @@ export default function Room() {
           </div>
 
           {loadingScans ? (
-            <div className="py-12 text-center font-plexmono text-xs uppercase tracking-widest text-journal-ink-soft">
-              Syncing live traces…
-            </div>
+            <PageLoader label="Listening for new traces" note="the ticker warms up…" />
           ) : scans.length === 0 ? (
-            <div className="py-12 text-center border border-dashed border-journal-rule p-8 font-grotesk text-sm text-journal-ink-soft">
-              No public entries recorded yet. Be the first to trace an item above!
+            <div className="relative flex flex-col items-center border border-dashed border-journal-rule bg-journal-card/60 px-6 py-10 text-center">
+              <Stamp
+                shape="rect"
+                country="This page"
+                code="UNFILED"
+                date="FOR NOW"
+                rotation={-5}
+                animate
+                className="bg-journal-card"
+              />
+              <p className="mt-5 font-grotesk text-sm text-journal-ink">
+                No public entries recorded yet.
+              </p>
+              <p className="mt-1 font-grotesk text-sm text-journal-ink-soft">
+                Trace an item above and it lands here, live.
+              </p>
+              <div className="mt-4">
+                <MarginNote write>the first mark on this page could be yours</MarginNote>
+              </div>
             </div>
           ) : (
             <div className="divide-y divide-journal-rule border border-journal-rule bg-journal-card">

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useApp } from "@/lib/AppContext";
@@ -11,6 +11,7 @@ import ImpactOnChainView from "@/components/ImpactOnChainView";
 import StellarExplainerSheet from "@/components/StellarExplainerSheet";
 import { VectorFlagSvg } from "@/components/explore/OriginFlagChip";
 import Specimen from "@/components/journal/Specimen";
+import { useCountUp } from "@/lib/useCountUp";
 import { vibrate } from "@/lib/haptics";
 import {
   ExternalLink,
@@ -30,27 +31,6 @@ function relativeTime(iso) {
   const diffHr = Math.round(diffMin / 60);
   if (diffHr < 24) return `${diffHr}h ago`;
   return `${Math.round(diffHr / 24)}d ago`;
-}
-
-function useCountUp(target, duration = 900, reduce = false) {
-  const [val, setVal] = useState(target);
-  const raf = useRef();
-  useEffect(() => {
-    if (reduce) {
-      setVal(target);
-      return;
-    }
-    const start = performance.now();
-    const tick = (now) => {
-      const p = Math.max(0, Math.min(1, (now - start) / duration));
-      const eased = 1 - Math.pow(1 - p, 3);
-      setVal(Math.round(target * eased));
-      if (p < 1) raf.current = requestAnimationFrame(tick);
-    };
-    raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
-  }, [target, duration, reduce]);
-  return val;
 }
 
 // Short, non-repetitive corridor subtitle (does not repeat the country name)

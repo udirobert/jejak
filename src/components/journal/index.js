@@ -7,3 +7,5 @@ export { default as Receipt } from "./Receipt";
 export { default as TradeEvidence } from "./TradeEvidence";
 export { default as MaterialsSwatch } from "./MaterialsSwatch";
 export { default as TourCallout } from "./TourCallout";
+export { default as WashiTape } from "./WashiTape";
+export { default as PageLoader } from "./PageLoader";

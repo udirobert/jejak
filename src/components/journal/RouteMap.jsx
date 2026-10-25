@@ -22,6 +22,8 @@ export default function RouteMap({
   stampAt = null,
   extraRoutes = [],
   stampDelay = 0,
+  stampStagger = 0,
+  traveller = false,
   stampClass = "h-14 w-14 sm:h-16 sm:w-16",
   fill = false,
   activeIndex = null,
@@ -47,7 +49,7 @@ export default function RouteMap({
   const W = fill ? box.w : width;
   const H = fill ? box.h : height;
 
-  const { path, legs, pts, extraDs } = useMemo(() => {
+  const { path, legs, curves, pts, extraDs } = useMemo(() => {
     const proj = geoEqualEarth();
     if (stops.length > 0) {
       const lngs = stops.map((s) => s.lng);
@@ -66,6 +68,7 @@ export default function RouteMap({
     const p = geoPath(proj);
     const projected = stops.map((s) => proj([s.lng, s.lat]));
     const legDs = [];
+    const curves = [];
     for (let i = 0; i < projected.length - 1; i++) {
       const [x1, y1] = projected[i];
       const [x2, y2] = projected[i + 1];
@@ -78,6 +81,7 @@ export default function RouteMap({
       const cx = mx - (dy / len) * len * k;
       const cy = my + (dx / len) * len * k;
       legDs.push(`M ${x1} ${y1} Q ${cx} ${cy} ${x2} ${y2}`);
+      curves.push({ x1, y1, cx, cy, x2, y2 });
     }
     const extraDs = (extraRoutes || []).flatMap((rs) => {
       const ppts = (rs || []).map((s) => proj([s.lng, s.lat]));
@@ -90,7 +94,7 @@ export default function RouteMap({
       }
       return ds;
     });
-    return { path: p, legs: legDs, pts: projected, extraDs };
+    return { path: p, legs: legDs, curves, pts: projected, extraDs };
   }, [stops, W, H, padDegrees, extraRoutes]);
 
   const stampIdx = useMemo(
@@ -137,6 +141,25 @@ export default function RouteMap({
   const nLegs = Math.max(legs.length, 1);
   const legP = legs.map((_, i) => clamp01(progress * nLegs - i));
   const stopShown = stops.map((_, i) => progress * nLegs >= i - 0.001);
+  // Order each stamp receives among stamped stops, for staggered thunk delays.
+  const stampOrder = useMemo(() => {
+    let n = 0;
+    return pts.map((_, i) => (stampIdx.has(i) ? n++ : -1));
+  }, [pts, stampIdx]);
+
+  // Point on the route at `progress` — quadratic bezier eval over the legs.
+  const travellerPt = useMemo(() => {
+    if (!traveller || curves.length === 0 || progress <= 0 || progress >= 1) return null;
+    const t = Math.min(progress * curves.length, curves.length - 1e-6);
+    const li = Math.floor(t);
+    const lt = t - li;
+    const c = curves[li];
+    const mt = 1 - lt;
+    return [
+      mt * mt * c.x1 + 2 * mt * lt * c.cx + lt * lt * c.x2,
+      mt * mt * c.y1 + 2 * mt * lt * c.cy + lt * lt * c.y2,
+    ];
+  }, [traveller, curves, progress]);
   const dashTransition = reducedMotion ? "none" : "stroke-dasharray 0.45s ease";
   // Route stroke ~1.75px on a ~900-unit map; scale with map size.
   const strokeW = Math.max(1.4, (W / 900) * 1.75);
@@ -206,6 +229,15 @@ export default function RouteMap({
           </g>
         );
       })}
+      {travellerPt && (
+        <g transform={`translate(${travellerPt[0]} ${travellerPt[1]})`} aria-hidden="true">
+          {!reducedMotion && (
+            <circle r={dotR * 2.8} fill="none" stroke="var(--j-stamp)" strokeWidth="0.8" className="j-traveller-ping" />
+          )}
+          <circle r={dotR * 1.5} fill="var(--j-card)" stroke="var(--j-stamp)" strokeWidth="1.2" />
+          <circle r={dotR * 0.6} fill="var(--j-stamp)" />
+        </g>
+      )}
     </svg>
   );
 
@@ -226,7 +258,7 @@ export default function RouteMap({
                 date={stops[i].date || `STOP ${String(i + 1).padStart(2, "0")}`}
                 rotation={i % 2 === 0 ? -7 : 5}
                 animate={!reducedMotion}
-                delay={stampDelay}
+                delay={stampDelay + stampOrder[i] * stampStagger}
                 className={stampClass}
               />
             </div>
