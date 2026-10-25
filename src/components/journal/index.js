@@ -5,4 +5,5 @@ export { default as JournalButton } from "./JournalButton";
 export { default as RouteMap } from "./RouteMap";
 export { default as Receipt } from "./Receipt";
 export { default as TradeEvidence } from "./TradeEvidence";
+export { default as MaterialsSwatch } from "./MaterialsSwatch";
 export { default as TourCallout } from "./TourCallout";

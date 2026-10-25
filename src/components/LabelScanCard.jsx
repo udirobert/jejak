@@ -5,6 +5,7 @@ import { useApp } from "@/lib/AppContext";
 import { vibrate } from "@/lib/haptics";
 import Stamp from "./journal/Stamp";
 import MarginNote from "./journal/MarginNote";
+import MaterialsSwatch from "./journal/MaterialsSwatch";
 import JournalButton from "./journal/JournalButton";
 import {
   Camera,
@@ -201,6 +202,9 @@ export default function LabelScanCard() {
                 <Stamp shape="rect" country="Verified" code="LABEL" date="READ" rotation={6} animate />
               )}
             </div>
+            {!labelEvidence.isSampleLabel && (
+              <MaterialsSwatch fibreText={labelEvidence.fibre_composition} />
+            )}
             <div className="flex flex-wrap items-center justify-between gap-1.5">
               <span className="inline-flex items-center gap-1 font-grotesk text-sm font-medium text-journal-ink">
                 <CheckCircle2 size={14} className="shrink-0 text-journal-materials" />
