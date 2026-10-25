@@ -23,7 +23,23 @@ We arrive with a working product. The Scale requirement is **clearly new work du
 6. 🆕 **Mobile harmonisation**: the old app's thumb-first interactions rebuilt in the journal style (shutter, status line, swipeable stops, guided tour, anchor thud). See `polish.md` — **Dev B**
 
 ### What "built today" answer for judges:
-> "The `/room` page — guest trace with no sign-up, plus a live counter and feed that are ledger-backed: it counts records anchored on Stellar today, reading the signer's transaction feed from Horizon, not just rows in our DB."
+> "Three things. `/room` — guest trace with no sign-up, plus a live counter and feed backed by the ledger, not the database. A provenance-legitimacy pass: the 'made in' stop is now checked against real UN Comtrade import data, label evidence lands on the correct stage, and the on-chain record (v2) includes the label photo's hash and the data source. And a mobile harmonisation pass — a stamp shutter, swipeable stops and a guided tour in the journal style."
+
+### Delta commits during the event (25 Oct, `17d9fa5` is pre-event baseline)
+| Commit | What |
+|---|---|
+| `e8dfa74` | `/room` live floor mode + page transitions + perf (Dev A) |
+| `20e3476` | Legitimacy audit + UN Comtrade snapshot (`src/data/trade/`) |
+| `221051d` | Stage kinds, HS codes, shared provenance model (`src/lib/provenance.js`) |
+| `34d995a` | Evidence assertions in `validate-data.mjs` |
+| `2a0da1c` | Honest copy: drop photo-origin claims; split basis = AI inference |
+| `9110476` | `TradeEvidence` — Comtrade supplier-share bars on the made-in stop |
+| `6e8cc41` + `e276b36` | Mobile harmonisation: shutter, specimen strip, swipeable stops, 3-step tour, anchor thud |
+| `ad43a99` | `MaterialsSwatch` — label fibre composition as a printed swatch |
+| `24ed670` | Labour shares re-anchored to CCC + Deloitte/Oxfam; living-wage note |
+| `5ae1785` + `0f02527` | Hotfixes: rebuild-era runtime crashes (landing blank, MoneySplit `basePrice`) |
+
+On-chain evidence: fresh anchor tx timestamped today — **[fill in after anchoring: hash + stellar.expert link]**.
 
 ---
 
