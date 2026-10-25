@@ -88,6 +88,42 @@ function LegworkReceipt() {
   );
 }
 
+function LegworkLetter() {
+  const ref = useRef(null);
+  const inView = useInView(ref, { once: true, margin: "0px 0px -15% 0px" });
+  const reduce = useReducedMotion();
+  return (
+    <div ref={ref} className="flex-1 border border-journal-rule bg-journal-card p-4 font-plexmono text-[12px] text-journal-ink">
+      <p className="font-plexmono text-[9px] uppercase tracking-[0.16em] text-journal-ink-soft">Drafted for you · send it yourself</p>
+      <div className="mt-2 space-y-1.5 text-[11px] leading-relaxed">
+        <p>Dear Outdoor Brands Ltd,</p>
+        <p className="text-journal-ink-soft">
+          Your Everyday Hoodie label says "Made in Bangladesh" — can you share the factory, and how the rest of the journey breaks down?
+        </p>
+        <p className="text-journal-ink-soft">— a customer, via Jejak</p>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <motion.span
+          initial={{ opacity: 0, scale: 1.5, rotate: -14 }}
+          animate={inView ? { opacity: 1, scale: 1, rotate: -6 } : {}}
+          transition={reduce ? { duration: 0 } : { delay: 0.5, duration: 0.28, ease: "easeOut" }}
+          className="inline-block border border-journal-stamp px-1 py-px font-plexmono text-[8px] uppercase tracking-[0.08em] text-journal-stamp"
+        >
+          Sent
+        </motion.span>
+        <motion.span
+          initial={{ opacity: 0 }}
+          animate={inView ? { opacity: 1 } : {}}
+          transition={reduce ? { duration: 0 } : { delay: 1.1, duration: 0.3 }}
+          className="inline-block border border-journal-rule px-1 py-px font-plexmono text-[8px] uppercase tracking-[0.08em] text-journal-ink-soft"
+        >
+          Reminder if quiet · day 14
+        </motion.span>
+      </div>
+    </div>
+  );
+}
+
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
 
 function PerforatedDivider({ className = "" }) {

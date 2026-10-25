@@ -1,17 +1,16 @@
 // Ink line-drawing "specimens" — replaces product emojis/photo icons across the app.
-// id: "hoodie" | "trainers" | "coffee" | "phone_case" (falls back to hoodie paths).
-DRAWINGS.tag = (
-  <g fill="none" stroke="var(--j-ink)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
-    {/* luggage tag */}
-    <path d="M 60 60 L 140 60 L 152 150 L 48 150 Z" />
-    <circle cx="100" cy="52" r="14" />
-    <path d="M 92 58 C 88 44, 112 44, 108 58" strokeWidth="3" />
-    <path d="M 70 86 L 130 86 M 70 100 L 118 100 M 70 114 L 124 114" strokeWidth="3" />
-    <path d="M 70 132 L 96 132" strokeWidth="3" />
-  </g>
-);
-
+// id: "hoodie" | "trainers" | "coffee" | "phone_case" (falls back to the tag drawing).
 const DRAWINGS = {
+  tag: (
+    <g fill="none" stroke="var(--j-ink)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
+      {/* luggage tag */}
+      <path d="M 60 60 L 140 60 L 152 150 L 48 150 Z" />
+      <circle cx="100" cy="52" r="14" />
+      <path d="M 92 58 C 88 44, 112 44, 108 58" strokeWidth="3" />
+      <path d="M 70 86 L 130 86 M 70 100 L 118 100 M 70 114 L 124 114" strokeWidth="3" />
+      <path d="M 70 132 L 96 132" strokeWidth="3" />
+    </g>
+  ),
   hoodie: (
     <g fill="none" stroke="var(--j-ink)" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M 78 40 C 78 16, 122 16, 122 40 C 122 52, 112 58, 100 58 C 88 58, 78 52, 78 40 Z" />

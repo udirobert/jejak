@@ -47,7 +47,7 @@ export default function RouteMap({
   const W = fill ? box.w : width;
   const H = fill ? box.h : height;
 
-  const { path, legs, pts } = useMemo(() => {
+  const { path, legs, pts, extraDs } = useMemo(() => {
     const proj = geoEqualEarth();
     if (stops.length > 0) {
       const lngs = stops.map((s) => s.lng);
