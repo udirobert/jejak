@@ -17,7 +17,7 @@ export default function TourCallout({
 
   const copy = {
     1: {
-      note: "take the tour",
+      note: "start here",
       text: `Every stop is an estimate. Trade data shows who really supplies ${marketName}.`,
       action: "Read the label",
       onAction: onReadLabel,
@@ -29,7 +29,7 @@ export default function TourCallout({
       onAction: onNext,
     },
     3: {
-      note: "last step",
+      note: "last one",
       text: "Follow the money, then open Proof to anchor this entry on Stellar.",
       action: "Open proof",
       onAction: onOpenProof,

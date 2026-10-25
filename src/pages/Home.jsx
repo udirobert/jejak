@@ -261,13 +261,15 @@ export default function Home() {
             </svg>
             <span className="mt-1 font-plexmono text-[11px] font-medium uppercase tracking-[0.2em]">Snap</span>
           </motion.button>
-          <button
-            type="button"
-            onClick={beginTour}
-            className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft underline decoration-journal-stamp underline-offset-4 no-tap hover:text-journal-ink"
-          >
-            Take the 20-second tour
-          </button>
+          {!tourBanner && (
+            <button
+              type="button"
+              onClick={beginTour}
+              className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft underline decoration-journal-stamp underline-offset-4 no-tap hover:text-journal-ink"
+            >
+              Take the 20-second tour
+            </button>
+          )}
         </div>
 
         {/* Secondary entries */}

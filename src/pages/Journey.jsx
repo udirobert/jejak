@@ -239,7 +239,7 @@ export default function Journey() {
         <div className="px-5 lg:px-0">
           <div
             ref={stripRef}
-            className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide lg:mx-0 lg:block lg:snap-none lg:overflow-visible lg:px-0 lg:pb-0"
+            className="-mx-5 flex snap-x snap-mandatory items-start gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide lg:mx-0 lg:block lg:snap-none lg:overflow-visible lg:px-0 lg:pb-0"
           >
             {route.map((stop, i) => (
               <button
@@ -247,7 +247,7 @@ export default function Journey() {
                 id={`stop-entry-${i}`}
                 type="button"
                 onClick={() => selectStop(i)}
-                className={`block w-[85%] shrink-0 snap-center border-l-2 py-5 pl-4 text-left no-tap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp lg:w-full lg:shrink lg:snap-none ${
+                className={`flex w-[85%] shrink-0 snap-center flex-col justify-start border-l-2 py-5 pl-4 text-left no-tap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp lg:block lg:w-full lg:snap-none ${
                   i === activeIdx
                     ? "border-journal-ink bg-journal-card/60"
                     : "border-journal-rule hover:border-journal-ink-soft"
