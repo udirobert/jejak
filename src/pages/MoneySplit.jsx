@@ -64,6 +64,7 @@ export default function MoneySplit() {
   const { navigateToLogin } = useAuth();
 
   const reduce = useReducedMotion();
+  const basePrice = product?.markets?.[market]?.price ?? 0;
   const price = customPrice != null && customPrice > 0 ? customPrice : basePrice;
   const minPrice = Math.max(1, Math.round(basePrice * 0.3));
   const maxPrice = Math.round(basePrice * 3);
