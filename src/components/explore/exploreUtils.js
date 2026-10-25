@@ -1,3 +1,5 @@
+import countries from "../../data/trade/countries.json" with { type: "json" };
+
 export const FLAGS = {
   Bangladesh: "BD",
   Vietnam: "VN",
@@ -12,18 +14,32 @@ export const FLAGS = {
   UK: "GB",
 };
 
-export const ORIGIN_COORDS = {
-  Bangladesh: [90.3563, 23.685],
-  Vietnam: [108.2772, 14.0583],
-  Ethiopia: [40.4897, 9.145],
-  China: [113.2644, 23.1291],
-  Cambodia: [104.991, 12.5657],
-  Indonesia: [110.3695, -7.7956],
-  India: [78.9629, 20.5937],
-  Singapore: [103.8198, 1.3521],
-  Netherlands: [5.2913, 52.1326],
-  "United Kingdom": [-1.1743, 52.3555],
-};
+// Origin dots: display name -> [lng, lat] for every country in the table,
+// plus legacy names scans were saved under.
+export const ORIGIN_COORDS = (() => {
+  const out = {};
+  for (const [code, c] of Object.entries(countries)) {
+    if (code.startsWith("_") || !c?.name || !c?.point) continue;
+    out[c.name] = c.point;
+  }
+  // Legacy names already stored on Scan records / used in code.
+  const legacy = {
+    Vietnam: "VN",
+    "United Kingdom": "GB",
+    Turkey: "TR",
+    "Viet Nam": "VN",
+    USA: "US",
+    "United States of America": "US",
+    "South Korea": "KR",
+    Korea: "KR",
+    "Hong Kong": "HK",
+  };
+  for (const [name, code] of Object.entries(legacy)) {
+    const c = countries[code];
+    if (c?.point && !out[name]) out[name] = c.point;
+  }
+  return out;
+})();
 
 export const PRODUCT_SURFACES = {
   hoodie: "linear-gradient(145deg, #FF8A65 0%, #FFC24B 100%)",

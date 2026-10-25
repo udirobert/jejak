@@ -1,6 +1,6 @@
 // Shared "trace anything" engine — turns a product description into a Jejak
 // product object via InvokeLLM, then normalizes it into the app's product shape.
-import { buildTracePrompt, TRACE_SCHEMA, BASIS_LABELS } from "./prompts.ts";
+import { buildTracePrompt, TRACE_SCHEMA, HS_CODES } from "./prompts.ts";
 
 export interface TraceInput {
   description: string;
@@ -38,9 +38,15 @@ const FINAL_STOPS = {
   SG: { stage: "Sold", country: "Singapore", code: "SG", lat: 1.35, lng: 103.8, note: "Where you bought it" },
 };
 
-function normalizeRoute(rawRoute: any[], input: TraceInput) {
+const ROUTE_KINDS = ["raw_material", "processing", "final_manufacture", "logistics"];
+// Coffee/tea labels state where the crop was grown, so the raw_material stage
+// is the one a label can confirm. Everything else reads "Made in" at final manufacture.
+const FARM_HS_CODES = new Set(["090111", "0902"]);
+
+function normalizeRoute(rawRoute: any[], input: TraceInput, hsCode: string | null) {
   const labelCountry = (input.labelCountry || "").trim().toLowerCase();
-  return (Array.isArray(rawRoute) ? rawRoute : [])
+  const labelAppliesToFarm = hsCode != null && FARM_HS_CODES.has(hsCode);
+  const route = (Array.isArray(rawRoute) ? rawRoute : [])
     .filter(
       (s) =>
         s && typeof s.country === "string" && s.country.trim() &&
@@ -49,9 +55,12 @@ function normalizeRoute(rawRoute: any[], input: TraceInput) {
     )
     .slice(0, 5)
     .map((s) => {
-      const matchesLabel = labelCountry && s.country.trim().toLowerCase() === labelCountry;
+      const kind = ROUTE_KINDS.includes(s.kind) ? s.kind : "processing";
+      const labelStage = kind === "final_manufacture" || (labelAppliesToFarm && kind === "raw_material");
+      const matchesLabel = Boolean(labelCountry) && labelStage && s.country.trim().toLowerCase() === labelCountry;
       return {
         stage: String(s.stage || "Stage").slice(0, 40),
+        kind,
         country: s.country.trim(),
         code: /^[A-Za-z]{2}$/.test(s.code || "") ? s.code.toUpperCase() : "",
         lat: s.lat,
@@ -61,6 +70,20 @@ function normalizeRoute(rawRoute: any[], input: TraceInput) {
         confidence: matchesLabel ? "high" : s.confidence === "low" ? "low" : "medium",
       };
     });
+  // Exactly one stage marks where the item was made; if the model forgot, the
+  // last non-logistics stage is the best candidate.
+  if (route.length && !route.some((s) => s.kind === "final_manufacture")) {
+    for (let i = route.length - 1; i >= 0; i--) {
+      if (route[i].kind !== "logistics") {
+        route[i] = { ...route[i], kind: "final_manufacture" };
+        if (labelCountry && route[i].country.trim().toLowerCase() === labelCountry) {
+          route[i] = { ...route[i], basis: "Read from label", confidence: "high" };
+        }
+        break;
+      }
+    }
+  }
+  return route;
 }
 
 function normalizeSplit(rawSplit: any) {
@@ -77,7 +100,7 @@ function normalizeSplit(rawSplit: any) {
       mid,
       high,
       confidence: e.confidence === "medium" ? "medium" : "low",
-      basis: (BASIS_LABELS as readonly string[]).includes(e.basis) ? e.basis : "AI inference",
+      basis: "AI inference",
     };
     midSum += mid;
   }
@@ -116,7 +139,8 @@ function transparentAlt(split: Record<string, { pct: { low: number; mid: number;
 // Pure normalization — exported for tests.
 export async function normalizeTrace(raw: any, input: TraceInput) {
   if (!raw || raw.traceable === false) return { ok: false as const, reason: "not_traceable" as const };
-  const route = normalizeRoute(raw.route, input);
+  const hs = (HS_CODES as readonly string[]).includes(raw.hs_code) ? raw.hs_code : null;
+  const route = normalizeRoute(raw.route, input, hs);
   if (route.length === 0) return { ok: false as const, reason: "bad_output" as const };
 
   const split = normalizeSplit(raw.split);
@@ -134,6 +158,7 @@ export async function normalizeTrace(raw: any, input: TraceInput) {
     brand: input.brand || raw.brand || "",
     confidence: raw.overall_confidence === "medium" ? "medium" : "low",
     aiGenerated: true,
+    hs,
     markets: {
       [input.market]: { currency, price, retailer: "Shop" },
       [otherMarket]: { currency: otherCurrency, price: otherPrice, retailer: "Shop", converted: true },

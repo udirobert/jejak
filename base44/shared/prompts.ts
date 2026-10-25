@@ -3,12 +3,46 @@
 // confidence level, and a basis label from a fixed set. AI output never claims
 // "high" confidence unless the fact was read from a label/receipt.
 
-export const BASIS_LABELS = [
-  "public price benchmark",
-  "published brand disclosure",
-  "trade data",
-  "AI inference",
+export const BASIS_LABELS = ["AI inference"] as const;
+
+// HS codes covered by the committed UN Comtrade snapshot (src/data/trade/imports.json).
+// Keep in sync with imports.json `categories` — validated in trace.test.ts and
+// scripts/validate-data.mjs.
+export const HS_CODES = [
+  "6110",
+  "6109",
+  "6203",
+  "6204",
+  "6404",
+  "6403",
+  "090111",
+  "0902",
+  "1806",
+  "851713",
+  "847130",
+  "4202",
+  "392690",
+  "9503",
 ] as const;
+
+export const HS_CODE_LABELS: Record<string, string> = {
+  "6110": "Jumpers, sweatshirts & hoodies (knitted)",
+  "6109": "T-shirts & vests (knitted)",
+  "6203": "Men's suits, trousers & jeans (woven)",
+  "6204": "Women's suits, dresses, trousers & jeans (woven)",
+  "6404": "Footwear with textile uppers (most trainers)",
+  "6403": "Footwear with leather uppers",
+  "090111": "Green coffee beans (unroasted)",
+  "0902": "Tea",
+  "1806": "Chocolate & cocoa preparations",
+  "851713": "Smartphones",
+  "847130": "Laptops & portable computers",
+  "4202": "Bags, wallets & cases",
+  "392690": "Other plastic articles (incl. moulded phone cases)",
+  "9503": "Toys",
+};
+
+export const ROUTE_KINDS = ["raw_material", "processing", "final_manufacture", "logistics"] as const;
 
 export const CATEGORY_KEYS = ["materials", "labour", "freight", "brand", "retail"] as const;
 
@@ -55,10 +89,11 @@ export const TRACE_SCHEMA = {
           lat: { type: "number" },
           lng: { type: "number" },
           note: { type: "string" },
+          kind: { type: "string", enum: [...ROUTE_KINDS] },
           basis: { type: "string", enum: ["Read from label", "Estimated"] },
           confidence: { type: "string", enum: ["high", "medium", "low"] },
         },
-        required: ["stage", "country", "code", "lat", "lng", "note", "basis", "confidence"],
+        required: ["stage", "country", "code", "lat", "lng", "note", "kind", "basis", "confidence"],
       },
     },
     split: {
@@ -68,6 +103,7 @@ export const TRACE_SCHEMA = {
     },
     labour_context: { type: "string" },
     overall_confidence: { type: "string", enum: ["medium", "low"] },
+    hs_code: { type: "string", enum: [...HS_CODES, "none"] },
   },
   required: [
     "traceable",
@@ -78,6 +114,7 @@ export const TRACE_SCHEMA = {
     "split",
     "labour_context",
     "overall_confidence",
+    "hs_code",
   ],
 };
 
@@ -91,6 +128,7 @@ export function buildTracePrompt(input: {
   brand?: string;
 }): string {
   const where = input.market === "SG" ? "Singapore" : "the United Kingdom";
+  const hsList = HS_CODES.map((c) => `${c} = ${HS_CODE_LABELS[c]}`).join("; ");
   const labelLines = [
     input.labelCountry ? `- The product's label states it was made in: ${input.labelCountry}` : "",
     input.labelMaterials ? `- The label states the materials are: ${input.labelMaterials}` : "",
@@ -115,18 +153,24 @@ export function buildTracePrompt(input: {
     "   Each stage: a short stage name (2-4 words, e.g. 'Cotton farming', 'Cut & sew', 'Roasting'),",
     "   the single most likely country, its ISO 3166-1 alpha-2 code, a representative lat/lng inside that country",
     "   (production region if well known, else the country's centre), and a plain-English note of max 10 words.",
-    "   basis: 'Read from label' ONLY for the manufacturing stage whose country matches the label country; that stage",
-    "   gets confidence 'high'. Every other stage is 'Estimated' with 'medium' (well-documented pattern) or 'low'.",
+    "   Each stage also gets a kind: 'raw_material' (farming or extraction of inputs), 'processing' (turning inputs",
+    "   into parts or materials), 'final_manufacture' (where the finished product was made or assembled), or",
+    "   'logistics' (freight hubs, warehouses, distribution). Exactly ONE stage must be 'final_manufacture'.",
+    "   For farmed goods (coffee, tea) the farm is 'raw_material' and roasting/packing is 'final_manufacture'.",
+    "   basis: 'Read from label' applies ONLY to the stage the label speaks to: the 'final_manufacture' stage,",
+    "   or the farm ('raw_material') stage for coffee/tea. That stage gets confidence 'high' when its country",
+    "   matches the label country. Every other stage is 'Estimated' with 'medium' (well-documented pattern) or 'low'.",
     "3. split: what share of the shelf price likely went to materials, labour (wages of the people who made it),",
     "   freight & duties, brand (brand margin + marketing), and retail (shop margin + rent + staff).",
     "   Give low/mid/high percentages. The five mid values MUST sum to exactly 100. low <= mid <= high.",
-    "   confidence is 'medium' or 'low' only. basis must be one of: " + BASIS_LABELS.join(", ") + ".",
-    "   Use 'AI inference' whenever you are not drawing on a widely published benchmark.",
-    `4. estimated_price: if price is unknown, a typical shelf price in ${input.currency}; otherwise repeat the price paid.`,
-    "5. labour_context: 1-2 sentences on who likely made it and the wage context, factual and non-judgemental.",
+    "   confidence is 'medium' or 'low' only. basis is always \"AI inference\" — these are category-level estimates, not sourced.",
+    `4. hs_code: pick the closest Harmonized System code for this product type from this mapping: ${hsList}.`,
+    "   Use 'none' if none of them fits.",
+    `5. estimated_price: if price is unknown, a typical shelf price in ${input.currency}; otherwise repeat the price paid.`,
+    "6. labour_context: 1-2 sentences on who likely made it and the wage context, factual and non-judgemental.",
     "   Never name or accuse a specific company of abuses.",
-    "6. name: a short, friendly product name (max 4 words). category: one word (e.g. apparel, footwear, food, electronics).",
-    "7. overall_confidence: 'medium' if this is a common, well-documented product type; otherwise 'low'.",
+    "7. name: a short, friendly product name (max 4 words). category: one word (e.g. apparel, footwear, food, electronics).",
+    "8. overall_confidence: 'medium' if this is a common, well-documented product type; otherwise 'low'.",
   ]
     .filter((l) => l !== "")
     .join("\n");

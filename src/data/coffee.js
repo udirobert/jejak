@@ -1,5 +1,6 @@
 export const coffee = {
   id: "coffee",
+  hs: "090111",
   name: "Coffee Bag",
   emoji: "☕",
   confidence: "medium",
@@ -8,16 +9,16 @@ export const coffee = {
     SG: { currency: "SGD", price: 12, retailer: "Specialty roaster" },
   },
   split: {
-    materials: { pct: { low: 16, mid: 20, high: 24 }, confidence: "medium", basis: "public price benchmark" },
-    labour: { pct: { low: 8, mid: 12, high: 16 }, confidence: "medium", basis: "published brand disclosure" },
-    freight: { pct: { low: 10, mid: 14, high: 18 }, confidence: "medium", basis: "trade data" },
+    materials: { pct: { low: 16, mid: 20, high: 24 }, confidence: "medium", basis: "AI inference" },
+    labour: { pct: { low: 8, mid: 12, high: 16 }, confidence: "medium", basis: "AI inference" },
+    freight: { pct: { low: 10, mid: 14, high: 18 }, confidence: "medium", basis: "AI inference" },
     brand: { pct: { low: 20, mid: 24, high: 28 }, confidence: "low", basis: "AI inference" },
-    retail: { pct: { low: 26, mid: 30, high: 34 }, confidence: "medium", basis: "public price benchmark" },
+    retail: { pct: { low: 26, mid: 30, high: 34 }, confidence: "medium", basis: "AI inference" },
   },
   route: [
-    { stage: "Cherry harvest", country: "Ethiopia", code: "ET", lat: 9.0, lng: 38.5, note: "Coffee cherries picked by hand", value: 20 },
-    { stage: "Processing", country: "Ethiopia", code: "ET", lat: 9.0, lng: 38.5, note: "Washed and dried", value: 12 },
-    { stage: "Roasting", country: "United Kingdom", code: "GB", lat: 51.5, lng: -0.12, note: "Roasted close to market", value: 14 },
+    { stage: "Cherry harvest", kind: "raw_material", country: "Ethiopia", code: "ET", lat: 9.0, lng: 38.5, note: "Coffee cherries picked by hand", value: 20 },
+    { stage: "Processing", kind: "processing", country: "Ethiopia", code: "ET", lat: 9.0, lng: 38.5, note: "Washed and dried", value: 12 },
+    { stage: "Roasting", kind: "final_manufacture", country: "United Kingdom", code: "GB", lat: 51.5, lng: -0.12, note: "Roasted close to market", value: 14 },
   ],
   finalStop: {
     GB: { stage: "Sold", country: "United Kingdom", code: "GB", lat: 51.5, lng: -0.12, note: "Specialty roaster", value: 54 },
@@ -30,7 +31,7 @@ export const coffee = {
     split: {
       materials: { pct: { low: 28, mid: 34, high: 40 }, confidence: "medium", basis: "AI inference" },
       labour: { pct: { low: 18, mid: 24, high: 30 }, confidence: "medium", basis: "AI inference" },
-      freight: { pct: { low: 10, mid: 13, high: 16 }, confidence: "medium", basis: "trade data" },
+      freight: { pct: { low: 10, mid: 13, high: 16 }, confidence: "medium", basis: "AI inference" },
       brand: { pct: { low: 12, mid: 15, high: 18 }, confidence: "low", basis: "AI inference" },
       retail: { pct: { low: 10, mid: 14, high: 18 }, confidence: "low", basis: "AI inference" },
     },

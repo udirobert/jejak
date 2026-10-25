@@ -3,8 +3,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { base44 } from "@/api/base44Client";
 import { useApp } from "@/lib/AppContext";
 import { computeSplit, getRoute } from "@/lib/money";
+import { annotateRoute, getTradeEvidence } from "@/lib/provenance";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
+import Stamp from "./journal/Stamp";
 import {
   ShieldCheck,
   ExternalLink,
@@ -33,28 +35,21 @@ export function buildCanonicalProvenanceRecord({
   labelEvidence,
   timestampISO,
 }) {
-  const route = getRoute(product, market);
+  const annotated = annotateRoute(product, market, labelEvidence);
+  const evidence = getTradeEvidence(product, market);
   const split = computeSplit(product, market, "split");
-  const labelCountry = labelEvidence?.country_of_manufacture?.trim().toLowerCase();
+  const isSample = Boolean(labelEvidence?.isSampleLabel);
 
-  const origin_stages = route.map((stop, idx) => {
-    const isFinalManufacture =
-      idx === route.length - 2 ||
-      (labelCountry && stop.country.toLowerCase() === labelCountry);
-    const hasLabelMatch = Boolean(labelEvidence?.readable && isFinalManufacture);
-
-    return {
-      stage_index: idx + 1,
-      stage: stop.stage,
-      country:
-        hasLabelMatch && labelEvidence.country_of_manufacture
-          ? labelEvidence.country_of_manufacture
-          : stop.country,
-      country_code: stop.code,
-      basis: hasLabelMatch ? "Read from label" : "Estimated",
-      confidence: hasLabelMatch ? "high" : product.confidence || "medium",
-    };
-  });
+  const origin_stages = annotated.map((stop, idx) => ({
+    stage_index: idx + 1,
+    stage: stop.stage,
+    kind: stop.kind || null,
+    country: stop.country,
+    country_code: stop.code,
+    basis: stop.provenanceBasis,
+    confidence: stop.provenanceConfidence,
+    trade_share_pct: stop.tradeShare,
+  }));
 
   const estimate_ranges = {};
   split.forEach((seg) => {
@@ -68,7 +63,7 @@ export function buildCanonicalProvenanceRecord({
   });
 
   return {
-    schema_version: "jejak.provenance.v1",
+    schema_version: "jejak.provenance.v2",
     record_type: "anchored_record_of_an_estimate",
     disclaimer:
       "Anchored record of a supply-chain estimate and any label-read evidence — not verified fact.",
@@ -81,12 +76,37 @@ export function buildCanonicalProvenanceRecord({
           country_of_manufacture: labelEvidence.country_of_manufacture || "",
           fibre_composition: labelEvidence.fibre_composition || "",
           care_or_brand_text: labelEvidence.care_or_brand_text || "",
-          basis: "Read from label",
-          confidence: "high",
+          is_sample_label: isSample,
+          label_photo_sha256: labelEvidence.photoSha256 || "",
+          read_by: isSample
+            ? "sample label (demo)"
+            : "vision model (Base44 InvokeLLM)",
+          basis: isSample ? "Sample label" : "Read from label",
+          confidence: isSample ? product.confidence || "medium" : "high",
         }
       : null,
     origin_stages,
     estimate_ranges,
+    trade_evidence: evidence
+      ? {
+          source: evidence.source,
+          hs_code: evidence.hs,
+          hs_label: evidence.label,
+          proxy: evidence.proxy,
+          period: evidence.period,
+          market,
+          matched_by: evidence.matchedBy,
+          top_partners: evidence.partners
+            .slice(0, 5)
+            .map((p) => ({ code: p.code, share_pct: p.share })),
+        }
+      : null,
+    methods: {
+      route:
+        "Category-level estimate; the evidence stop is checked against UN Comtrade import shares",
+      split: "AI inference (category-level estimate, not sourced)",
+      label: "Vision read of a user photo",
+    },
   };
 }
 
@@ -161,6 +181,7 @@ export default function ProvenanceAnchorCard({ compact = false }) {
           cachedFallback: false,
           fallbackNotice: null,
         });
+        vibrate([0, 30, 40, 60]);
       }
     } catch {
       // Do not assign a shared fallback transaction to a trace that has no anchor of its own
@@ -305,6 +326,18 @@ export default function ProvenanceAnchorCard({ compact = false }) {
           )}
 
           <div className="rounded-xl bg-white/8 border border-white/15 p-2.5">
+            {!provenanceRecord.cachedFallback && provenanceRecord.txHash && (
+              <div className="mb-2 flex justify-end">
+                <Stamp
+                  animate
+                  shape="circle"
+                  country="Anchored"
+                  code="XLM"
+                  date={`LEDGER ${provenanceRecord.ledger || ""}`}
+                  rotation={-8}
+                />
+              </div>
+            )}
             <div className="flex flex-wrap items-center justify-between gap-1.5">
               <span className="inline-flex items-center gap-1 text-[11px] font-extrabold text-jejak-materials">
                 <CheckCircle2 size={13} /> Anchored record of an estimate

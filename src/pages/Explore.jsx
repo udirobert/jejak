@@ -72,12 +72,11 @@ export default function Explore() {
       setScans((prev) =>
         prev.some((p) => p.id === s.id) ? prev : [s, ...prev]
       );
-      if (!isSampleScan(s)) {
+      if (!isSampleScan(s) && s.origin) {
         setNewlyArrivedId(s.id);
-        const origin = s.origin || "Bangladesh";
         setActiveRoute({
           key: `live-${s.id}-${Date.now()}`,
-          origin,
+          origin: s.origin,
           market,
           productId: s.product_id || "hoodie",
           productName: s.product_name || "Traced item",
@@ -97,7 +96,8 @@ export default function Explore() {
   const originChips = useMemo(() => {
     const map = new Map();
     scans.forEach((s) => {
-      const o = s.origin || "Bangladesh";
+      if (!s.origin || !ORIGIN_COORDS[s.origin]) return;
+      const o = s.origin;
       const prev = map.get(o) || { origin: o, total: 0, real: 0 };
       prev.total += 1;
       if (!isSampleScan(s)) prev.real += 1;
@@ -139,7 +139,7 @@ export default function Explore() {
     const targetOrigin =
       originFilter !== "All"
         ? originFilter
-        : activeRoute?.origin || scans[0]?.origin || "Bangladesh";
+        : activeRoute?.origin || scans[0]?.origin || null;
     const matchingScan = scans.find((s) => s.origin === targetOrigin);
     const prod = productFromScan(matchingScan) || getProduct("hoodie");
     const base = getRoute(prod, market);

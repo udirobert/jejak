@@ -221,7 +221,8 @@ export const UNTRACED_CANDIDATE_ORIGINS = [
 // Build illustrative multi-leg vehicle sequence from an origin country to UK ("GB") or Singapore ("SG")
 // Leg 1: Inland lorry/train to port -> Leg 2: Ocean ship (or overland train) -> Leg 3: Arrival lorry
 export function buildMultiModeRouteLegs(origin, market = "GB") {
-  const start = ORIGIN_COORDS[origin] || [90.35, 23.68];
+  const start = ORIGIN_COORDS[origin];
+  if (!start) return [];
   const isSG = market === "SG";
   const dest = isSG ? [103.82, 1.35] : [-1.4, 51.5];
 

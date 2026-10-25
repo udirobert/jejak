@@ -200,7 +200,7 @@ export default function OriginFlagChip({
       ? countries
       : country
       ? [country]
-      : ["Bangladesh"];
+      : [];
 
   const shortName = (c) =>
     c === "United Kingdom" ? "UK" : c === "Netherlands" ? "NL" : c;

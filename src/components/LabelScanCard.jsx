@@ -41,6 +41,19 @@ const SAMPLE_LABELS = {
   },
 };
 
+// Builds the sample-label evidence object for a product (used by "Try a sample
+// label" and by the guided tour).
+export function sampleLabelFor(productId) {
+  const sample = SAMPLE_LABELS[productId] || SAMPLE_LABELS.hoodie;
+  return {
+    ...sample,
+    basis: "Sample label",
+    confidence: "medium",
+    isSampleLabel: true,
+    scannedAt: new Date().toISOString(),
+  };
+}
+
 export default function LabelScanCard() {
   const { product, labelEvidence, setLabelEvidence } = useApp();
   const camRef = useRef(null);
@@ -57,6 +70,11 @@ export default function LabelScanCard() {
     setErrorMsg(null);
     setSkipped(false);
     try {
+      // Fingerprint the file bytes so the proof record can cite the exact photo read.
+      const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+      const photoSha256 = Array.from(new Uint8Array(digest))
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
       // Uploaded privately for one-time vision extraction; never stored publicly.
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri });
@@ -73,6 +91,8 @@ export default function LabelScanCard() {
           care_or_brand_text: data.care_or_brand_text || "",
           basis: "Read from label",
           confidence: "high",
+          isSampleLabel: false,
+          photoSha256,
           scannedAt: new Date().toISOString(),
         });
       } else {
@@ -93,14 +113,7 @@ export default function LabelScanCard() {
     vibrate(8);
     setErrorMsg(null);
     setSkipped(false);
-    const sample = SAMPLE_LABELS[product.id] || SAMPLE_LABELS.hoodie;
-    setLabelEvidence({
-      ...sample,
-      basis: "Read from label",
-      confidence: "high",
-      isSampleLabel: true,
-      scannedAt: new Date().toISOString(),
-    });
+    setLabelEvidence(sampleLabelFor(product.id));
   };
 
   if (skipped && !labelEvidence) {
@@ -182,7 +195,11 @@ export default function LabelScanCard() {
             className="relative mt-3 border border-journal-rule bg-journal-paper p-3"
           >
             <div className="absolute -right-3 -top-4">
-              <Stamp shape="rect" country="Verified" code="LABEL" date="READ" rotation={6} animate />
+              {labelEvidence.isSampleLabel ? (
+                <Stamp shape="rect" country="Sample" code="LABEL" date="DEMO" rotation={6} animate />
+              ) : (
+                <Stamp shape="rect" country="Verified" code="LABEL" date="READ" rotation={6} animate />
+              )}
             </div>
             <div className="flex flex-wrap items-center justify-between gap-1.5">
               <span className="inline-flex items-center gap-1 font-grotesk text-sm font-medium text-journal-ink">
@@ -194,7 +211,9 @@ export default function LabelScanCard() {
                   ? ` · ${labelEvidence.fibre_composition}`
                   : ""}
               </span>
-              <MarginNote tone="stamp">read from the label</MarginNote>
+              <MarginNote tone="stamp">
+                {labelEvidence.isSampleLabel ? "sample label (demo)" : "read from the label"}
+              </MarginNote>
             </div>
             {labelEvidence.care_or_brand_text && (
               <p className="mt-1 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft">

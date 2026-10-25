@@ -3,6 +3,7 @@ import { useApp } from "@/lib/AppContext";
 import { useAuth } from "@/lib/AuthContext";
 import { base44 } from "@/api/base44Client";
 import { getRoute, computeSplit } from "@/lib/money";
+import { originCountry } from "@/lib/provenance";
 import { routeDistance } from "@/lib/metrics";
 
 // Creates ONE Scan record per trace session (guarded by product id) with the
@@ -29,13 +30,17 @@ export function useSaveTrace() {
         product_id: p.id,
         product_name: p.name,
         emoji: p.emoji || "",
-        origin: route[0]?.country || "",
+        origin: originCountry(p, mkt, app.labelEvidence) || route[0]?.country || "",
         labour_pct: labour?.pct?.mid ?? 0,
         price: app.customPrice ?? p.markets[mkt].price,
         currency: app.currency,
         market: mkt,
         confidence: p.confidence || "low",
-        basis: app.labelEvidence ? "Read from label" : "Estimated",
+        basis: app.labelEvidence?.isSampleLabel
+          ? "Sample label"
+          : app.labelEvidence?.readable
+            ? "Read from label"
+            : "Estimated",
         owner_id: undefined,
         visibility: "private",
         source,
