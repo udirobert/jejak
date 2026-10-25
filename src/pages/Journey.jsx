@@ -1,19 +1,31 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
-import { getRoute, formatMoney } from "@/lib/money";
+import { formatMoney } from "@/lib/money";
+import { annotateRoute, evidenceIndex, getTradeEvidence } from "@/lib/provenance";
 import { routeDistance, haversine } from "@/lib/metrics";
 import ScreenShell from "@/components/ScreenShell";
 import RouteMap from "@/components/journal/RouteMap";
 import MarginNote from "@/components/journal/MarginNote";
 import JournalButton from "@/components/journal/JournalButton";
-import LabelScanCard from "@/components/LabelScanCard";
+import TradeEvidence from "@/components/journal/TradeEvidence";
+import TourCallout from "@/components/journal/TourCallout";
+import LabelScanCard, { sampleLabelFor } from "@/components/LabelScanCard";
 import ProofDrawer from "@/components/journal/ProofDrawer";
+import { useTour, setTourStep, endTour } from "@/lib/tour";
 import { vibrate } from "@/lib/haptics";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
 const CONFIDENCE_WORD = { high: "sure", medium: "fairly sure", low: "rough guess" };
+const MARKET_NAME = { GB: "the UK", SG: "Singapore" };
+
+const BASIS_NOTE = {
+  "Read from label": { tone: "stamp", text: "read from the label" },
+  "Sample label": { tone: "ink", text: "sample label (demo)" },
+  "Trade data": { tone: "ink", text: "trade data" },
+  Estimated: { tone: "ink", text: "estimated" },
+};
 
 export default function Journey() {
   const {
@@ -22,30 +34,22 @@ export default function Journey() {
     currency,
     setScreen,
     labelEvidence,
+    setLabelEvidence,
   } = useApp();
   const reduce = useReducedMotion();
-  const rawRoute = product ? getRoute(product, market) : [];
+  const tourStep = useTour();
+  const rawRoute = product ? annotateRoute(product, market, labelEvidence) : [];
+  const evidence = product ? getTradeEvidence(product, market) : null;
+  const evIdx = product ? evidenceIndex(product, market) : -1;
   const totalKm = product ? routeDistance(product, market) : 0;
   const price = product?.markets?.[market]?.price ?? 0;
   const [proofOpen, setProofOpen] = useState(false);
-
-  // Only the final-manufacture stage flips to "read from the label" when a
-  // care/Made-in label has been scanned; everything else stays estimated.
-  const route = rawRoute.map((stop, idx) => {
-    const isFinalManufactureIdx = idx === rawRoute.length - 2;
-    const labelMatchesStage = Boolean(labelEvidence?.readable) && isFinalManufactureIdx;
-    return {
-      ...stop,
-      country:
-        labelMatchesStage && labelEvidence.country_of_manufacture
-          ? labelEvidence.country_of_manufacture
-          : stop.country,
-      provenanceBasis: labelMatchesStage ? "Read from label" : "Estimated",
-      provenanceConfidence: labelMatchesStage ? "high" : product.confidence || "medium",
-    };
-  });
+  const route = rawRoute;
 
   const [activeIdx, setActiveIdx] = useState(0);
+  const stripRef = useRef(null);
+  const moneyBtnRef = useRef(null);
+  const programmaticScroll = useRef(false);
 
   useEffect(() => {
     setActiveIdx(0);
@@ -53,14 +57,63 @@ export default function Journey() {
 
   // When a label lands, focus the stage it verified.
   useEffect(() => {
-    if (labelEvidence?.readable && rawRoute.length >= 2) {
-      setActiveIdx(rawRoute.length - 2);
+    if (labelEvidence?.readable && evIdx >= 0) {
+      setActiveIdx(evIdx);
     }
-  }, [labelEvidence, rawRoute.length]);
+  }, [labelEvidence, evIdx]);
+
+  // Keep the mobile card strip in sync when the map drives the selection.
+  useEffect(() => {
+    const strip = stripRef.current;
+    const card = strip?.children?.[activeIdx];
+    if (!card) return;
+    programmaticScroll.current = true;
+    card.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth",
+    });
+    const t = setTimeout(() => {
+      programmaticScroll.current = false;
+    }, reduce ? 60 : 500);
+    return () => clearTimeout(t);
+  }, [activeIdx, reduce]);
+
+  // User swipes the strip -> the map follows (ignored while we scroll programmatically).
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip || typeof IntersectionObserver !== "function") return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (programmaticScroll.current) return;
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            const i = Array.prototype.indexOf.call(strip.children, e.target);
+            if (i >= 0) setActiveIdx((cur) => (cur === i ? cur : i));
+          }
+        }
+      },
+      { root: strip, threshold: 0.6 }
+    );
+    Array.from(strip.children).forEach((c) => io.observe(c));
+    return () => io.disconnect();
+  }, [route.length]);
 
   const selectStop = (i) => {
     vibrate(6);
     setActiveIdx(i);
+  };
+
+  const scrollEvidenceIntoView = () => {
+    stripRef.current?.children?.[evIdx]?.scrollIntoView({
+      inline: "center",
+      block: "nearest",
+      behavior: reduce ? "auto" : "smooth",
+    });
+    document.getElementById(`stop-entry-${evIdx}`)?.scrollIntoView({
+      block: "center",
+      behavior: reduce ? "auto" : "smooth",
+    });
   };
 
   if (!product) {
@@ -82,22 +135,30 @@ export default function Journey() {
         {stop.note} · {stop.country}
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-3">
-        {stop.provenanceBasis === "Read from label" ? (
-          <MarginNote tone="stamp">read from the label</MarginNote>
-        ) : (
-          <MarginNote>estimated</MarginNote>
-        )}
+        <MarginNote tone={BASIS_NOTE[stop.provenanceBasis]?.tone || "ink"}>
+          {BASIS_NOTE[stop.provenanceBasis]?.text || "estimated"}
+        </MarginNote>
         <span className="font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
           {CONFIDENCE_WORD[stop.provenanceConfidence] || "fairly sure"}
         </span>
+        {stop.tradeShare != null && (
+          <span className="font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
+            {stop.tradeShare}% of imports
+          </span>
+        )}
       </div>
       {stop.provenanceBasis === "Read from label" && labelEvidence?.fibre_composition && (
         <p className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft">
           label: {labelEvidence.fibre_composition}
         </p>
       )}
+      {stop.isEvidenceStop && (
+        <TradeEvidence evidence={evidence} highlightCountry={stop.country} market={market} />
+      )}
     </>
   );
+
+  const marketName = MARKET_NAME[market] || market;
 
   return (
     <ScreenShell section="Trace · the journey">
@@ -136,7 +197,7 @@ export default function Journey() {
         {/* Map — top on mobile, sticky left column on desktop */}
         <div className="sticky top-0 z-10 bg-journal-paper px-5 py-3 lg:top-6 lg:h-[82vh] lg:self-start lg:px-0 lg:py-0">
           <div className="flex h-full flex-col border border-journal-rule bg-journal-card p-3 shadow-[0_10px_30px_-14px_rgba(30,27,22,0.25)]">
-            <div className="relative h-[46vh] min-h-[220px] flex-1 lg:h-auto">
+            <div className="relative h-[38vh] min-h-[200px] flex-1 lg:h-auto">
               <RouteMap
                 stops={route}
                 progress={1}
@@ -174,35 +235,64 @@ export default function Journey() {
           </div>
         </div>
 
-        {/* Entries */}
+        {/* Entries — vertical list on lg+, horizontal scroll-snap strip below lg */}
         <div className="px-5 lg:px-0">
-          {route.map((stop, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => selectStop(i)}
-              className={`block w-full border-l-2 py-5 pl-4 text-left no-tap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp ${
-                i === activeIdx
-                  ? "border-journal-ink bg-journal-card/60"
-                  : "border-journal-rule hover:border-journal-ink-soft"
-              }`}
-            >
-              <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">
-                Stop {String(i + 1).padStart(2, "0")} · {stop.country}
-              </p>
-              <div className="mt-1">{entryBody(stop, i)}</div>
-            </button>
-          ))}
+          <div
+            ref={stripRef}
+            className="-mx-5 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2 scrollbar-hide lg:mx-0 lg:block lg:snap-none lg:overflow-visible lg:px-0 lg:pb-0"
+          >
+            {route.map((stop, i) => (
+              <button
+                key={i}
+                id={`stop-entry-${i}`}
+                type="button"
+                onClick={() => selectStop(i)}
+                className={`block w-[85%] shrink-0 snap-center border-l-2 py-5 pl-4 text-left no-tap transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp lg:w-full lg:shrink lg:snap-none ${
+                  i === activeIdx
+                    ? "border-journal-ink bg-journal-card/60"
+                    : "border-journal-rule hover:border-journal-ink-soft"
+                }`}
+              >
+                <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">
+                  Stop {String(i + 1).padStart(2, "0")} · {stop.country}
+                </p>
+                <div className="mt-1">{entryBody(stop, i)}</div>
+              </button>
+            ))}
+          </div>
+
+          <TourCallout
+            step={tourStep}
+            marketName={marketName}
+            onReadLabel={() => {
+              setLabelEvidence(sampleLabelFor(product.id));
+              setActiveIdx(evIdx >= 0 ? evIdx : 0);
+              setTourStep(2);
+              scrollEvidenceIntoView();
+            }}
+            onNext={() => {
+              setTourStep(3);
+              moneyBtnRef.current?.scrollIntoView({
+                block: "center",
+                behavior: reduce ? "auto" : "smooth",
+              });
+            }}
+            onOpenProof={() => {
+              setProofOpen(true);
+              endTour();
+            }}
+            onSkip={endTour}
+          />
 
           <LabelScanCard />
 
-          <div className="mt-6 flex items-center gap-4">
+          <div className="mt-6 flex items-center gap-4" ref={moneyBtnRef}>
             <JournalButton onClick={() => { vibrate(8); setScreen("split"); }}>
               Where did the {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })} go? →
             </JournalButton>
           </div>
           <p className="mt-3 pb-8 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
-            Route estimated · label reading is the only fact
+            Route estimated · trade data shows who supplies {marketName} · only a label is a fact about your item
           </p>
         </div>
       </div>

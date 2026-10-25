@@ -7,6 +7,7 @@ import { buildCanonicalProvenanceRecord } from "./ProvenanceAnchorCard";
 import StellarExplainerSheet from "./StellarExplainerSheet";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { TAP } from "@/lib/motion";
+import Stamp from "./journal/Stamp";
 import {
   CheckCircle2,
   XCircle,
@@ -150,7 +151,7 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
       });
 
       setStep("anchored");
-      vibrate([0, 8, 20, 8]);
+      vibrate(isSimulated ? [0, 8, 20, 8] : [0, 30, 40, 60]);
       coinClink();
     } catch (err) {
       setStep("failed");
@@ -375,7 +376,7 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
               </div>
             </div>
 
-            {provenanceRecord.cachedFallback && (
+            {provenanceRecord.cachedFallback ? (
               <button
                 type="button"
                 onClick={runAnchorFlow}
@@ -383,6 +384,16 @@ export default function StellarTraceReceiptCard({ autoAnchor = true }) {
               >
                 <RotateCcw size={10} /> Retry live
               </button>
+            ) : (
+              <Stamp
+                animate
+                shape="circle"
+                country="Anchored"
+                code="XLM"
+                date={`LEDGER ${provenanceRecord.ledger || ""}`}
+                rotation={-8}
+                className="h-12 w-12 shrink-0"
+              />
             )}
           </div>
 
