@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { useAuth } from "@/lib/AuthContext";
 import { useApp } from "@/lib/AppContext";
-import { productFromScan } from "@/data";
+import { productFromScan, getProduct, DEMO_CHIPS } from "@/data";
 import { formatMoney, computeSplit } from "@/lib/money";
+import { routeDistance } from "@/lib/metrics";
 import ScreenShell from "@/components/ScreenShell";
 import Specimen from "@/components/journal/Specimen";
 import MarginNote from "@/components/journal/MarginNote";
@@ -144,6 +145,88 @@ function EntrySheet({ scan, onClose, onOpenJourney }) {
   );
 }
 
+// Shown while the journal has no entries: specimen starters with their real
+// routes and maker-share estimates, plus live entries from the public Atlas.
+function EmptyJournal({ atlasScans, currency, market }) {
+  const reduce = useReducedMotion();
+  const starters = DEMO_CHIPS.map((c) => getProduct(c.id)).filter(Boolean);
+  const field = atlasScans.slice(0, 3);
+
+  const reveal = (delay) =>
+    reduce
+      ? {}
+      : { initial: { opacity: 0, y: 16 }, animate: { opacity: 1, y: 0 }, transition: { delay, duration: 0.45, ease: "easeOut" } };
+
+  return (
+    <div className="mt-10 pb-16">
+      <motion.p {...reveal(0)} className="font-plexmono text-[11px] uppercase tracking-[0.18em] text-journal-stamp">
+        Nothing pressed yet
+      </motion.p>
+      <motion.h2 {...reveal(0.06)} className="mt-2 font-serif-display text-3xl text-journal-ink md:text-4xl" style={displayFont}>
+        Start with a specimen
+      </motion.h2>
+      <motion.p {...reveal(0.12)} className="mt-2 max-w-md font-grotesk text-[15px] leading-relaxed text-journal-ink-soft">
+        Each one is a real supply chain we keep on the shelf — trace it, then make it yours with a photo or a receipt.
+      </motion.p>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {starters.map((p, i) => {
+          const codes = (p.route || []).map((s) => s.code || s.country?.slice(0, 2).toUpperCase()).join(" → ");
+          const km = routeDistance(p, market);
+          const labour = computeSplit(p, market).find((s) => s.key === "labour");
+          return (
+            <motion.div key={p.id} {...reveal(0.16 + i * 0.07)}>
+              <Link
+                to={`/trace?sample=${p.id}`}
+                className="group block border border-journal-rule bg-journal-card p-4 text-left shadow-[3px_3px_0_0_transparent] transition-all no-tap hover:-translate-y-0.5 hover:shadow-[4px_4px_0_0_var(--j-stamp)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
+              >
+                <div className="aspect-[200/160]">
+                  <Specimen id={p.id} className="h-full w-full" title={`${p.name} illustration`} />
+                </div>
+                <p className="mt-3 font-serif-display text-lg leading-tight text-journal-ink" style={displayFont}>{p.name}</p>
+                <p className="mt-1 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">{codes}</p>
+                <p className="mt-2 border-t border-dotted border-journal-rule pt-2 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+                  {km.toLocaleString()} km · ≈{labour ? formatMoney(labour.amount, currency, { minDigits: 0, maxDigits: 0 }) : "—"} to makers
+                </p>
+              </Link>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {field.length > 0 && (
+        <motion.section {...reveal(0.5)} className="mt-10 border-t border-journal-rule pt-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <p className="font-plexmono text-[11px] uppercase tracking-[0.18em] text-journal-ink-soft">
+              From the field · {atlasScans.length} {atlasScans.length === 1 ? "entry" : "entries"} on the Atlas
+            </p>
+            <JournalButton to="/atlas" variant="secondary">Open the Atlas</JournalButton>
+          </div>
+          <div className="mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto pb-2 scrollbar-hide">
+            {field.map((s) => {
+              const p = productFromScan(s);
+              const codes = (p?.route || []).map((x) => x.code || x.country?.slice(0, 2).toUpperCase()).join(" → ");
+              return (
+                <div key={s.id} className="flex w-56 shrink-0 snap-start items-start gap-3 border border-journal-rule bg-journal-card p-3">
+                  <Specimen product={p} className="h-12 w-12 shrink-0" />
+                  <div className="min-w-0">
+                    <p className="truncate font-grotesk text-sm font-medium text-journal-ink">{s.product_name}</p>
+                    <p className="truncate font-plexmono text-[9px] uppercase tracking-[0.1em] text-journal-ink-soft">{codes || s.origin}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </motion.section>
+      )}
+
+      <motion.div {...reveal(0.6)} className="mt-8">
+        <MarginNote>or snap the thing in your hand — photos and receipts work too</MarginNote>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function Journal() {
   const { user, isAuthenticated, isLoadingAuth, navigateToLogin } = useAuth();
   const { setProduct, setScreen } = useApp();
@@ -151,8 +234,18 @@ export default function Journal() {
   const [searchParams] = useSearchParams();
   const [scans, setScans] = useState([]);
   const [letters, setLetters] = useState([]);
+  const [atlasScans, setAtlasScans] = useState([]);
   const [selected, setSelected] = useState(null);
   const receiptParam = searchParams.get("receipt");
+
+  // Public Atlas entries feed the "from the field" strip (readable signed out).
+  useEffect(() => {
+    let mounted = true;
+    base44.entities.Scan.filter({}, "-created_date", 50).then((r) => {
+      if (mounted) setAtlasScans((r.items || r || []).filter((s) => s.visibility === "public"));
+    }).catch(() => {});
+    return () => { mounted = false; };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !user?.id) return;
@@ -216,6 +309,7 @@ export default function Journal() {
           </p>
           <div className="mt-6"><JournalButton onClick={navigateToLogin}>Sign in</JournalButton></div>
         </div>
+        <EmptyJournal atlasScans={atlasScans} currency="GBP" market="GB" />
       </ScreenShell>
     );
   }
@@ -237,11 +331,7 @@ export default function Journal() {
           {(receiptParam || scans.length === 0) && receiptParam && <LiveReceiptCard receiptId={receiptParam} />}
         </div>
 
-        {scans.length === 0 && !receiptParam && (
-          <div className="mt-10 max-w-sm">
-            <MarginNote>nothing pressed yet — trace something</MarginNote>
-          </div>
-        )}
+        {scans.length === 0 && !receiptParam && <EmptyJournal atlasScans={atlasScans} currency="GBP" market="GB" />}
 
         <div className="mt-8 grid gap-4 pb-16 sm:grid-cols-2 lg:grid-cols-3">
           {scans.map((s) => {
