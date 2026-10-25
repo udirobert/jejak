@@ -1,0 +1,1357 @@
+{
+  "source": "UN Comtrade (comtradeapi.un.org public preview API), imports by partner, primary value in USD",
+  "retrieved": "2026-10-25",
+  "method": "Share = partner import value / world import value for the HS code, reporter = market, flow = imports, all customs procedures and transport modes. Top partners only; shares do not sum to 100.",
+  "categories": {
+    "1806": {
+      "label": "Chocolate & cocoa preparations",
+      "proxy": false
+    },
+    "4202": {
+      "label": "Bags, wallets & cases",
+      "proxy": false
+    },
+    "6109": {
+      "label": "T-shirts & vests (knitted)",
+      "proxy": false
+    },
+    "6110": {
+      "label": "Jumpers, sweatshirts & hoodies (knitted)",
+      "proxy": false
+    },
+    "6203": {
+      "label": "Men's suits, trousers & jeans (woven)",
+      "proxy": false
+    },
+    "6204": {
+      "label": "Women's suits, dresses, trousers & jeans (woven)",
+      "proxy": false
+    },
+    "6403": {
+      "label": "Footwear with leather uppers",
+      "proxy": false
+    },
+    "6404": {
+      "label": "Footwear with textile uppers (most trainers)",
+      "proxy": false
+    },
+    "9503": {
+      "label": "Toys",
+      "proxy": false
+    },
+    "392690": {
+      "label": "Other plastic articles (incl. moulded phone cases)",
+      "proxy": true
+    },
+    "847130": {
+      "label": "Laptops & portable computers",
+      "proxy": false
+    },
+    "851713": {
+      "label": "Smartphones",
+      "proxy": false
+    },
+    "090111": {
+      "label": "Green coffee beans (unroasted)",
+      "proxy": false
+    },
+    "0902": {
+      "label": "Tea",
+      "proxy": false
+    }
+  },
+  "markets": {
+    "GB": {
+      "1806": {
+        "period": "2024",
+        "totalUsd": 3593651039,
+        "partners": [
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 23.2
+          },
+          {
+            "code": "PL",
+            "country": "Poland",
+            "share": 14.5
+          },
+          {
+            "code": "BE",
+            "country": "Belgium",
+            "share": 13.1
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 9.3
+          },
+          {
+            "code": "FR",
+            "country": "France",
+            "share": 9.2
+          },
+          {
+            "code": "IE",
+            "country": "Ireland",
+            "share": 8
+          },
+          {
+            "code": "NL",
+            "country": "Netherlands",
+            "share": 6.4
+          },
+          {
+            "code": "CH",
+            "country": "Switzerland",
+            "share": 3.3
+          }
+        ]
+      },
+      "4202": {
+        "period": "2024",
+        "totalUsd": 2760154099,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 43.8
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 19.1
+          },
+          {
+            "code": "FR",
+            "country": "France",
+            "share": 11.7
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 6.1
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 5.7
+          },
+          {
+            "code": "ES",
+            "country": "Spain",
+            "share": 2.2
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 1.7
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 1.3
+          }
+        ]
+      },
+      "6109": {
+        "period": "2024",
+        "totalUsd": 2159743076,
+        "partners": [
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 32
+          },
+          {
+            "code": "TR",
+            "country": "Türkiye",
+            "share": 12
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 10.7
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 6.4
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 5.8
+          },
+          {
+            "code": "PT",
+            "country": "Portugal",
+            "share": 4.6
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 3.6
+          },
+          {
+            "code": "PK",
+            "country": "Pakistan",
+            "share": 3.6
+          }
+        ]
+      },
+      "6110": {
+        "period": "2024",
+        "totalUsd": 2778394073,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 27.7
+          },
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 20.9
+          },
+          {
+            "code": "TR",
+            "country": "Türkiye",
+            "share": 9.8
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 9.6
+          },
+          {
+            "code": "PK",
+            "country": "Pakistan",
+            "share": 6.4
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 6.4
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 3.7
+          },
+          {
+            "code": "PT",
+            "country": "Portugal",
+            "share": 2.5
+          }
+        ]
+      },
+      "6203": {
+        "period": "2024",
+        "totalUsd": 1615225026,
+        "partners": [
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 27.8
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 17.7
+          },
+          {
+            "code": "PK",
+            "country": "Pakistan",
+            "share": 9
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 6.5
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 6.3
+          },
+          {
+            "code": "TR",
+            "country": "Türkiye",
+            "share": 5.2
+          },
+          {
+            "code": "TN",
+            "country": "Tunisia",
+            "share": 3.2
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 3
+          }
+        ]
+      },
+      "6204": {
+        "period": "2024",
+        "totalUsd": 2616186023,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 20.4
+          },
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 16.4
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 10.7
+          },
+          {
+            "code": "TR",
+            "country": "Türkiye",
+            "share": 9.2
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 8.2
+          },
+          {
+            "code": "PK",
+            "country": "Pakistan",
+            "share": 4.3
+          },
+          {
+            "code": "MA",
+            "country": "Morocco",
+            "share": 3.8
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 3.5
+          }
+        ]
+      },
+      "6403": {
+        "period": "2024",
+        "totalUsd": 2163373765,
+        "partners": [
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 21.1
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 17.9
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 17.4
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 9.5
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 8.5
+          },
+          {
+            "code": "PT",
+            "country": "Portugal",
+            "share": 6.2
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 3.2
+          },
+          {
+            "code": "ES",
+            "country": "Spain",
+            "share": 3
+          }
+        ]
+      },
+      "6404": {
+        "period": "2024",
+        "totalUsd": 1618793245,
+        "partners": [
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 42.3
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 29.9
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 10
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 7.2
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 1.9
+          },
+          {
+            "code": "PT",
+            "country": "Portugal",
+            "share": 1.2
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 1
+          },
+          {
+            "code": "ES",
+            "country": "Spain",
+            "share": 0.9
+          }
+        ]
+      },
+      "9503": {
+        "period": "2024",
+        "totalUsd": 2915227513,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 63.4
+          },
+          {
+            "code": "CZ",
+            "country": "Czechia",
+            "share": 11.1
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 5.6
+          },
+          {
+            "code": "HU",
+            "country": "Hungary",
+            "share": 5.4
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 2.2
+          },
+          {
+            "code": "DK",
+            "country": "Denmark",
+            "share": 1.6
+          },
+          {
+            "code": "IE",
+            "country": "Ireland",
+            "share": 1.3
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 1.1
+          }
+        ]
+      },
+      "392690": {
+        "period": "2024",
+        "totalUsd": 2298199075,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 27.9
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 12
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 10.7
+          },
+          {
+            "code": "FR",
+            "country": "France",
+            "share": 4.9
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 4.3
+          },
+          {
+            "code": "PL",
+            "country": "Poland",
+            "share": 3.8
+          },
+          {
+            "code": "IE",
+            "country": "Ireland",
+            "share": 2.9
+          },
+          {
+            "code": "NL",
+            "country": "Netherlands",
+            "share": 2.8
+          }
+        ]
+      },
+      "847130": {
+        "period": "2024",
+        "totalUsd": 7634025953,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 84.7
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 10.5
+          },
+          {
+            "code": "TH",
+            "country": "Thailand",
+            "share": 0.9
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 0.8
+          },
+          {
+            "code": "NL",
+            "country": "Netherlands",
+            "share": 0.4
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 0.3
+          },
+          {
+            "code": "PL",
+            "country": "Poland",
+            "share": 0.3
+          },
+          {
+            "code": "JP",
+            "country": "Japan",
+            "share": 0.1
+          }
+        ]
+      },
+      "851713": {
+        "period": "2024",
+        "totalUsd": 10448401970,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 62.5
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 20
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 11.4
+          },
+          {
+            "code": "KR",
+            "country": "Rep. of Korea",
+            "share": 3.8
+          },
+          {
+            "code": "AE",
+            "country": "United Arab Emirates",
+            "share": 1
+          },
+          {
+            "code": "HK",
+            "country": "China, Hong Kong SAR",
+            "share": 0.2
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 0.2
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 0.1
+          }
+        ]
+      },
+      "090111": {
+        "period": "2024",
+        "totalUsd": 648929061,
+        "partners": [
+          {
+            "code": "BR",
+            "country": "Brazil",
+            "share": 39.4
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 14.6
+          },
+          {
+            "code": "CO",
+            "country": "Colombia",
+            "share": 9.2
+          },
+          {
+            "code": "PE",
+            "country": "Peru",
+            "share": 6.7
+          },
+          {
+            "code": "HN",
+            "country": "Honduras",
+            "share": 6.2
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 3.6
+          },
+          {
+            "code": "ET",
+            "country": "Ethiopia",
+            "share": 2.6
+          },
+          {
+            "code": "ES",
+            "country": "Spain",
+            "share": 2.4
+          }
+        ]
+      },
+      "0902": {
+        "period": "2024",
+        "totalUsd": 374093579,
+        "partners": [
+          {
+            "code": "KE",
+            "country": "Kenya",
+            "share": 39.1
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 16
+          },
+          {
+            "code": "RW",
+            "country": "Rwanda",
+            "share": 5.6
+          },
+          {
+            "code": "CH",
+            "country": "Switzerland",
+            "share": 5.5
+          },
+          {
+            "code": "LK",
+            "country": "Sri Lanka",
+            "share": 4.5
+          },
+          {
+            "code": "MW",
+            "country": "Malawi",
+            "share": 4.3
+          },
+          {
+            "code": "PL",
+            "country": "Poland",
+            "share": 4
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 3.2
+          }
+        ]
+      }
+    },
+    "SG": {
+      "1806": {
+        "period": "2024",
+        "totalUsd": 269279271,
+        "partners": [
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 15.9
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 10.6
+          },
+          {
+            "code": "CH",
+            "country": "Switzerland",
+            "share": 10
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 9.4
+          },
+          {
+            "code": "GB",
+            "country": "United Kingdom",
+            "share": 9.4
+          },
+          {
+            "code": "NL",
+            "country": "Netherlands",
+            "share": 7.8
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 5.2
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 4.2
+          }
+        ]
+      },
+      "4202": {
+        "period": "2024",
+        "totalUsd": 1707877324,
+        "partners": [
+          {
+            "code": "FR",
+            "country": "France",
+            "share": 40
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 24.2
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 15.4
+          },
+          {
+            "code": "ES",
+            "country": "Spain",
+            "share": 6
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 3.1
+          },
+          {
+            "code": "TH",
+            "country": "Thailand",
+            "share": 1.6
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 1.5
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 1.2
+          }
+        ]
+      },
+      "6109": {
+        "period": "2024",
+        "totalUsd": 290494984,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 23.9
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 13.2
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 13.1
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 9.9
+          },
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 9
+          },
+          {
+            "code": "PT",
+            "country": "Portugal",
+            "share": 5.3
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 4
+          },
+          {
+            "code": "TH",
+            "country": "Thailand",
+            "share": 2.8
+          }
+        ]
+      },
+      "6110": {
+        "period": "2024",
+        "totalUsd": 193513428,
+        "partners": [
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 33
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 21.6
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 8.8
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 7.1
+          },
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 5.8
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 4.4
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 3.1
+          },
+          {
+            "code": "PT",
+            "country": "Portugal",
+            "share": 2.1
+          }
+        ]
+      },
+      "6203": {
+        "period": "2024",
+        "totalUsd": 196316992,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 22.5
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 18.2
+          },
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 15.5
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 10
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 3.5
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 3.5
+          },
+          {
+            "code": "PK",
+            "country": "Pakistan",
+            "share": 2.9
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 2.8
+          }
+        ]
+      },
+      "6204": {
+        "period": "2024",
+        "totalUsd": 314225688,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 29
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 23.2
+          },
+          {
+            "code": "FR",
+            "country": "France",
+            "share": 7.5
+          },
+          {
+            "code": "BD",
+            "country": "Bangladesh",
+            "share": 6.8
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 6.5
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 4.1
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 3.9
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 2.4
+          }
+        ]
+      },
+      "6403": {
+        "period": "2024",
+        "totalUsd": 363724661,
+        "partners": [
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 49.4
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 16.8
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 12.5
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 4.9
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 3.1
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 1.6
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 1.3
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 1.3
+          }
+        ]
+      },
+      "6404": {
+        "period": "2024",
+        "totalUsd": 338946363,
+        "partners": [
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 28.8
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 23.5
+          },
+          {
+            "code": "IT",
+            "country": "Italy",
+            "share": 19.9
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 11
+          },
+          {
+            "code": "PH",
+            "country": "Philippines",
+            "share": 4.5
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 4.1
+          },
+          {
+            "code": "KH",
+            "country": "Cambodia",
+            "share": 2
+          },
+          {
+            "code": "TH",
+            "country": "Thailand",
+            "share": 1.6
+          }
+        ]
+      },
+      "9503": {
+        "period": "2024",
+        "totalUsd": 226796974,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 60
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 12.9
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 5.5
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 5.1
+          },
+          {
+            "code": "JP",
+            "country": "Japan",
+            "share": 3.9
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 3.8
+          },
+          {
+            "code": "HK",
+            "country": "China, Hong Kong SAR",
+            "share": 1.7
+          },
+          {
+            "code": "TH",
+            "country": "Thailand",
+            "share": 0.9
+          }
+        ]
+      },
+      "392690": {
+        "period": "2024",
+        "totalUsd": 1027953512,
+        "partners": [
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 21.7
+          },
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 20.3
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 20.2
+          },
+          {
+            "code": "JP",
+            "country": "Japan",
+            "share": 5.2
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 4.1
+          },
+          {
+            "code": "FR",
+            "country": "France",
+            "share": 3.3
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 3.2
+          },
+          {
+            "code": "GB",
+            "country": "United Kingdom",
+            "share": 2.1
+          }
+        ]
+      },
+      "847130": {
+        "period": "2024",
+        "totalUsd": 2416020728,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 90.3
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 3.2
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 2.4
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 0.9
+          },
+          {
+            "code": "HK",
+            "country": "China, Hong Kong SAR",
+            "share": 0.4
+          },
+          {
+            "code": "GB",
+            "country": "United Kingdom",
+            "share": 0.3
+          },
+          {
+            "code": "JP",
+            "country": "Japan",
+            "share": 0.2
+          },
+          {
+            "code": "AU",
+            "country": "Australia",
+            "share": 0.2
+          }
+        ]
+      },
+      "851713": {
+        "period": "2024",
+        "totalUsd": 4404014117,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 90.6
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 7.3
+          },
+          {
+            "code": "HK",
+            "country": "China, Hong Kong SAR",
+            "share": 0.8
+          },
+          {
+            "code": "US",
+            "country": "USA",
+            "share": 0.3
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 0.3
+          },
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 0.2
+          },
+          {
+            "code": "KR",
+            "country": "Rep. of Korea",
+            "share": 0.1
+          },
+          {
+            "code": "JP",
+            "country": "Japan",
+            "share": 0.1
+          }
+        ]
+      },
+      "090111": {
+        "period": "2024",
+        "totalUsd": 49308866,
+        "partners": [
+          {
+            "code": "ID",
+            "country": "Indonesia",
+            "share": 41
+          },
+          {
+            "code": "BR",
+            "country": "Brazil",
+            "share": 15.6
+          },
+          {
+            "code": "CO",
+            "country": "Colombia",
+            "share": 8.5
+          },
+          {
+            "code": "VN",
+            "country": "Viet Nam",
+            "share": 6.1
+          },
+          {
+            "code": "PG",
+            "country": "Papua New Guinea",
+            "share": 3.7
+          },
+          {
+            "code": "HN",
+            "country": "Honduras",
+            "share": 3.2
+          },
+          {
+            "code": "ET",
+            "country": "Ethiopia",
+            "share": 2.8
+          },
+          {
+            "code": "DJ",
+            "country": "Djibouti",
+            "share": 2.8
+          }
+        ]
+      },
+      "0902": {
+        "period": "2024",
+        "totalUsd": 48683142,
+        "partners": [
+          {
+            "code": "CN",
+            "country": "China",
+            "share": 16.6
+          },
+          {
+            "code": "MA",
+            "country": "Morocco",
+            "share": 12.7
+          },
+          {
+            "code": "JP",
+            "country": "Japan",
+            "share": 11.8
+          },
+          {
+            "code": "LK",
+            "country": "Sri Lanka",
+            "share": 8.8
+          },
+          {
+            "code": "AE",
+            "country": "United Arab Emirates",
+            "share": 7.8
+          },
+          {
+            "code": "IN",
+            "country": "India",
+            "share": 6.2
+          },
+          {
+            "code": "MY",
+            "country": "Malaysia",
+            "share": 5.8
+          },
+          {
+            "code": "DE",
+            "country": "Germany",
+            "share": 4.1
+          }
+        ]
+      }
+    }
+  }
+}

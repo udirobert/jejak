@@ -19,6 +19,8 @@ We arrive with a working product. The Scale requirement is **clearly new work du
 2. 🆕 **Brand attestation stretch**: a second deterministic keypair `manageData`s a reference to the user's anchor hash — "estimate today, attested claim when the brand co-signs" — **Dev A stretch**
 3. 🆕 **Fresh on-chain evidence**: anchor a trace during the event so the submission cites a hash timestamped today, not Oct 13 — **Dev B**
 4. 🆕 **Performance + visual polish pass**: page transitions, colour system, font consistency — **both (context below)**
+5. 🆕 **Provenance legitimacy pass**: UN Comtrade trade data behind the "made in" stop, honest source labels, label evidence applied to the correct stop, proof record v2 (label photo hash + trade citation). Full audit in [`legitimacy.md`](legitimacy.md) — **Dev B**
+6. 🆕 **Mobile harmonisation**: the old app's thumb-first interactions rebuilt in the journal style (shutter, status line, swipeable stops, guided tour, anchor thud). See `polish.md` — **Dev B**
 
 ### What "built today" answer for judges:
 > "The `/room` page — guest trace with no sign-up, plus a live counter and feed that are ledger-backed: it counts records anchored on Stellar today, reading the signer's transaction feed from Horizon, not just rows in our DB."
@@ -35,6 +37,8 @@ We arrive with a working product. The Scale requirement is **clearly new work du
 | Public Scan entity reads | ✅ world-readable via RLS |
 | `stellar_tx_hash` on Scan records | ✅ already persisted — no schema change for ledger counter |
 | GitHub repo | ✅ public |
+| MoneySplit render | ⚠️ was blank live (`basePrice` undefined since the rebuild); fixed in `0f02527` |
+| Old vs new mobile screenshots | `/tmp/jejak-mobilecmp/{old,new}` (390×844) |
 
 ---
 

@@ -159,3 +159,20 @@ For a hackathon, interaction joy is the differentiator — judges remember how i
 | **Anchor thud** on ProofDrawer success | The ledger stamp *stamps* down (scale 1.6 → 1, rotate, ink splat) when the tx hash lands — reuse `Stamp` | ~30min |
 
 Hard rule: **max 2h, after `/room` ships and code freeze is met — this is polish-tier, not feature-tier.** If `/room` slips, all of this goes.
+
+### Update (25 Oct): mobile harmonisation, now in scope for Dev B
+
+Old (`17d9fa5^`) vs new at 390×844. The old build felt like an app: a big coin shutter in thumb reach, a status strip ("1 traced · 1 of 4 origins mapped · £9.00 to makers"), samples above the fold, swipeable stop chips, and a 4-step tour that drove real app state. The new build looks better, but on a phone `/trace` is a form: a dashed upload box, with samples and describe below the fold.
+
+One app, two densities. Below `md` (and in the installed PWA) we keep the paper look and bring back the old way of using it. Desktop is unchanged.
+
+| Item | Where | Notes |
+|---|---|---|
+| Ink-stamp shutter | `Home.jsx`, mobile only | Round red stamp button in the lower third that opens the camera; "upload" and "describe" become secondary links. Dashed dropzone stays on desktop |
+| Samples above the fold | `Home.jsx`, mobile | Horizontal scroll-snap strip of specimens |
+| Status line | `Home.jsx` | One monospace line from the `AppContext` totals: "3 traced · 2 origins · £9.40 to makers" |
+| Swipeable stops | `Journey.jsx`, mobile | Map pinned on top; stops as a scroll-snap card strip synced with the map. Desktop keeps the list |
+| Guided tour, 3 steps | `Home.jsx` + `Journey.jsx` | Drives real state: loads the hoodie → applies a sample label → points at "where did the money go" and Proof |
+| Anchor thud | `ProvenanceAnchorCard.jsx` | `Stamp` slams down + vibration when the tx lands |
+
+Left behind on purpose: the dark theme, emojis, the three.js globe, streak gamification. Files Dev A is editing (`TabBar`, `ScreenShell`, `AppLayout`, `Landing`, `MoneySplit`, `Room`) are off-limits for this work.
