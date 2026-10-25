@@ -13,11 +13,14 @@ Format: screen recording with voiceover, 1080×1350 (4:5) for LinkedIn and X. Re
 | Time | On screen | Voiceover / caption |
 |---|---|---|
 | 0:00–0:04 | Landing hero: "Every thing has a *journey*." The route draws itself and the stamps thud in. | "My hoodie crossed six countries before it reached me — and probably pennies reached the people who sewed it." |
-| 0:04–0:09 | Scroll "Follow one hoodie": the map advances stop by stop and *read from the label* appears in red. | "Jejak traces where things come from, and says how sure it is." |
-| 0:09–0:14 | Phone: tap **Snap a photo** of a real item. The polaroid scan types out the attributes and IDENTIFIED stamps in. | "Snap anything. Base44 AI sketches its supply chain." |
-| 0:14–0:19 | Money split: drag the guess slider, tap Reveal. The receipt draws and the labour line gets circled. | "Then guess how much reached the people who made it." |
+| 0:04–0:09 | Scroll "Follow one hoodie": the map advances stop by stop; the *trade data* bars show who really supplies the UK and *read from the label* stamps in red. | "Jejak traces where things come from, and says how sure it is — including what it can't verify." |
+| 0:09–0:14 | Phone: tap the **SNAP** stamp, take a photo. The scan types out the attributes and IDENTIFIED stamps in. | "Snap anything. Base44 AI sketches its supply chain." |
+| 0:14–0:19 | Money split: drag the guess slider, tap Reveal. The receipt draws and the labour line gets circled; the living-wage note fades in underneath. | "Then guess how much reached the people who made it — against figures anchored in published wage data." |
 | 0:19–0:25 | Journal: upload a shop receipt and watch the lines fill in with TRACED stamps one by one. The story card writes itself. | "Snap a receipt and every item gets traced, with a story written for each. All automatic." |
-| 0:25–0:30 | Postcard export, then a closing title card: "Jejak — a field journal for the things you own. Built with @Base44". | "Built end to end on Base44." |
+| 0:25–0:28 | Optional: tap **Proof** — the seal stamps down on the entry. One line of caption, no jargon. | "And you can lock any entry so it can't be quietly changed later." |
+| 0:28–0:30 | Closing title card: "Jejak — a field journal for the things you own. Built with @Base44." + small credit line: "entities · functions · automations · auth · hosting". | "Built end to end on Base44." |
+
+> Framing note for the Contra crowd: keep blockchain invisible except the one seal beat — it's a utility, not a topic. The Stellar cut of the same footage shows the technical layer instead (`docs/dev-b.md` §11).
 
 ## 2. The 2-minute walkthrough (process and purpose; the judges' "story" score)
 
@@ -28,9 +31,11 @@ Tone: personal, calm, specific. Show the product first, then how it was built.
 *Show:* the landing hero, then the dictionary entry.
 
 **0:20–0:50 · The experience.**
-Trace the hoodie sample: the route draws itself. Tap **Try a sample label** and the Bangladesh stop flips to *read from the label* with a stamp.
-"Everything is labelled: what we read from the label and what we're estimating, with a confidence level on every stop."
+Trace the hoodie sample: the route draws itself, and the *Who supplies the UK* bars appear under "Cut & sew" — real trade data under the estimate.
+"There are three kinds of fact here: what we read from your label, what we check against real trade data, and what we can only estimate. It's honest about which is which."
+Tap **Try a sample label** and the Bangladesh stop flips to *read from the label* with a stamp — and the materials swatch prints.
 Then the guess-then-reveal receipt: "Guess first, because the gap between your guess and the estimate is the whole point."
+Optional 5s beat: tap **Proof** — the seal stamps the entry. "And you can lock an entry so it can't be quietly changed later." No jargon.
 
 **0:50–1:30 · Automations, the legwork.**
 1. *Describe it:* type "grey merino jumper from Uniqlo" and an AI trace appears in seconds.
@@ -39,11 +44,11 @@ Then the guess-then-reveal receipt: "Guess first, because the gap between your g
 *Optional overlay:* the three `function.jsonc` automation blocks.
 
 **1:30–1:50 · Design process.**
-"The art direction is a field journal: paper, ink, postmarks, routes drawn by hand. Four typefaces, one red stamp colour, and one printing ink per money category. Desktop is a real editorial site; mobile is a pocket journal."
+"The art direction is a field journal: paper, ink, postmarks, routes drawn by hand. Four typefaces, one red stamp colour, and one printing ink per money category. Desktop is a real editorial site; mobile is a pocket journal — a stamp shutter you press with your thumb, swipeable stops, and a 20-second tour that drives the app for you."
 *Show:* desktop and mobile side by side, and the Atlas.
 
 **1:50–2:00 · Close.**
-"Every thing has a journey. Jejak helps you see it. Built end to end on Base44."
+"Every thing has a journey. Jejak helps you see it. Built end to end on Base44 — entities, functions, automations, auth, hosting."
 *Show:* the live URL on screen.
 
 ### Shot list / prep checklist
