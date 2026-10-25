@@ -105,7 +105,7 @@ export default function StellarExplainerSheet({ open, onClose }) {
                 <Zap size={12} /> Why Stellar?
               </p>
               <p className="mt-0.5">
-                Fast (~5s finality), low-fee (fractions of a cent), and public on Stellar Testnet. Any action that cannot reach live Testnet is explicitly labeled as simulated.
+                Anchoring a hash is easy on any ledger — a wallet anyone can open is not. Stellar's passkey smart accounts sign in with a fingerprint, no seed phrase; anchors cost fractions of a cent; and the same ledger can pay the corridor the goods came from. Anything that cannot reach live Testnet is explicitly labeled as simulated.
               </p>
             </div>
           </motion.div>

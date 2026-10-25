@@ -5,6 +5,7 @@ import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import StellarTraceReceiptCard from "@/components/StellarTraceReceiptCard";
 import MakerBridgeCard from "@/components/MakerBridgeCard";
 import Stamp from "./Stamp";
+import MarginNote from "./MarginNote";
 
 // The one place technical detail lives: ledger anchoring, verification and the
 // optional maker payout. Plain explainer up top; terms like SHA-256/Testnet
@@ -33,6 +34,9 @@ export default function ProofDrawer({ open, onOpenChange }) {
                 We save a fingerprint of this trace on a public ledger, so anyone — including you —
                 can check later that nothing was edited after the fact.
               </p>
+              <MarginNote tone="stamp" className="mt-3">
+                brands change their stories — the ledger doesn't.
+              </MarginNote>
             </div>
             <Stamp country="Field record" code="PROOF" date="JEJAK" rotation={5} className="h-14 w-14 shrink-0" />
           </div>

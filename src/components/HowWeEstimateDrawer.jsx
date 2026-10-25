@@ -51,6 +51,11 @@ export default function HowWeEstimateDrawer() {
                 <strong className="text-journal-ink">Your photo isn't stored on your profile.</strong> It's uploaded
                 privately, used once for recognition, then discarded.
               </p>
+              <p>
+                <strong className="text-journal-ink">Soon, this gets better.</strong> From 2027, EU rules will make
+                brands publish product passport data. When a brand publishes, those verified facts replace our
+                estimates — the journal is built to hold them.
+              </p>
               <p className="italic text-journal-ink-soft">
                 We're not telling you what to buy — we're making the payment visible.
               </p>

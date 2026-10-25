@@ -5,7 +5,7 @@
 
 Snap anything you own and Jejak traces where it likely came from, who made it, and where your money went. It also tells you how sure it is. Every entry is a page in your field journal: a hand-drawn route, postmarks for each country, and a torn receipt showing how your £120 was split between materials, the people who made it, freight, the brand and the shop.
 
-Built with **Base44** for the **#Base44Challenge**. The frontend, data, auth, AI, automations and hosting all run on Base44.
+Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridian** (Genesis · Stellar Composed). The frontend, data, auth, AI, automations and hosting all run on Base44; the Stellar proof layer is documented below and pitched in `docs/hackmeridian.md`.
 
 ## Why
 
@@ -70,6 +70,20 @@ Note: Base44 rejects `function.jsonc` automations (HTTP 409) on apps that have *
 
 ---
 
+## Why Stellar, and why now
+
+Anchoring a hash is easy on any chain — that alone is not the answer. The three things Jejak actually needs all point at Stellar:
+
+- **A wallet a normal person can open.** Jejak Passport is a real Soroban smart account (OpenZeppelin Protocol 27 kit) deployed via `createContractV2` and secured by a WebAuthn passkey: fingerprint in, no seed phrase, no extension, fees sponsored by a relayer. On other chains this takes an account-abstraction stack; on Stellar it's the native kit.
+- **Near-zero cost per anchor.** `MEMO_HASH` + `manageData` are right-sized provenance primitives at ~0.00001 XLM a write. "Anchor anything you own" only works if the marginal cost is effectively zero.
+- **One rail for proof and payment.** The built-in DEX orderbook is the XLM/USDC oracle for the donation amount, and the same ledger settles the corridor payout that Stellar anchors could cash out to a bank account on mainnet.
+
+And the timing is regulatory, not vibes. The EU Digital Product Passport Registry went operational **20 July 2026**; textiles are a first-priority DPP group (delegated act expected **2027**, obligations after a ≥18-month transition); battery passports are mandatory **18 Feb 2027**; EUDR provenance obligations apply to large operators from **30 Dec 2026**. Brands will have to publish provenance whether or not consumers ask for it — Jejak is the consumer half of the Digital Product Passport: the journal that holds it, the ledger that timestamps it, the letter that asks for it early.
+
+Validation today is proxy + pull: Yuka's tens of millions of users prove mass-market scan-a-product behaviour; brand transparency pilots (Sheep Inc's Connected Dot, Asket, Mulberry, Chloé) prove the supply side is already spending on this; and Jejak's brand-letter loop is a live validation metric — every letter sent measures whether a brand answers.
+
+---
+
 ## Proof layer: Stellar
 
 Stellar is a **first-class provenance and settlement primitive** in Jejak:
@@ -105,6 +119,19 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
    - The relayer is isolated (its own deterministic Friendbot-funded account), rate-limited per IP, and enforces an allow-list of actions and Protocol 27 contract addresses — users never need to acquire XLM.
    - **Honest limitation:** account admin operations (`add_recovery_signer`, `set_spending_policy`, `sign_session_challenge`) are journaled on the sponsor account via `manageData` — executing them on-chain requires a passkey-signed `__check_auth` authorization that only the client can produce (full smart-account-kit signing flow is future work). If a deployment fails, the relayer falls back to the same journal and the UI marks the account "deployment pending".
    - Users can alternatively **connect an external wallet (Freighter)** for read-only address binding.
+
+   **Deployed contract surface (Soroban Testnet, OpenZeppelin Protocol 27):**
+
+   | Piece | Identifier |
+   |---|---|
+   | Smart account WASM hash | `1b5f4534a76322da2ad7c745f6900857a6802b0ca79850c35a03561df997785a` |
+   | WebAuthn (secp256r1) verifier | `CC7EKIHQP3TN4CARQDND6CEOY2UXLWWC2X5GHTD5NLAT7BG5GPZIOM3F` |
+   | Ed25519 verifier | `CAAVTMCBXEIBPR64EAASKFXERVPYFZA2JYP5A3BG6PESWEFUJX5IHKN4` |
+   | Threshold policy | `CB3FATQKCIRIQOCYRUPCQ2KREQ7T4RPKS7EAEOZWPEPUKWEDRVROBCEG` |
+   | Spending-limit policy | `CABXBYJNZ7IUW4G3D6BND5YCAQF3ASSDMDAOKQQ63UYFSO7WUU2TIP5G` |
+   | Each Jejak Passport | deterministic `C…` address per passkey (`sha256("jejak-passport:" + credentialId)` salt), printed at deploy and linked to stellar.expert |
+
+   APIs used: Horizon Testnet (accounts, transactions, `manageData` feed), Soroban RPC Testnet (deploy + simulation), Horizon **mainnet** (read-only XLM/USDC orderbook), Friendbot (testnet funding), stellar.expert (explorer links).
 
 6. **Stellar DEX as Price Oracle:**
    - The Layer-2 payment converts the user's fiat amount to XLM using the **live XLM/USDC orderbook midpoint on the Stellar DEX** (mainnet Horizon read-only), rather than a fixed estimate — falling back to a documented heuristic if the orderbook is unreachable.

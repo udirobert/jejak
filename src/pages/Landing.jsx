@@ -453,6 +453,9 @@ export default function Landing() {
               Any entry can be fingerprinted on a public ledger, so no one — including us — can quietly change it later.
             </p>
             <p className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">Built on Stellar</p>
+            <MarginNote className="mt-4 -rotate-1">
+              from 2027, EU law makes brands publish this data — your journal is the other half.
+            </MarginNote>
           </div>
         </div>
       </section>

@@ -1,6 +1,6 @@
 # Jejak — #Base44Challenge submission kit
 
-Everything needed for the three submission parts: the product (live link), the process (video) and the post.
+Everything needed for the three submission parts: the product (live link), the process (video) and the post. For the HackMeridian (Stellar) submission kit see `docs/hackmeridian.md`.
 
 **One-line pitch:** Jejak is a field journal for the things you own. Snap anything and it traces where it came from, who made it, and where your money went, and it tells you how sure it is.
 
