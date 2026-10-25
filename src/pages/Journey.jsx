@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from "react";
-import { motion, animate, useReducedMotion } from "framer-motion";
+import React, { useState, useEffect, useRef, useMemo } from "react";
+import { motion, animate, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { formatMoney } from "@/lib/money";
 import { annotateRoute, evidenceIndex, getTradeEvidence } from "@/lib/provenance";
 import { routeDistance, haversine } from "@/lib/metrics";
 import ScreenShell from "@/components/ScreenShell";
 import RouteMap from "@/components/journal/RouteMap";
+import Globe from "@/components/Globe";
 import MarginNote from "@/components/journal/MarginNote";
 import JournalButton from "@/components/journal/JournalButton";
 import TradeEvidence from "@/components/journal/TradeEvidence";
@@ -48,6 +49,7 @@ export default function Journey() {
   const nLegs = Math.max(route.length - 1, 1);
 
   const [activeIdx, setActiveIdx] = useState(0);
+  const [mapMode, setMapMode] = useState("ink"); // "ink" field map | "globe" planet view
   const [progress, setProgress] = useState(reduce ? 1 : 0);
   const introDone = useRef(reduce);
   const introCtl = useRef(null);
@@ -133,6 +135,19 @@ export default function Journey() {
     setProgress(1);
     setActiveIdx(i);
   };
+
+  // Globe dedupes stops by country — translate the strip index into that index space.
+  const globeFocusedIdx = useMemo(() => {
+    const seen = new Set();
+    let idx = -1;
+    for (let i = 0; i <= activeIdx && i < route.length; i++) {
+      if (!seen.has(route[i].country)) {
+        seen.add(route[i].country);
+        idx++;
+      }
+    }
+    return idx;
+  }, [route, activeIdx]);
 
   const scrollEvidenceIntoView = () => {
     stripRef.current?.children?.[evIdx]?.scrollIntoView({
@@ -228,18 +243,76 @@ export default function Journey() {
         <div className="sticky top-0 z-10 bg-journal-paper px-5 py-3 lg:top-6 lg:h-[82vh] lg:self-start lg:px-0 lg:py-0">
           <div className="flex h-full flex-col border border-journal-rule bg-journal-card p-3 shadow-[0_10px_30px_-14px_rgba(30,27,22,0.25)]">
             <div className="relative h-[38vh] min-h-[200px] flex-1 lg:h-auto">
-              <RouteMap
-                stops={route}
-                progress={progress}
-                traveller
-                stampStagger={0.08}
-                activeIndex={activeIdx}
-                onSelectStop={selectStop}
-                padDegrees={8}
-                fill
-                reducedMotion={reduce}
-                aria-label={`Map of the ${product.name} route; select a stop to inspect it`}
-              />
+              <AnimatePresence mode="wait" initial={false}>
+                {mapMode === "ink" ? (
+                  <motion.div
+                    key="ink-map"
+                    className="absolute inset-0"
+                    initial={reduce ? false : { opacity: 0, scale: 0.97 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={reduce ? undefined : { opacity: 0, scale: 0.97 }}
+                    transition={{ duration: 0.28, ease: "easeOut" }}
+                  >
+                    <RouteMap
+                      stops={route}
+                      progress={progress}
+                      traveller
+                      stampStagger={0.08}
+                      activeIndex={activeIdx}
+                      onSelectStop={selectStop}
+                      padDegrees={8}
+                      fill
+                      reducedMotion={reduce}
+                      aria-label={`Map of the ${product.name} route; select a stop to inspect it`}
+                    />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="globe"
+                    className="absolute inset-0 flex items-center justify-center"
+                    initial={reduce ? false : { opacity: 0, scale: 0.92 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={reduce ? undefined : { opacity: 0, scale: 0.92 }}
+                    transition={{ duration: 0.32, ease: "easeOut" }}
+                  >
+                    <Globe
+                      route={route}
+                      activeStop={route.length}
+                      fluid
+                      focusedIdx={globeFocusedIdx}
+                      onSelectStop={(_, stop) => {
+                        const i = route.findIndex((r) => r.country === stop?.country);
+                        if (i >= 0) selectStop(i);
+                      }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* ink ⇄ planet morph toggle */}
+              <div className="absolute right-2 top-2 z-10 inline-flex border border-journal-rule bg-journal-card/95 p-0.5 shadow-[2px_2px_0_0_rgba(30,27,22,0.12)]">
+                {[
+                  { id: "ink", label: "Map" },
+                  { id: "globe", label: "Globe" },
+                ].map(({ id, label }) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => {
+                      vibrate(4);
+                      setMapMode(id);
+                    }}
+                    aria-pressed={mapMode === id}
+                    className={`px-2 py-0.5 font-plexmono text-[9px] uppercase tracking-[0.1em] transition-colors no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp ${
+                      mapMode === id
+                        ? "bg-journal-ink text-journal-card"
+                        : "text-journal-ink-soft hover:text-journal-ink"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
             <div className="mt-2 flex items-center justify-between font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
               <span>

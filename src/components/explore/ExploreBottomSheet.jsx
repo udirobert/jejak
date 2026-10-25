@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ChevronUp, ChevronDown, Sparkles, X } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 import Specimen from "@/components/journal/Specimen";
@@ -13,6 +13,49 @@ export const SNAP_HEIGHTS = {
 };
 
 const SNAP_ORDER = ["peek", "half", "full"];
+
+// Real supply corridors that cycle through the empty Atlas — tap to trace one.
+const CORRIDORS = [
+  { id: "hoodie", label: "Gujarat → Dhaka → Rotterdam → UK", item: "cotton hoodie", km: "12,480 km" },
+  { id: "coffee", label: "Huila → Cartagena → Antwerp → London", item: "flat white", km: "9,120 km" },
+  { id: "trainers", label: "Rayong → Ho Chi Minh → Felixstowe", item: "running trainers", km: "14,290 km" },
+  { id: "phone_case", label: "Dongguan → Yantian → Southampton", item: "phone case", km: "10,640 km" },
+];
+
+function CorridorTicker({ onTraceProduct, reduce }) {
+  const [idx, setIdx] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setIdx((i) => (i + 1) % CORRIDORS.length), 3600);
+    return () => clearInterval(t);
+  }, []);
+  const c = CORRIDORS[idx];
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        vibrate(5);
+        onTraceProduct?.(c.id);
+      }}
+      className="mt-2 flex w-full items-center gap-2 overflow-hidden border-t border-dotted border-journal-rule pt-2 text-left no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
+      aria-label={`Corridor watch: ${c.label}, ${c.km}. Trace a ${c.item}`}
+    >
+      <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-journal-stamp animate-pulse" />
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span
+          key={idx}
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={reduce ? undefined : { opacity: 0, y: -6 }}
+          transition={{ duration: 0.28, ease: "easeOut" }}
+          className="truncate font-plexmono text-[9.5px] uppercase tracking-[0.08em] text-journal-ink-soft"
+        >
+          {c.label} · {c.km} · trace a {c.item} →
+        </motion.span>
+      </AnimatePresence>
+    </button>
+  );
+}
 
 function CompactProductRow({ group, isHighlighted, onSelectScan }) {
   const { items } = group;
@@ -202,6 +245,11 @@ export default function ExploreBottomSheet({
             )}
           </span>
         </motion.div>
+
+        {/* Corridor watch — real trade lanes cycle by; tap one to trace it */}
+        {!loading && productGroups.length === 0 && (
+          <CorridorTicker onTraceProduct={onTraceProduct} reduce={reduce} />
+        )}
       </div>
 
       {/* Expanded Sheet Content (visible in half & full snap states) */}

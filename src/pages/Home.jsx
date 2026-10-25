@@ -140,6 +140,18 @@ export default function Home() {
       ? `${traces} traced · ${origins.length} origin${origins.length === 1 ? "" : "s"} · ${formatMoney(workerTotal, currency)} to makers`
       : null;
 
+  const streakChip = statusLine && (
+    <button
+      type="button"
+      onClick={() => { vibrate(6); navigate("/impact"); }}
+      className="mt-3 inline-flex items-center gap-2 border border-journal-rule bg-journal-card px-2.5 py-1 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft no-tap hover:border-journal-stamp hover:text-journal-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
+    >
+      <span className="h-1.5 w-1.5 rounded-full bg-journal-stamp" />
+      {statusLine}
+      <span className="text-journal-stamp">→</span>
+    </button>
+  );
+
   const describeForm = (
     <form onSubmit={submitDescribe} className="max-w-md border border-journal-rule bg-journal-card p-4">
       <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">Describe it instead</p>
@@ -207,11 +219,7 @@ export default function Home() {
         <h1 className="mt-3 font-serif-display text-4xl leading-[1.02] text-journal-ink" style={displayFont}>
           What are you <em className="italic text-journal-stamp">holding</em>?
         </h1>
-        {statusLine && (
-          <p className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">
-            {statusLine}
-          </p>
-        )}
+        {statusLine && streakChip}
 
         {tourBanner && (
           <div className="mt-4 flex items-center justify-between border border-dashed border-journal-stamp/60 bg-journal-card px-3 py-2">
@@ -314,9 +322,7 @@ export default function Home() {
             Snap the thing in your hand. Jejak traces where it came from, who made it, and where your money went.
           </motion.p>
           {statusLine && (
-            <motion.p {...reveal(0.2)} className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">
-              {statusLine}
-            </motion.p>
+            <motion.div {...reveal(0.2)}>{streakChip}</motion.div>
           )}
 
           <motion.div {...reveal(0.26)} className="relative mt-8 max-w-md">

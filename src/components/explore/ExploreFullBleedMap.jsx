@@ -10,12 +10,16 @@ import {
   X,
   Plus,
   Minus,
+  Globe2,
+  Map as MapIcon,
 } from "lucide-react";
 import { ORIGIN_COORDS } from "./exploreUtils";
 import { UNTRACED_CANDIDATE_ORIGINS } from "./exploreSeaRoutes";
 import { MapSvgFlag } from "./OriginFlagChip";
 import OriginFlagChip from "./OriginFlagChip";
 import InkRoute from "./InkRoute";
+import ExploreAmbientSea from "./ExploreAmbientSea";
+import Globe from "@/components/Globe";
 
 import { vibrate } from "@/lib/haptics";
 
@@ -48,6 +52,8 @@ export default function ExploreFullBleedMap({
   const [expandedClusterId, setExpandedClusterId] = useState(null);
   const [hoveredOrigin, setHoveredOrigin] = useState(null);
   const [untracedPromptOrigin, setUntracedPromptOrigin] = useState(null);
+  // "map" = the ink field atlas · "globe" = the colourful spinning planet view
+  const [viewMode, setViewMode] = useState("map");
 
   // Pan & zoom transform state: scaleExtent [1, 8], translateExtent clamped
   const [viewTransform, setViewTransform] = useState({
@@ -341,7 +347,7 @@ export default function ExploreFullBleedMap({
       style={{ touchAction: "none" }}
     >
       <AnimatePresence mode="wait">
-        {true && (
+        {viewMode === "map" ? (
           <motion.div
             key="2d-map"
             initial={reduce ? false : { opacity: 0, scale: 0.96 }}
@@ -426,6 +432,16 @@ export default function ExploreFullBleedMap({
                     />
                   </g>
                 ))}
+
+                {/* Ambient background traffic: vessels on real corridors, wave shimmer, creatures. Active route ship stays on top via InkRoute. */}
+                <ExploreAmbientSea
+                  projection={projection}
+                  W={W}
+                  H={H}
+                  zoom={viewTransform.scale}
+                  activeRoute={null}
+                  reduce={reduce}
+                />
 
                 {/* Ambient Mixed Transport (Ships, Planes, Trains, Lorries), Day/Night Shadow, Wave Shimmer, Whale/Fin, Multi-Leg Route Sequence */}
                 <InkRoute
@@ -712,12 +728,41 @@ export default function ExploreFullBleedMap({
               </g>
             </svg>
           </motion.div>
+        ) : (
+          /* Morph to the spinning planet view — the same atlas, in colour */
+          <motion.div
+            key="3d-globe"
+            initial={reduce ? false : { opacity: 0, scale: 0.92 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={reduce ? undefined : { opacity: 0, scale: 0.92 }}
+            transition={{ duration: 0.32, ease: "easeOut" }}
+            className="flex h-full w-full flex-col items-center justify-center"
+            style={{
+              background:
+                "radial-gradient(circle at 50% 42%, #1B4D7E 0%, #113257 60%, #0C223D 100%)",
+            }}
+          >
+            <div className="w-full max-w-[min(88vw,70vh)] aspect-square">
+              <Globe
+                route={globeRoute || []}
+                activeStop={(globeRoute || []).length}
+                focusedIdx={(globeRoute || []).length - 1}
+                fluid
+                onSelectStop={(_, stop) => {
+                  if (stop?.country && tracedSet.has(stop.country)) {
+                    vibrate(6);
+                    onSelectOrigin(stop.country);
+                  }
+                }}
+              />
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 
       {/* Prompt Card when tapping an untraced "?" origin dot */}
       <AnimatePresence>
-        {untracedPromptOrigin && (
+        {untracedPromptOrigin && viewMode === "map" && (
           <motion.div
             initial={reduce ? false : { opacity: 0, y: 8, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -762,7 +807,7 @@ export default function ExploreFullBleedMap({
       </AnimatePresence>
 
       {/* Compact Zoom In / Out / Reset Control (only captures pointer events on its own buttons) */}
-      {(
+      {viewMode === "map" && (
         <div
           onPointerDown={(e) => e.stopPropagation()}
           className="pointer-events-auto absolute right-4 top-32 z-20 flex flex-col items-center gap-1 border border-journal-rule bg-journal-card p-1 shadow-[3px_3px_0_0_rgba(30,27,22,0.15)]"
@@ -850,6 +895,34 @@ export default function ExploreFullBleedMap({
                 <RotateCcw size={10} /> All
               </button>
             )}
+
+            {/* ink atlas ⇄ planet morph toggle */}
+            <div
+              onPointerDown={(e) => e.stopPropagation()}
+              className="pointer-events-auto inline-flex items-center border border-journal-rule bg-journal-card p-0.5 shadow-[2px_2px_0_0_rgba(30,27,22,0.12)]"
+            >
+              {[
+                { id: "map", label: "Map", icon: MapIcon },
+                { id: "globe", label: "Globe", icon: Globe2 },
+              ].map(({ id, label, icon: Icon }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => {
+                    vibrate(4);
+                    setViewMode(id);
+                  }}
+                  aria-pressed={viewMode === id}
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 font-plexmono text-[10px] uppercase tracking-[0.08em] transition-colors no-tap focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp ${
+                    viewMode === id
+                      ? "bg-journal-ink text-journal-card"
+                      : "text-journal-ink-soft hover:text-journal-ink"
+                  }`}
+                >
+                  <Icon size={11} /> {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 
