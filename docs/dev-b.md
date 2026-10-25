@@ -33,7 +33,7 @@ Post a build-in-public teaser immediately (recording below), and hold the hero p
 **X / Twitter (teaser):**
 ```
 My £120 hoodie crossed 6 countries and ~21,000 km.
-About £9 reached the people who sewed it.
+Probably under £3 reached the people who sewed it.
 
 I built Jejak — snap anything you own, trace where it came from,
 and anchor the proof on @StellarOrg Testnet forever.
@@ -92,7 +92,7 @@ Record on a **real device** (phone or 1440px desktop). The feel of the app is a 
 
 | Timestamp | On screen | What to say |
 |---|---|---|
-| 0:00–0:20 | Landing hero — route draws, stamps thud in | "A £120 hoodie probably crossed 21,000 km. Only £9 reached the people who sewed it." |
+| 0:00–0:20 | Landing hero — route draws, stamps thud in | "A £120 hoodie probably crossed 21,000 km. Our estimate: under £3 reached the people who sewed it." |
 | 0:20–0:50 | Photo → identify → route draws → postmarks drop | "Snap anything. Jejak traces where it came from and says how sure it is." |
 | 0:50–1:20 | Money split → guess → reveal → receipt tears | "Guess first. The gap between your guess and the estimate is the whole point." |
 | 1:20–1:45 | Anchor on Stellar → Horizon verify → **Test altered JSON** → MISMATCH | "One tap. Anchored on Stellar. Change one field and the hash fails — nobody can quietly change it." |
@@ -108,7 +108,7 @@ Record on a **real device** (phone or 1440px desktop). The feel of the app is a 
 
 | # | Slide |
 |---|---|
-| 1 | **"£9."** Full bleed. "That's how much of your £120 hoodie reached the hands that made it." |
+| 1 | **"Under £3."** Full bleed. "Of a £120 hoodie, our estimate of what reached the hands that made it. Published breakdowns say under 1%." |
 | 2 | **Solution.** Snap, trace, anchor — three screens. |
 | 3 | **Stellar integration.** Five primitives, one product: MEMO_HASH, manageData, ClaimableBalance, DEX oracle, Soroban smart accounts. |
 | 4 | **Why now.** EU DPP Registry live July 2026 · textiles delegated act expected 2027 · EUDR obligations Dec 2026 — brands must publish provenance; Jejak is the consumer half. |

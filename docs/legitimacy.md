@@ -19,7 +19,7 @@ Jejak's pitch is honesty: every figure shows what it rests on. This audit checks
 ### 3. The source labels were self-assigned
 - The AI picked its own basis label from `{public price benchmark, published brand disclosure, trade data, AI inference}`. Nothing ever looked up trade data or a disclosure.
 - The hand-written products claimed "published brand disclosure" and "trade data" with no sources (`// TODO: add sources`).
-- Known open risk: the hand-written labour shares (for example 7.5% for the hoodie) are well above commonly cited garment price breakdowns, where wages are often around 1% of the retail price. Treat the split figures as AI estimates until they're re-sourced.
+- ~~Known open risk: the hand-written labour shares~~ **Fixed.** Labour ranges are now anchored to published breakdowns: Clean Clothes Campaign (workers ~0.6% of a €29 T-shirt) and Deloitte Access Economics for Oxfam Australia (~4% factory wages average; ~2% Bangladesh, ~4% Vietnam and China). The hoodie's labour share moved from 7.5% to 0.5–4%. Each product carries a `livingWage` note (e.g. a living wage in Bangladesh: +76% factory wages ≈ +1% of retail price), shown on the money screen with its source.
 
 ### 4. Label evidence went to the wrong stop
 - Journey and the proof record treated `route.length - 2` as the "made in" stop. That index is the warehouse (Netherlands) for the hoodie, Singapore for trainers and the phone case, and UK roasting for coffee. So "Made in Bangladesh" relabelled the warehouse.

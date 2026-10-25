@@ -9,7 +9,7 @@ Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridia
 
 ## Why
 
-Most of us have no idea that a £120 hoodie probably crossed six countries and 21,000 km, or that roughly £9 of it reached the people who sewed it. Jejak makes that visible without preaching. It gives a starting point, not a verdict: every figure is a range with a confidence level, and the app always says which facts were read from a label and which are estimates.
+Most of us have no idea that a £120 hoodie probably crossed six countries and 21,000 km, or that published breakdowns put the sewers' wages at under 1% of the price. Jejak makes that visible without preaching. It gives a starting point, not a verdict: every figure is a range with a confidence level, and the app always says which facts were read from a label, which rest on trade data, and which are estimates.
 
 ## What it does
 
@@ -203,44 +203,44 @@ Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
 | Materials split | 12% – **15%** – 18% | medium | `AI inference` | Category estimate; needs named apparel BOM benchmark |
-| Labour split | 6% – **7.5%** – 10% | medium | `AI inference` | Category estimate; needs cited brand tear-down |
+| Labour split | 0.5% – **2%** – 4% | medium | `AI inference` | Anchored to Clean Clothes Campaign (~0.6% workers' share) & Deloitte/Oxfam (~2% factory labour in BD); still an estimate |
 | Freight & duties split | 7% – **9.5%** – 11% | medium | `AI inference` | Category estimate; needs UN Comtrade / freight tariff citation |
-| Brand margin split | 24% – **28%** – 32% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 36% – **40%** – 44% | medium | `AI inference` | Category estimate |
-| Transparent alternative | Mat 22%, Lab 18%, Frt 10%, Brd 20%, Ret 30% | low/medium | `AI inference` | Illustrative scenario (`transparentAlternative.note`) |
+| Brand margin split | 24% – **29%** – 32% | low | `AI inference` | Illustrative estimate |
+| Retail margin split | 40% – **44.5%** – 48% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 20%, Lab 10%, Frt 10.5%, Brd 18.5%, Ret 41% | low/medium | `AI inference` | Illustrative scenario (`transparentAlternative.note`) |
 | Route (5 stops + final) | India (Cotton) → China (Spinning) → Bangladesh (Cut & sew) → Singapore (Hub) → Netherlands (Warehouse) → UK/SG (Sold) | medium | `Estimated` (final manufacture upgrades to `Read from label` when care tag scanned) | Illustrative route; no specific factory claimed |
 
 ### 2. `src/data/trainers.js` — Running Trainers (GB £90 / SG S$110)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
 | Materials split | 20% – **25%** – 30% | medium | `AI inference` | Category estimate; needs footwear BOM source |
-| Labour split | 6% – **8%** – 11% | medium | `AI inference` | Category estimate; needs cited brand disclosure |
+| Labour split | 2% – **4%** – 7% | medium | `AI inference` | Anchored to Deloitte/Oxfam (~4% factory labour in Vietnam) |
 | Freight & duties split | 7% – **9%** – 12% | medium | `AI inference` | Category estimate |
 | Brand margin split | 26% – **30%** – 34% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 24% – **28%** – 32% | medium | `AI inference` | Category estimate |
-| Transparent alternative | Mat 30%, Lab 18%, Frt 10%, Brd 22%, Ret 20% | low/medium | `AI inference` | Illustrative scenario |
+| Retail margin split | 24% – **32%** – 32% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 30%, Lab 14%, Frt 10%, Brd 22%, Ret 24% | low/medium | `AI inference` | Illustrative scenario |
 | Route (4 stops + final) | Vietnam (Rubber & foam) → China (Components) → Vietnam (Assembly) → Singapore (Freight hub) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
 ### 3. `src/data/coffee.js` — Coffee Bag (GB £6 / SG S$12)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
 | Materials split | 16% – **20%** – 24% | medium | `AI inference` | Category estimate; needs ICO / specialty coffee benchmark |
-| Labour split | 8% – **12%** – 16% | medium | `AI inference` | Category estimate |
+| Labour split | 4% – **7%** – 11% | medium | `AI inference` | Farm wages on picking; farm-gate is already a small share of shelf price |
 | Freight & duties split | 10% – **14%** – 18% | medium | `AI inference` | Category estimate |
 | Brand margin split | 20% – **24%** – 28% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 26% – **30%** – 34% | medium | `AI inference` | Category estimate |
-| Transparent alternative | Mat 34%, Lab 24%, Frt 13%, Brd 15%, Ret 14% | low/medium | `AI inference` | Illustrative scenario |
+| Retail margin split | 26% – **35%** – 34% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 34%, Lab 18%, Frt 13%, Brd 15%, Ret 20% | low/medium | `AI inference` | Illustrative scenario |
 | Route (3 stops + final) | Ethiopia (Cherry harvest) → Ethiopia (Processing) → UK (Roasting) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
 ### 4. `src/data/phoneCase.js` — Phone Case (GB £25 / SG S$32)
 | Category / Stage | Value / Range | Confidence | Basis Label | Status / Source Needed |
 |---|---|---|---|---|
 | Materials split | 14% – **18%** – 22% | medium | `AI inference` | Category estimate |
-| Labour split | 7% – **10%** – 13% | medium | `AI inference` | Category estimate |
+| Labour split | 2% – **4%** – 7% | medium | `AI inference` | Anchored to Deloitte/Oxfam (~4% factory labour in China); moulding is less labour-intensive |
 | Freight & duties split | 8% – **12%** – 16% | medium | `AI inference` | Category estimate |
 | Brand margin split | 26% – **30%** – 34% | low | `AI inference` | Illustrative estimate |
-| Retail margin split | 26% – **30%** – 34% | medium | `AI inference` | Category estimate |
-| Transparent alternative | Mat 28%, Lab 22%, Frt 14%, Brd 20%, Ret 16% | low/medium | `AI inference` | Illustrative scenario |
+| Retail margin split | 26% – **36%** – 34% | medium | `AI inference` | Category estimate |
+| Transparent alternative | Mat 28%, Lab 14%, Frt 14%, Brd 20%, Ret 24% | low/medium | `AI inference` | Illustrative scenario |
 | Route (3 stops + final) | China (Plastic & silicone) → China (Assembly) → Singapore (Freight hub) → UK/SG (Sold) | medium | `Estimated` | Illustrative route |
 
 ### 5. `src/lib/metrics.js` — Receipt Context Equivalents

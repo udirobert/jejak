@@ -10,10 +10,12 @@ export const coffee = {
   },
   split: {
     materials: { pct: { low: 16, mid: 20, high: 24 }, confidence: "medium", basis: "AI inference" },
-    labour: { pct: { low: 8, mid: 12, high: 16 }, confidence: "medium", basis: "AI inference" },
+    // Farm wages on cherry picking: the farm-gate price is already a small
+    // fraction of the shelf price, and wages are a fraction of that.
+    labour: { pct: { low: 4, mid: 7, high: 11 }, confidence: "medium", basis: "AI inference" },
     freight: { pct: { low: 10, mid: 14, high: 18 }, confidence: "medium", basis: "AI inference" },
     brand: { pct: { low: 20, mid: 24, high: 28 }, confidence: "low", basis: "AI inference" },
-    retail: { pct: { low: 26, mid: 30, high: 34 }, confidence: "medium", basis: "AI inference" },
+    retail: { pct: { low: 26, mid: 35, high: 34 }, confidence: "medium", basis: "AI inference" },
   },
   route: [
     { stage: "Cherry harvest", kind: "raw_material", country: "Ethiopia", code: "ET", lat: 9.0, lng: 38.5, note: "Coffee cherries picked by hand", value: 20 },
@@ -30,10 +32,10 @@ export const coffee = {
     note: "Illustrative scenario for a transparent brand — not a specific real company.",
     split: {
       materials: { pct: { low: 28, mid: 34, high: 40 }, confidence: "medium", basis: "AI inference" },
-      labour: { pct: { low: 18, mid: 24, high: 30 }, confidence: "medium", basis: "AI inference" },
+      labour: { pct: { low: 10, mid: 18, high: 25 }, confidence: "medium", basis: "AI inference" },
       freight: { pct: { low: 10, mid: 13, high: 16 }, confidence: "medium", basis: "AI inference" },
       brand: { pct: { low: 12, mid: 15, high: 18 }, confidence: "low", basis: "AI inference" },
-      retail: { pct: { low: 10, mid: 14, high: 18 }, confidence: "low", basis: "AI inference" },
+      retail: { pct: { low: 10, mid: 20, high: 18 }, confidence: "low", basis: "AI inference" },
     },
   },
 };

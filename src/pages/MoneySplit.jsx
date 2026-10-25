@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { base44 } from "@/api/base44Client";
 import { computeSplit, formatMoney, labourPerUnit, getRoute } from "@/lib/money";
+import { originCountry as provenanceOrigin } from "@/lib/provenance";
 import { buildMetrics, routeDistance } from "@/lib/metrics";
 import ScreenShell from "@/components/ScreenShell";
 import CoinDrop from "@/components/CoinDrop";
@@ -75,7 +76,7 @@ export default function MoneySplit() {
     ? labourPerUnit(compareMode ? product.transparentAlternative.split : product.split, currency)
     : { midLabel: "" };
   const route = product ? getRoute(product, market) : [];
-  const originCountry = route[0]?.country || "Origin";
+  const originCountry = (product && provenanceOrigin(product, market, labelEvidence)) || route[0]?.country || "Origin";
   const revealed = guessedLabourPct != null;
   const guessedAmount = (price * (guessedLabourPct ?? guess)) / 100;
 
@@ -267,6 +268,17 @@ export default function MoneySplit() {
             {compareMode && (
               <p className="mt-1 font-grotesk text-[12px] text-journal-ink-soft">
                 {product.transparentAlternative.note}
+              </p>
+            )}
+            {product.livingWage && product.livingWage.wageRisePct > 0 && !compareMode && (
+              <p className="mt-2 max-w-md font-grotesk text-[12px] leading-relaxed text-journal-ink-soft">
+                If factories in {product.livingWage.madeIn} paid a living wage, this price would rise by
+                about {product.livingWage.retailRisePct}% —{" "}
+                {formatMoney(price * product.livingWage.retailRisePct / 100, currency)} on{" "}
+                {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })}.{" "}
+                <span className="font-plexmono text-[9px] uppercase tracking-[0.08em]">
+                  modelled estimate · {product.livingWage.source}
+                </span>
               </p>
             )}
           </div>

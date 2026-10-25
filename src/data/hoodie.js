@@ -13,10 +13,13 @@ export const hoodie = {
   },
   split: {
     materials: { pct: { low: 12, mid: 15, high: 18 }, confidence: "medium", basis: "AI inference" },
-    labour: { pct: { low: 6, mid: 7.5, high: 10 }, confidence: "medium", basis: "AI inference" },
+    // Garment workers' wages: anchored to the Clean Clothes Campaign breakdown
+    // (workers ≈0.6% of a €29 tee) and Deloitte/Oxfam (labour ≈2% in Bangladesh,
+    // ~4% factory average). Still an estimate — no brand pays us a data feed.
+    labour: { pct: { low: 0.5, mid: 2, high: 4 }, confidence: "medium", basis: "AI inference" },
     freight: { pct: { low: 7, mid: 9.5, high: 11 }, confidence: "medium", basis: "AI inference" },
-    brand: { pct: { low: 24, mid: 28, high: 32 }, confidence: "low", basis: "AI inference" },
-    retail: { pct: { low: 36, mid: 40, high: 44 }, confidence: "medium", basis: "AI inference" },
+    brand: { pct: { low: 24, mid: 29, high: 32 }, confidence: "low", basis: "AI inference" },
+    retail: { pct: { low: 40, mid: 44.5, high: 48 }, confidence: "medium", basis: "AI inference" },
   },
   route: [
     { stage: "Cotton farming", kind: "raw_material", country: "India", code: "IN", lat: 21.0, lng: 78.0, note: "Cotton grown and harvested", value: 15 },
@@ -30,15 +33,21 @@ export const hoodie = {
     SG: { stage: "Sold", country: "Singapore", code: "SG", lat: 1.35, lng: 103.8, note: "Local retailer", value: 40 },
   },
   labourContext:
-    "Most cut-and-sew for hoodies at this price happens in Bangladesh, where garment-industry wages are among the lowest in the world for apparel exporters. The labour share here is an estimate of wages paid, not the worker's take-home after deductions.",
+    "Published breakdowns of a typical fast-fashion garment put the factory workers' wages well under 1% of the price you paid; the estimate above is the more generous factory-labour share used in Deloitte's supply-chain analysis for Bangladesh.",
+  livingWage: {
+    madeIn: "Bangladesh",
+    wageRisePct: 76,
+    retailRisePct: 1,
+    source: "Deloitte Access Economics for Oxfam Australia (2017)",
+  },
   transparentAlternative: {
     note: "Illustrative scenario for a transparent brand — not a specific real company.",
     split: {
-      materials: { pct: { low: 18, mid: 22, high: 26 }, confidence: "medium", basis: "AI inference" },
-      labour: { pct: { low: 14, mid: 18, high: 22 }, confidence: "medium", basis: "AI inference" },
-      freight: { pct: { low: 8, mid: 10, high: 12 }, confidence: "medium", basis: "AI inference" },
-      brand: { pct: { low: 18, mid: 20, high: 24 }, confidence: "low", basis: "AI inference" },
-      retail: { pct: { low: 26, mid: 30, high: 34 }, confidence: "low", basis: "AI inference" },
+      materials: { pct: { low: 18, mid: 20, high: 26 }, confidence: "medium", basis: "AI inference" },
+      labour: { pct: { low: 6, mid: 10, high: 15 }, confidence: "medium", basis: "AI inference" },
+      freight: { pct: { low: 8, mid: 10.5, high: 12 }, confidence: "medium", basis: "AI inference" },
+      brand: { pct: { low: 18, mid: 18.5, high: 24 }, confidence: "low", basis: "AI inference" },
+      retail: { pct: { low: 30, mid: 41, high: 45 }, confidence: "low", basis: "AI inference" },
     },
   },
   // TODO: when real sources are verified, add a `sources` array here with title + url.

@@ -12,7 +12,7 @@ Format: screen recording with voiceover, 1080×1350 (4:5) for LinkedIn and X. Re
 
 | Time | On screen | Voiceover / caption |
 |---|---|---|
-| 0:00–0:04 | Landing hero: "Every thing has a *journey*." The route draws itself and the stamps thud in. | "My hoodie crossed six countries before it reached me." |
+| 0:00–0:04 | Landing hero: "Every thing has a *journey*." The route draws itself and the stamps thud in. | "My hoodie crossed six countries before it reached me — and probably pennies reached the people who sewed it." |
 | 0:04–0:09 | Scroll "Follow one hoodie": the map advances stop by stop and *read from the label* appears in red. | "Jejak traces where things come from, and says how sure it is." |
 | 0:09–0:14 | Phone: tap **Snap a photo** of a real item. The polaroid scan types out the attributes and IDENTIFIED stamps in. | "Snap anything. Base44 AI sketches its supply chain." |
 | 0:14–0:19 | Money split: drag the guess slider, tap Reveal. The receipt draws and the labour line gets circled. | "Then guess how much reached the people who made it." |
@@ -24,7 +24,7 @@ Format: screen recording with voiceover, 1080×1350 (4:5) for LinkedIn and X. Re
 Tone: personal, calm, specific. Show the product first, then how it was built.
 
 **0:00–0:20 · Why.**
-"I bought a £120 hoodie and realised I had no idea where it came from. The answer: probably six countries, 21,000 km, and about £9 to the people who sewed it. Jejak means *trace* or *footprint* in Malay. I wanted a tool that shows that journey honestly, as a starting point rather than a verdict."
+"I bought a £120 hoodie and realised I had no idea where it came from. The answer: probably six countries, 21,000 km, and — if published breakdowns are right — under £3 to the people who sewed it. Jejak means *trace* or *footprint* in Malay. I wanted a tool that shows that journey honestly, as a starting point rather than a verdict."
 *Show:* the landing hero, then the dictionary entry.
 
 **0:20–0:50 · The experience.**
@@ -59,7 +59,7 @@ Then the guess-then-reveal receipt: "Guess first, because the gap between your g
 ## 3. The post (tag #Base44Challenge and @Base44)
 
 ### X
-> My £120 hoodie crossed 6 countries and ~21,000 km before it reached me. About £9 went to the people who sewed it.
+> My £120 hoodie crossed 6 countries and ~21,000 km before it reached me. Probably under £3 went to the people who sewed it.
 >
 > I built Jejak, a field journal for the things you own. Snap anything and it traces where it came from and where your money went, and says how sure it is.
 >
@@ -72,7 +72,7 @@ Then the guess-then-reveal receipt: "Guess first, because the gap between your g
 > I built **Jejak** (Malay for "trace" or "footprint"), a field journal for the things you own. Snap a photo, describe an item or upload a whole shop receipt, and Jejak sketches its likely supply chain: the countries it passed through, the people who made it, and where each pound of the price probably went.
 >
 > What I cared about most:
-> • **Honesty.** Every figure is a range with a confidence level. Label facts are stamped *read from the label*; everything else says *estimated*.
+> • **Honesty.** Every figure is a range with a confidence level. Label facts are stamped *read from the label*; the "made in" stop is checked against real UN Comtrade import data; everything else says *estimated*.
 > • **Design.** Paper, ink and postmarks: routes that draw themselves, a receipt that fills in as it's traced.
 > • **Automation.** Built on @Base44: receipts are read and every item traced automatically, each entry gets an AI-written story, and if you write to a brand, Jejak reminds you two weeks later if they haven't replied.
 >
