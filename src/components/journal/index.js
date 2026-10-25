@@ -4,3 +4,5 @@ export { default as MarginNote } from "./MarginNote";
 export { default as JournalButton } from "./JournalButton";
 export { default as RouteMap } from "./RouteMap";
 export { default as Receipt } from "./Receipt";
+export { default as TradeEvidence } from "./TradeEvidence";
+export { default as TourCallout } from "./TourCallout";
