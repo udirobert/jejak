@@ -48,6 +48,16 @@ export function latestPerUser<T extends { user_id?: string; created_date?: strin
   return Array.from(byUser.values());
 }
 
+// Whether the field's distribution may be shown publicly yet.
+//
+// The count of guessers is always safe. The distribution is not: before the
+// product has been revealed, showing it would let a guesser copy the crowd —
+// which is precisely what committing the hash before the reveal prevents.
+// So the distribution unlocks only once a guess has actually been settled.
+export function isFieldPublic(guesses: Array<{ status?: string }>) {
+  return guesses.some((g) => g?.status === "won" || g?.status === "lost");
+}
+
 // Where the caller stands in the field. Computed here rather than in the UI
 // so the client is never trusted to work out its own position.
 export function standing(guesses: number[], yourPct: number | null) {

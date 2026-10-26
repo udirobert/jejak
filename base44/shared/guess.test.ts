@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { histogram, median, latestPerUser, standing } from "./guess.ts";
+import { histogram, median, latestPerUser, standing, isFieldPublic } from "./guess.ts";
 
 Deno.test("histogram — guesses are bucketed into 2% bands", () => {
   // 7% rounds up into the 8% band.
@@ -76,4 +76,18 @@ Deno.test("standing — no guess means no standing", () => {
 
 Deno.test("standing — a guess you did not make has no rank", () => {
   assertEquals(standing([4, 6], 99).rank, null);
+});
+
+Deno.test("isFieldPublic — the distribution stays locked until the reveal", () => {
+  // Everyone is still committed: nobody has seen the answer yet.
+  assertEquals(isFieldPublic([{ status: "committed" }, { status: "committed" }]), false);
+});
+
+Deno.test("isFieldPublic — one settled guess opens the field", () => {
+  assertEquals(isFieldPublic([{ status: "committed" }, { status: "won" }]), true);
+  assertEquals(isFieldPublic([{ status: "lost" }]), true);
+});
+
+Deno.test("isFieldPublic — an empty pool is not public", () => {
+  assertEquals(isFieldPublic([]), false);
 });

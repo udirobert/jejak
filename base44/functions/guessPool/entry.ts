@@ -33,6 +33,7 @@ import {
   histogram,
   median,
   latestPerUser,
+  isFieldPublic,
   MIN_PCT,
   MAX_PCT,
 } from "../../shared/guess.ts";
@@ -325,12 +326,19 @@ export default async function (req: Request) {
       const guesses = (await sr.entities.Guess.filter({ product_id: body.product_id }, "-created_date", 300)) || [];
       const field = latestPerUser(guesses);
       const pcts = field.map((g: any) => Number(g.guess_pct));
+      // The DISTRIBUTION stays private until the product has been revealed.
+      // Before that, showing it would let a guesser copy the crowd — which
+      // is precisely what committing the hash before the reveal prevents.
+      // The count is always safe to show.
+      const revealed = isFieldPublic(guesses);
       return Response.json({
         ok: true,
         pool_size: field.length,
         eligible_count: field.filter((g: any) => g.eligible).length,
-        distribution: histogram(pcts),
-        median_guess_pct: median(pcts),
+        revealed,
+        distribution: revealed ? histogram(pcts) : [],
+        field_pcts: revealed ? pcts : [],
+        median_guess_pct: revealed ? median(pcts) : null,
       });
     }
 

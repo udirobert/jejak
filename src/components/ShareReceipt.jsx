@@ -5,12 +5,13 @@ import { vibrate } from "@/lib/haptics";
 import html2canvas from "html2canvas";
 import { jsPDF } from "jspdf";
 import { Share2, FileDown, Loader2, Users } from "lucide-react";
+import { traceUrl } from "@/lib/share";
 
 // Builds a solid, shareable receipt image (no frosted glass — html2canvas
 // can't capture backdrop-filter), then shares it via the Web Share API or
 // falls back to a download. The receipt carries the impact line + branding.
 export default function ShareReceipt() {
-  const { product, market, currency, compareMode, customPrice, lastStellarTx } = useApp();
+  const { product, market, currency, compareMode, customPrice, lastStellarTx, savedScanId } = useApp();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
   const APP_URL = "https://jejak-trace-flow.base44.app";
@@ -24,7 +25,10 @@ export default function ShareReceipt() {
   const stdLabour = stdSplit.find((s) => s.key === "labour").amount;
   const impact = `Of ${formatMoney(price, currency)}, about ${formatMoney(labour.amount, currency)} reached the people who made this.`;
   const stdImpact = `A transparent brand would send about ${formatMoney(stdLabour, currency)} their way.`;
-  const challenge = `I traced a ${product.name} — only ${labour.pct.mid}% reached the makers. Can you find a fairer one? Trace yours: ${APP_URL}`;
+  // A shared link has to BE the thing. Pointing at the app root meant the
+  // person you challenged landed on the landing page with nothing to beat.
+  const link = traceUrl(savedScanId);
+  const challenge = `I traced a ${product.name} — only ${labour.pct.mid}% reached the makers. Can you find a fairer one? ${link}`;
 
   const buildNode = () => {
     const wrap = document.createElement("div");
@@ -53,7 +57,7 @@ export default function ShareReceipt() {
         <p style="margin:8px 0 0;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#5B544A;">${route.length} stops traced · every figure is a range</p>
         <div style="margin-top:12px;display:flex;justify-content:space-between;align-items:center;">
           <span style="font-family:'Fraunces',serif;font-style:italic;font-size:15px;">Jejak</span>
-          <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#5B544A;">trace yours → jejak-trace-flow.base44.app</span>
+          <span style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#5B544A;">${link.replace(/^https?:\/\//, "")}</span>
         </div>
       </div>
     `;
