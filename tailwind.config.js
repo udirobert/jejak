@@ -54,19 +54,23 @@ module.exports = {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			},
+  			// The journal palette. Defined through the `-rgb` channel vars so
+			// Tailwind can apply opacity modifiers (bg-journal-ink/60) — a
+			// plain var() carries no alpha channel, which silently dropped
+			// every rule that used one.
   			journal: {
-  				paper: 'var(--j-paper)',
-  				'paper-deep': 'var(--j-paper-deep)',
-  				card: 'var(--j-card)',
-  				ink: 'var(--j-ink)',
-  				'ink-soft': 'var(--j-ink-soft)',
-  				rule: 'var(--j-rule)',
-  				stamp: 'var(--j-stamp)',
-  				materials: 'var(--j-materials)',
-  				labour: 'var(--j-labour)',
-  				freight: 'var(--j-freight)',
-  				brand: 'var(--j-brand)',
-  				retail: 'var(--j-retail)'
+  				paper: 'rgb(var(--j-paper-rgb) / <alpha-value>)',
+  				'paper-deep': 'rgb(var(--j-paper-deep-rgb) / <alpha-value>)',
+  				card: 'rgb(var(--j-card-rgb) / <alpha-value>)',
+  				ink: 'rgb(var(--j-ink-rgb) / <alpha-value>)',
+  				'ink-soft': 'rgb(var(--j-ink-soft-rgb) / <alpha-value>)',
+  				rule: 'rgb(var(--j-rule-rgb) / <alpha-value>)',
+  				stamp: 'rgb(var(--j-stamp-rgb) / <alpha-value>)',
+  				materials: 'rgb(var(--j-materials-rgb) / <alpha-value>)',
+  				labour: 'rgb(var(--j-labour-rgb) / <alpha-value>)',
+  				freight: 'rgb(var(--j-freight-rgb) / <alpha-value>)',
+  				brand: 'rgb(var(--j-brand-rgb) / <alpha-value>)',
+  				retail: 'rgb(var(--j-retail-rgb) / <alpha-value>)'
   			},
   			jejak: {
   				navy: '#1B1B3A',

@@ -29,18 +29,35 @@
     --chart-4: 258 90% 66%;
     --chart-5: 333 100% 62%;
     --radius: 0.75rem;
-    --j-paper: #F3EDE2;
-    --j-paper-deep: #E8DFCF;
-    --j-card: #FBF8F2;
-    --j-ink: #1E1B16;
-    --j-ink-soft: #5B544A;
-    --j-rule: #CFC4B1;
-    --j-stamp: #C8442B;
-    --j-materials: #3F7D4E;
-    --j-labour: #D9822B;
-    --j-freight: #2F5D8A;
-    --j-brand: #7A4E8C;
-    --j-retail: #B8456B;
+    /* The journal palette. The `-rgb` channels are the single source of
+       truth; the hex form is derived from them so raw CSS and inline styles
+       can keep using var(--j-*). The channels exist so Tailwind can apply
+       opacity modifiers (bg-journal-ink\/60) — a plain var() cannot carry
+       an alpha channel, which silently dropped ~100 styled rules. */
+    --j-paper-rgb: 243 237 226;
+    --j-paper-deep-rgb: 232 223 207;
+    --j-card-rgb: 251 248 242;
+    --j-ink-rgb: 30 27 22;
+    --j-ink-soft-rgb: 91 84 74;
+    --j-rule-rgb: 207 196 177;
+    --j-stamp-rgb: 200 68 43;
+    --j-materials-rgb: 63 125 78;
+    --j-labour-rgb: 217 130 43;
+    --j-freight-rgb: 47 93 138;
+    --j-brand-rgb: 122 78 140;
+    --j-retail-rgb: 184 69 107;
+    --j-paper: rgb(var(--j-paper-rgb));
+    --j-paper-deep: rgb(var(--j-paper-deep-rgb));
+    --j-card: rgb(var(--j-card-rgb));
+    --j-ink: rgb(var(--j-ink-rgb));
+    --j-ink-soft: rgb(var(--j-ink-soft-rgb));
+    --j-rule: rgb(var(--j-rule-rgb));
+    --j-stamp: rgb(var(--j-stamp-rgb));
+    --j-materials: rgb(var(--j-materials-rgb));
+    --j-labour: rgb(var(--j-labour-rgb));
+    --j-freight: rgb(var(--j-freight-rgb));
+    --j-brand: rgb(var(--j-brand-rgb));
+    --j-retail: rgb(var(--j-retail-rgb));
     --font-heading: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
     --font-body: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
     --font-display: "Fraunces", ui-serif, Georgia, serif;
