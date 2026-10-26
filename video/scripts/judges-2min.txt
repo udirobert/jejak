@@ -1,0 +1,9 @@
+j01|I bought a hundred-and-twenty-pound hoodie and realised I had no idea where it came from. The answer: probably six countries, twenty-one thousand kilometres, and, if published breakdowns are right, under three pounds to the people who sewed it.
+j02|Jejak means trace, or footprint, in Malay. I wanted a tool that shows that journey honestly, as a starting point rather than a verdict.
+j03|There are three kinds of fact here. What we read from your label. What we check against real trade data. And what we can only estimate. It's honest about which is which.
+j04|Guess first, because the gap between your guess and the estimate is the whole point.
+j05|Now the legwork. Describe an item, and an AI trace appears in seconds. Upload a real receipt, and it fills in live, line by line. That's an entity automation on Base44. Each item becomes its own journal entry, and each entry triggers a second automation that writes its story.
+j06|You can even ask the brand, without the awkwardness. Jejak drafts a polite transparency letter you send from your own email, and a scheduled automation checks in after two weeks if they haven't replied.
+j07|Underneath, it composes Stellar primitives: an OpenZeppelin passkey account, no seed phrase; guesses hash-committed on-ledger; pots settling by claimable balance. The protocol holds it, not us.
+j08|Every thing has a journey. Jejak helps you see it. Built end to end on Base44: entities, functions, automations, auth, hosting.
+j09|Every thing has a journey. Jejak helps you see it — and the wager proves it on Stellar. Your guess is hashed on-ledger before the reveal, and the pot settles to the closest guess as a claimable balance — never ours to hold. The wallet is a passkey smart account: no seed phrase, no gas. Built on Base44. Anchored on Stellar.

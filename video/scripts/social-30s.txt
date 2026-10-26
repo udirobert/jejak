@@ -1,0 +1,7 @@
+s01|My hoodie crossed six countries before it reached me, and probably pennies reached the people who sewed it.
+s02|Jejak traces where things come from, and says how sure it is, including what it can't verify.
+s03|Snap anything. Jejak sketches its supply chain in seconds.
+s04|Then guess how much reached the people who made it, against figures anchored in real trade data.
+s05|Snap a receipt and every item gets traced, with a story written for each. All automatic.
+s06|And you can lock any entry so it can't be quietly changed later.
+s07|Jejak. A field journal for the things you own. Built end to end on Base44.
