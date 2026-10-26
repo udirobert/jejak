@@ -16,9 +16,13 @@ import RouteMap from "@/components/journal/RouteMap";
 import Receipt from "@/components/journal/Receipt";
 import StoryCard from "@/components/journal/StoryCard";
 import AskBrandSheet from "@/components/journal/AskBrandSheet";
+import DelegationCard from "@/components/journal/DelegationCard";
+import Observations from "@/components/journal/Observations";
 import PageLoader from "@/components/journal/PageLoader";
 import WashiTape from "@/components/journal/WashiTape";
 import { useCountUp } from "@/lib/useCountUp";
+import { deriveObservations, openThreadSummary } from "@/lib/observations";
+import { delegationState } from "@/lib/delegation";
 import { toast } from "sonner";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
@@ -155,7 +159,9 @@ function EntrySheet({ scan, onClose, onOpenJourney }) {
 
         <div className="mt-6 flex flex-wrap gap-4 border-t border-journal-rule pt-4">
           {product && <JournalButton onClick={() => onOpenJourney(scan)}>Open full journey</JournalButton>}
-          <JournalButton variant="secondary" onClick={() => setAskOpen(true)}>Ask the brand</JournalButton>
+          <JournalButton variant="secondary" onClick={() => setAskOpen(true)} data-ask-brand>
+            Ask the brand
+          </JournalButton>
           <JournalButton variant="secondary" onClick={toggleVisibility}>
             {scan.visibility === "public" ? "Make private" : "Put on the Atlas"}
           </JournalButton>
@@ -192,11 +198,11 @@ function EmptyJournal({ atlasScans, currency, market }) {
       <motion.p {...reveal(0)} className="font-plexmono text-[11px] uppercase tracking-[0.18em] text-journal-stamp">
         Nothing pressed yet
       </motion.p>
-      <motion.h2 {...reveal(0.06)} className="mt-2 font-serif-display text-3xl text-journal-ink md:text-4xl" style={displayFont}>
-        Start with a specimen
+      <motion.h2 {...reveal(0.06)} className="mt-2 max-w-2xl font-serif-display text-3xl text-journal-ink md:text-4xl" style={displayFont}>
+        Give me one label. I'll trace the route, price the labour share, tell you how sure I am, and anchor the whole thing to a public ledger you can check without me.
       </motion.h2>
-      <motion.p {...reveal(0.12)} className="mt-2 max-w-md font-grotesk text-[15px] leading-relaxed text-journal-ink-soft">
-        Each one is a real supply chain we keep on the shelf — trace it, then make it yours with a photo or a receipt.
+      <motion.p {...reveal(0.12)} className="mt-3 max-w-md font-grotesk text-[15px] leading-relaxed text-journal-ink-soft">
+        Start with anything below if you'd rather see the shape of it first. Each one is a real supply chain we keep on the shelf.
       </motion.p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -267,6 +273,8 @@ export default function Journal() {
   const [letters, setLetters] = useState([]);
   const [atlasScans, setAtlasScans] = useState([]);
   const [selected, setSelected] = useState(null);
+  const [openLetter, setOpenLetter] = useState(null);
+  const [nudgeFor, setNudgeFor] = useState(null);
   const receiptParam = searchParams.get("receipt");
 
   // Public Atlas entries feed the "from the field" strip (readable signed out).
@@ -315,6 +323,24 @@ export default function Journal() {
   const aKm = useCountUp(stats.km, 900, reduce);
   const aLabour = useCountUp(stats.labour, 900, reduce, 2);
 
+  // What the app noticed on its own — only shown once there's something to
+  // notice. Derived from the journal's own records, never invented.
+  const observations = useMemo(
+    () => deriveObservations({ scans, letters }),
+    [scans, letters]
+  );
+
+  // The delegated items, ordered by how much they need the user.
+  const delegated = useMemo(() => {
+    const rank = { overdue: 0, flagged: 1, escalated: 2, drafted: 3, awaiting: 4, replied: 5, closed: 6 };
+    return [...letters]
+      .map((rec) => ({ rec, state: delegationState(rec) }))
+      .filter((x) => x.state && x.state.key !== "closed")
+      .sort((a, b) => (rank[a.state.key] ?? 9) - (rank[b.state.key] ?? 9));
+  }, [letters]);
+
+  const openThread = openThreadSummary(letters);
+
   const openJourney = (scan) => {
     const p = productFromScan(scan);
     if (!p) return;
@@ -323,12 +349,49 @@ export default function Journal() {
     navigate("/trace");
   };
 
-  const setLetterStatus = async (rec, status, note) => {
-    try {
-      await base44.entities.BrandRequest.update(rec.id, { status, ...(note ? { reply_note: note } : {}) });
-      setLetters((p) => p.map((x) => (x.id === rec.id ? { ...x, status } : x)));
-    } catch {
-      toast.error("Couldn't update that letter.");
+  // Handlers for what the observations ask for.
+  const onObservationAction = (o) => {
+    switch (o.action?.kind) {
+      case "nudge": {
+        const rec = letters.find((l) => l.id === o.action.value);
+        if (rec) {
+          // Open the delegated item itself and let it draw the follow-up,
+          // rather than just the letter.
+          setNudgeFor(rec.id);
+          requestAnimationFrame(() => {
+            document.getElementById("on-my-desk")?.scrollIntoView({
+              block: "center",
+              behavior: reduce ? "auto" : "smooth",
+            });
+          });
+        }
+        break;
+      }
+      case "send": {
+        const rec = letters.find((l) => l.id === o.action.value);
+        if (rec) setOpenLetter(rec);
+        break;
+      }
+      case "ask": {
+        // Open the newest trace of that brand so the letter can be drafted
+        // against it — asking needs an item to ask about.
+        const brand = (o.action.value || "").toLowerCase();
+        const scan = scans.find((s) => (s.brand || "").toLowerCase() === brand) || scans[0];
+        if (scan) {
+          setSelected(scan);
+          setTimeout(() => document.querySelector('[data-ask-brand]')?.click(), 400);
+        } else {
+          navigate("/trace");
+        }
+        break;
+      }
+      case "trace":
+        navigate("/trace");
+        break;
+      case "filter":
+      default:
+        navigate("/journal");
+        break;
     }
   };
 
@@ -365,9 +428,18 @@ export default function Journal() {
             <p className="mt-2 font-plexmono text-[11px] uppercase tracking-[0.14em] text-journal-ink-soft">
               {aEntries} entries · {aCountries} countries · {aKm.toLocaleString()} km · ≈{formatMoney(aLabour, "GBP")} estimated to makers
             </p>
+            {openThread && (
+              <p className="mt-1 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-stamp">
+                {openThread}
+              </p>
+            )}
           </div>
           <JournalButton to="/trace">Trace something</JournalButton>
         </div>
+
+        {observations.length > 0 && (
+          <Observations observations={observations} onAction={onObservationAction} reduce={reduce} />
+        )}
 
         <div className="mt-8">
           {(receiptParam || scans.length === 0) && receiptParam && <LiveReceiptCard receiptId={receiptParam} />}
@@ -405,30 +477,27 @@ export default function Journal() {
           })}
         </div>
 
-        {letters.length > 0 && (
-          <section className="border-t border-journal-rule pb-16 pt-8">
-            <h2 className="font-serif-display text-3xl text-journal-ink" style={displayFont}>Letters to brands</h2>
+        {delegated.length > 0 && (
+          <section id="on-my-desk" className="scroll-mt-10 border-t border-journal-rule pb-16 pt-8">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <h2 className="font-serif-display text-3xl text-journal-ink" style={displayFont}>On my desk</h2>
+              <p className="font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
+                things you handed off
+              </p>
+            </div>
             <div className="mt-4 space-y-3">
-              {letters.map((l) => (
-                <div key={l.id} className="flex flex-wrap items-center gap-3 border border-journal-rule bg-journal-card p-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-grotesk text-sm font-medium text-journal-ink">{l.brand} · {l.product_name}</p>
-                    <p className="truncate font-grotesk text-[13px] text-journal-ink-soft">{l.subject}</p>
-                  </div>
-                  <span className={`font-plexmono text-[10px] uppercase tracking-[0.12em] ${l.status === "replied" ? "text-journal-materials" : "text-journal-ink-soft"}`}>
-                    {l.status}
-                  </span>
-                  {l.status !== "replied" && l.status !== "closed" && (
-                    <button type="button" onClick={() => setLetterStatus(l, "replied")} className="min-h-[44px] px-2 font-grotesk text-sm text-journal-ink underline decoration-journal-stamp underline-offset-4 no-tap">
-                      Mark replied
-                    </button>
-                  )}
-                  {l.status !== "closed" && (
-                    <button type="button" onClick={() => setLetterStatus(l, "closed")} className="min-h-[44px] px-2 font-grotesk text-sm text-journal-ink-soft no-tap hover:text-journal-ink">
-                      Close
-                    </button>
-                  )}
-                </div>
+              {delegated.map(({ rec }) => (
+                <DelegationCard
+                  key={rec.id}
+                  record={rec}
+                  autoNudge={nudgeFor === rec.id}
+                  onUpdate={async (id, patch) => {
+                    await base44.entities.BrandRequest.update(id, patch);
+                    setLetters((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
+                  }}
+                  onOpen={setOpenLetter}
+                  reduce={reduce}
+                />
               ))}
             </div>
           </section>
@@ -438,6 +507,8 @@ export default function Journal() {
       <AnimatePresence>
         {selected && <EntrySheet scan={selected} onClose={() => setSelected(null)} onOpenJourney={openJourney} />}
       </AnimatePresence>
+
+      <AskBrandSheet open={!!openLetter} onClose={() => setOpenLetter(null)} record={openLetter} />
     </ScreenShell>
   );
 }

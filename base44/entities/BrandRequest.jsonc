@@ -29,6 +29,7 @@
         "drafted",
         "sent",
         "replied",
+        "escalated",
         "closed"
       ],
       "default": "drafted"

@@ -42,6 +42,15 @@ npx skills add base44/skills
 ## Design system ("field journal")
 
 - Primitives: `src/components/journal/` (PaperGrain, Stamp, MarginNote, RouteMap, Receipt, JournalButton, Specimen, ProofDrawer, StoryCard, AskBrandSheet).
+- Agentic primitives: `TraceSteps` (shows the trace's steps landing one at a time), `ConfidenceShift` (shows the estimate move when a label lands), `DelegationCard` (a handed-off letter with a state), `Observations` (what the app noticed), `PassportSign` (co-sign an anchored record), `GiveBackNote` (the maker payout, in the money flow).
 - Tokens: `journal-*` Tailwind colours / `--j-*` CSS vars; fonts `font-serif-display` (Fraunces), `font-grotesk`, `font-plexmono`, `font-hand` (Caveat, margin notes only).
 - No emojis in UI. Plain copy: blockchain/hash terms only inside ProofDrawer and the Impact detail rows.
+- Copy in the app speaks in the first person ("I'm fairly sure about Bangladesh") and always names the limitation next to the claim. See `docs/agentic.md`.
 - AI prompts/schemas live in `base44/shared/prompts.ts`; their honesty rules are product requirements.
+
+## Checks before finishing
+
+- `npm run lint` and `npm run build`
+- `deno test base44/shared/` (trace normalisation tests)
+- `deno test src/lib/` (delegation lifecycle + observations tests)
+- `deno check base44/functions/*/entry.ts base44/shared/*.ts`. The two Stellar functions fail locally on `npm:@stellar/stellar-sdk` resolution only; that's expected, because Base44 resolves `npm:` specifiers at deploy. Never vendor node_modules into a function dir (deploy uploads every file in it).

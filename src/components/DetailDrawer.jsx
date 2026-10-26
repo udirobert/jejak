@@ -7,9 +7,9 @@ import { CATEGORY_MAP } from "@/lib/tokens";
 // "Follow the money" — per-category detail drawer.
 export default function DetailDrawer() {
   const { product, market, currency, detailCategory, setDetailCategory, setShowHowTo, compareMode } = useApp();
-  const open = !!detailCategory;
+  const open = !!detailCategory && !!product;
   const cat = open ? CATEGORY_MAP[detailCategory] : null;
-  const split = computeSplit(product, market, compareMode ? "transparent" : "split");
+  const split = product ? computeSplit(product, market, compareMode ? "transparent" : "split") : [];
   const entry = open ? split.find((s) => s.key === detailCategory) : null;
 
   return (

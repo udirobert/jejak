@@ -4,6 +4,7 @@ import { computeSplit } from "@/lib/money";
 import { Drawer, DrawerContent } from "@/components/ui/drawer";
 import StellarTraceReceiptCard from "@/components/StellarTraceReceiptCard";
 import MakerBridgeCard from "@/components/MakerBridgeCard";
+import PassportSign from "./PassportSign";
 import Stamp from "./Stamp";
 import MarginNote from "./MarginNote";
 
@@ -11,7 +12,7 @@ import MarginNote from "./MarginNote";
 // optional maker payout. Plain explainer up top; terms like SHA-256/Testnet
 // are allowed only inside this drawer.
 export default function ProofDrawer({ open, onOpenChange }) {
-  const { product, market, currency, customPrice } = useApp();
+  const { product, market, currency, customPrice, provenanceRecord } = useApp();
   const price = customPrice != null && customPrice > 0 ? customPrice : product.markets[market].price;
   const labour = computeSplit(product, market).find((s) => s.key === "labour");
 
@@ -43,6 +44,10 @@ export default function ProofDrawer({ open, onOpenChange }) {
 
           <section className="mt-6 border-t border-journal-rule pt-5" aria-label="Ledger record">
             <StellarTraceReceiptCard autoAnchor={true} />
+            <PassportSign
+              recordHash={provenanceRecord?.recordHashHex}
+              label={product?.name}
+            />
           </section>
 
           <section className="mt-8 border-t border-journal-rule pt-5" aria-label="Support the makers">

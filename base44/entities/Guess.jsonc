@@ -1,0 +1,51 @@
+{
+  "name": "Guess",
+  "type": "object",
+  "properties": {
+    "product_id": {
+      "type": "string"
+    },
+    "guess_pct": {
+      "type": "number"
+    },
+    "user_id": {
+      "type": "string"
+    },
+    "salt": {
+      "type": "string"
+    },
+    "guess_hash": {
+      "type": "string"
+    },
+    "commit_tx": {
+      "type": "string"
+    },
+    "explorer_url": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "committed",
+        "won",
+        "lost"
+      ],
+      "default": "committed"
+    },
+    "stake_xlm": {
+      "type": "string"
+    },
+    "reveal_error_pct": {
+      "type": "number"
+    },
+    "settle_tx": {
+      "type": "string"
+    },
+    "settle_explorer": {
+      "type": "string"
+    },
+    "winner_claim_address": {
+      "type": "string"
+    }
+  }
+}

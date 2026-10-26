@@ -1,4 +1,5 @@
 import { Toaster } from "@/components/ui/toaster"
+import { Toaster as Sonner } from "sonner"
 import { QueryClientProvider } from '@tanstack/react-query'
 import { queryClientInstance } from '@/lib/query-client'
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
@@ -93,6 +94,21 @@ function App() {
           <AuthenticatedApp />
         </Router>
         <Toaster />
+        {/* Every toast in the app comes from sonner, so it needs its own
+            outlet — the shadcn Toaster above is a separate store. */}
+        <Sonner
+          position="bottom-center"
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast:
+                "!rounded-none !border !border-journal-rule !bg-journal-card !font-grotesk !text-journal-ink !shadow-[3px_3px_0_0_rgba(30,27,22,0.12)]",
+              description: "!text-journal-ink-soft",
+              actionButton: "!bg-journal-ink !text-journal-card !rounded-none",
+              closeButton: "!text-journal-ink-soft",
+            },
+          }}
+        />
       </QueryClientProvider>
     </AuthProvider>
   )

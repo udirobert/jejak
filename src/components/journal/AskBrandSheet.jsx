@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { useAuth } from "@/lib/AuthContext";
@@ -6,19 +6,39 @@ import { base44 } from "@/api/base44Client";
 import JournalButton from "./JournalButton";
 import { toast } from "sonner";
 import { CheckSquare, Copy, Mail, Send } from "lucide-react";
+import { REMIND_DAYS } from "@/lib/delegation";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
 
 // "Ask the brand" — drafts a transparency letter, the user sends it themselves.
-export default function AskBrandSheet({ open, onClose, scan = null, product = null }) {
+//
+// Two modes:
+//   new      — no record: draft a letter from a scan/product
+//   existing — a record: open the letter that's already in the journal, edit
+//              it, and mark it sent. The journal's delegated items open here.
+//
+// Jejak never emails brands on the user's behalf. It drafts, it follows up,
+// it reports back — the send button stays with the user.
+export default function AskBrandSheet({ open, onClose, scan = null, product = null, record = null }) {
   const { labelEvidence, savedScanId } = useApp();
   const { isAuthenticated, navigateToLogin } = useAuth();
-  const [brand, setBrand] = useState(scan?.brand || product?.brand || "");
+  const [brand, setBrand] = useState(scan?.brand || product?.brand || record?.brand || "");
   const [drafting, setDrafting] = useState(false);
-  const [record, setRecord] = useState(null);
-  const [subject, setSubject] = useState("");
-  const [body, setBody] = useState("");
-  const [questions, setQuestions] = useState([]);
+  const [rec, setRec] = useState(record);
+  const [subject, setSubject] = useState(record?.subject || "");
+  const [body, setBody] = useState(record?.body || "");
+  const [questions, setQuestions] = useState(record?.questions || []);
+
+  // Re-sync whenever the sheet is opened, so a re-opened letter shows its
+  // saved state rather than a stale draft.
+  useEffect(() => {
+    if (!open) return;
+    setRec(record);
+    setBrand(record?.brand || scan?.brand || product?.brand || "");
+    setSubject(record?.subject || "");
+    setBody(record?.body || "");
+    setQuestions(record?.questions || []);
+  }, [open, record, scan, product]);
 
   if (!open) return null;
 
@@ -37,12 +57,12 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
         labelMaterials: labelEvidence?.fibre_composition || scan?.label_materials || "",
         estimatedStages: estimated,
       });
-      const rec = res?.data?.record;
-      if (rec) {
-        setRecord(rec);
-        setSubject(rec.subject);
-        setBody(rec.body);
-        setQuestions(rec.questions || []);
+      const created = res?.data?.record;
+      if (created) {
+        setRec(created);
+        setSubject(created.subject);
+        setBody(created.body);
+        setQuestions(created.questions || []);
       }
     } catch {
       toast.error("Couldn't draft the letter right now — try again.");
@@ -52,22 +72,26 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
   };
 
   const markSent = async () => {
+    if (!rec) return;
     const now = new Date();
-    const remind = new Date(now.getTime() + 14 * 24 * 3600 * 1000);
+    const remind = new Date(now.getTime() + REMIND_DAYS * 24 * 3600 * 1000);
     try {
-      await base44.entities.BrandRequest.update(record.id, {
+      await base44.entities.BrandRequest.update(rec.id, {
         status: "sent",
         sent_at: now.toISOString(),
         remind_at: remind.toISOString(),
+        reminded: false,
         subject,
         body,
       });
-      toast.success("We'll check in with you in two weeks if they haven't replied.");
+      toast.success(`Sent. I'll check back in ${REMIND_DAYS} days if they haven't replied.`);
       onClose();
     } catch {
       toast.error("Couldn't save that — try again.");
     }
   };
+
+  const isExisting = Boolean(rec);
 
   return (
     <AnimatePresence>
@@ -86,7 +110,7 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
               <p className="font-grotesk text-sm text-journal-ink-soft">Sign in to draft a letter — it's kept in your journal so you can follow up.</p>
               <div className="mt-3"><JournalButton onClick={navigateToLogin}>Sign in</JournalButton></div>
             </div>
-          ) : !record ? (
+          ) : !rec ? (
             <div className="mt-5">
               <label className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft" htmlFor="ab-brand">Brand</label>
               <input
@@ -105,16 +129,18 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
           ) : (
             <div className="mt-5 space-y-4">
               <div>
-                <label className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">Subject</label>
+                <label className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft" htmlFor="ab-subject">Subject</label>
                 <input
+                  id="ab-subject"
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   className="mt-1 w-full border border-journal-rule bg-journal-paper px-3 py-2 font-grotesk text-sm text-journal-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp"
                 />
               </div>
               <div>
-                <label className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">Letter</label>
+                <label className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft" htmlFor="ab-body">Letter</label>
                 <textarea
+                  id="ab-body"
                   value={body}
                   onChange={(e) => setBody(e.target.value)}
                   rows={9}
@@ -140,9 +166,11 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
                 <JournalButton variant="secondary" onClick={() => { navigator.clipboard?.writeText(`${subject}\n\n${body}`); toast.success("Copied"); }}>
                   <Copy size={13} /> Copy letter
                 </JournalButton>
-                <JournalButton variant="secondary" onClick={markSent}>
-                  <Send size={13} /> I've sent it
-                </JournalButton>
+                {rec.status !== "sent" && rec.status !== "escalated" && (
+                  <JournalButton variant="secondary" onClick={markSent}>
+                    <Send size={13} /> I've sent it
+                  </JournalButton>
+                )}
               </div>
               <p className="font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
                 Jejak never emails brands for you — you stay in control.

@@ -529,6 +529,50 @@ export async function sign(payloadSummary = "verify_context_rule") {
 }
 
 /**
+ * Co-sign a trace record with the passport.
+ *
+ * The app anchors the record on its own account; this puts the user's own
+ * key on it too, so the public ledger shows that *this* trace is the one
+ * they made — not merely that Jejak anchored something. The passkey
+ * prompt is the signature; the relayer sponsors the fee and journals it.
+ *
+ * Appends to `passportActions` so it shows up under "Your passport" on the
+ * Impact page, next to the limit and recovery actions.
+ */
+export async function signTraceRecord({ recordHash, label } = {}) {
+  const session = loadStoredSession();
+  if (!session) throw new Error("Create your Jejak passport first.");
+
+  const hash = String(recordHash || "")
+    .toLowerCase()
+    .replace(/[^0-9a-f]/g, "")
+    .slice(0, 16);
+  if (!hash) throw new Error("No anchored record to sign yet.");
+
+  // The relayer stores a short summary in the transaction's data field.
+  const relayRes = await sign(`trace:${hash}`);
+  const nowIso = new Date().toISOString();
+  const actionEntry = {
+    id: `act-trace-${Date.now()}`,
+    type: "Trace record signed",
+    detail: label ? `${label} · ${hash.slice(0, 12)}` : `record ${hash.slice(0, 12)}`,
+    hash: relayRes?.hash,
+    ledger: relayRes?.ledger,
+    explorerUrl: relayRes?.explorerUrl,
+    createdAt: nowIso,
+    simulated: false,
+  };
+
+  const updated = {
+    ...session,
+    passportActions: [actionEntry, ...(session.passportActions || [])],
+    lastSponsoredTx: relayRes,
+  };
+  saveStoredSession(updated);
+  return updated;
+}
+
+/**
  * Add a secondary recovery signer to the OpenZeppelin threshold policy.
  */
 export async function addRecoverySigner(label = "Recovery backup key") {

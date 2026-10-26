@@ -12,6 +12,7 @@ export default function JournalButton({
   onClick,
   type = "button",
   disabled = false,
+  ...rest
 }) {
   const base =
     "font-grotesk font-medium text-sm transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-journal-stamp focus-visible:outline-offset-2 disabled:opacity-50 disabled:pointer-events-none cursor-pointer";
@@ -30,10 +31,10 @@ export default function JournalButton({
       children
     );
 
-  if (to) return <Link to={to} className={cls} onClick={onClick}>{inner}</Link>;
-  if (href) return <a href={href} className={cls} onClick={onClick}>{inner}</a>;
+  if (to) return <Link to={to} className={cls} onClick={onClick} {...rest}>{inner}</Link>;
+  if (href) return <a href={href} className={cls} onClick={onClick} {...rest}>{inner}</a>;
   return (
-    <button type={type} className={cls} onClick={onClick} disabled={disabled}>
+    <button type={type} className={cls} onClick={onClick} disabled={disabled} {...rest}>
       {inner}
     </button>
   );

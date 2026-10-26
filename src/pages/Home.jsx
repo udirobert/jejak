@@ -219,6 +219,9 @@ export default function Home() {
         <h1 className="mt-3 font-serif-display text-4xl leading-[1.02] text-journal-ink" style={displayFont}>
           What are you <em className="italic text-journal-stamp">holding</em>?
         </h1>
+        <p className="mt-3 max-w-md font-grotesk text-[15px] leading-relaxed text-journal-ink-soft">
+          Give me one label. I'll trace the route, price the labour share, tell you how sure I am, and anchor the whole thing to a public ledger you can check without me.
+        </p>
         {statusLine && streakChip}
 
         {tourBanner && (
@@ -319,7 +322,7 @@ export default function Home() {
             What are you <em className="italic text-journal-stamp">holding</em>?
           </motion.h1>
           <motion.p {...reveal(0.16)} className="mt-4 max-w-md font-grotesk text-[15px] leading-relaxed text-journal-ink-soft">
-            Snap the thing in your hand. Jejak traces where it came from, who made it, and where your money went.
+            Snap the thing in your hand. I'll trace where it came from, who made it, and where your money went — then tell you exactly how sure I am.
           </motion.p>
           {statusLine && (
             <motion.div {...reveal(0.2)}>{streakChip}</motion.div>

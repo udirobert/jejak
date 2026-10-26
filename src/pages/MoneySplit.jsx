@@ -13,6 +13,7 @@ import MarginNote from "@/components/journal/MarginNote";
 import JournalButton from "@/components/journal/JournalButton";
 import ProofDrawer from "@/components/journal/ProofDrawer";
 import StoryCard from "@/components/journal/StoryCard";
+import GiveBackNote from "@/components/journal/GiveBackNote";
 import AskBrandSheet from "@/components/journal/AskBrandSheet";
 import { useSaveTrace } from "@/lib/saveTrace";
 import { useAuth } from "@/lib/AuthContext";
@@ -58,6 +59,9 @@ export default function MoneySplit() {
     reset,
   } = useApp();
   const [guess, setGuess] = useState(15);
+  const [guessProof, setGuessProof] = useState(null);
+  const [poolResult, setPoolResult] = useState(null);
+  const [anchorState, setAnchorState] = useState("idle"); // idle | anchoring | anchored | failed
   const [proofOpen, setProofOpen] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
@@ -130,6 +134,42 @@ export default function MoneySplit() {
     ? `you guessed ${formatMoney(guessedAmount, currency)}`
     : "have a guess first";
 
+  // Stake the guess: commit its hash onchain, then settle the pool to the
+  // closest guess via a claimable balance. Testnet. The anchor state is
+  // surfaced in the UI so a failed commit can never hide silently.
+  const commitGuess = () => {
+    const productId = savedScanId || product?.id || product?.name || "unknown";
+    const userId = savedScanId || "guest";
+    setAnchorState("anchoring");
+    base44.functions
+      .invoke("guessPool", { action: "commit", product_id: productId, guess_pct: guess, user_id: userId })
+      .then((r) => {
+        const data = r?.data || r;
+        if (!data?.ok) throw new Error(data?.error || "commit rejected");
+        setGuessProof(data);
+        setAnchorState("anchored");
+        return base44.functions.invoke("guessPool", {
+          action: "resolve",
+          product_id: productId,
+          labour_pct: labour.pct?.mid ?? 0,
+        });
+      })
+      .then((r) => {
+        const data = r?.data || r;
+        if (data?.ok) setPoolResult(data);
+      })
+      .catch((err) => {
+        console.warn("[guessPool] anchor failed:", err);
+        setAnchorState("failed");
+      });
+  };
+
+  const handleReveal = () => {
+    vibrate(10);
+    setGuessedLabourPct(guess);
+    commitGuess();
+  };
+
   return (
     <ScreenShell section="Trace · where the money went">
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-6 lg:px-10 lg:pt-10">
@@ -161,7 +201,7 @@ export default function MoneySplit() {
             Where your {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })} went
           </h1>
           <p className="mt-3 max-w-md font-grotesk text-[15px] leading-relaxed text-journal-ink-soft">
-            {product.name} · {product.markets[market].retailer} · every figure is a range with a confidence level.
+            {product.name} · {product?.markets?.[market]?.retailer} · every figure is a range with a confidence level.
           </p>
 
           <AnimatePresence mode="wait">
@@ -187,6 +227,40 @@ export default function MoneySplit() {
                 <p className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
                   tap a line for its basis
                 </p>
+                {(anchorState === "anchoring" || anchorState === "failed" || guessProof) && (
+                  <div className="mt-1 max-w-md font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
+                    {anchorState === "anchoring" && <span>anchoring guess onchain…</span>}
+                    {anchorState === "failed" && (
+                      <span className="text-journal-stamp">
+                        anchor failed — your guess is still revealed locally.
+                        <button type="button" onClick={commitGuess}
+                          className="ml-2 underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-ink no-tap">
+                          retry
+                        </button>
+                      </span>
+                    )}
+                    {guessProof && (
+                      <>
+                        <a href={guessProof.explorer_url} target="_blank" rel="noreferrer"
+                          className="underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-stamp">
+                          guess anchored onchain · sha:{guessProof.guess_hash?.slice(0, 12)}…
+                        </a>
+                        {poolResult?.winner && (
+                          <span className="block mt-1">
+                            {poolResult.winner.user_id === (savedScanId || "guest")
+                              ? `pool won · ${poolResult.winner.pot_xlm} XLM claimable`
+                              : `pool settled · closest guess won`}
+                            {" · "}
+                            <a href={poolResult.winner.settle_explorer} target="_blank" rel="noreferrer"
+                              className="underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-stamp">
+                              settle tx
+                            </a>
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
                 <div className="mt-5 max-w-md">
                   <StoryCard
                     scanId={savedScanId}
@@ -196,6 +270,11 @@ export default function MoneySplit() {
                     currency={currency}
                   />
                 </div>
+                <GiveBackNote
+                  price={price}
+                  currency={currency}
+                  labourAmount={labour.amount}
+                />
               </motion.div>
             ) : (
               <motion.div
@@ -228,7 +307,7 @@ export default function MoneySplit() {
                   <span>40%</span>
                 </div>
                 <div className="mt-4">
-                  <JournalButton onClick={() => { vibrate(10); setGuessedLabourPct(guess); }}>
+                  <JournalButton onClick={handleReveal}>
                     Reveal the split
                   </JournalButton>
                 </div>

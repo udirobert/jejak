@@ -1,5 +1,5 @@
 # HackMeridian 2026 — Jejak Hackathon Plan
-**Event:** HackMeridian 2026, Lisbon · **Track:** Scale + Stellar Composed  
+**Event:** HackMeridian 2026, Lisbon · **Track:** Genesis + Stellar Composed  
 **Started:** 2026-10-25 · **Budget: ~17h hard deadline**
 
 > Work is split between **Dev A** (new Stellar feature + `/room`) and **Dev B** (GTM + polish + submission). Read your individual file: `docs/dev-a.md` or `docs/dev-b.md`.
@@ -11,9 +11,9 @@
 
 ---
 
-## Why we're on Scale track, and what "built today" means
+## Track: Genesis, and what "built today" means
 
-We arrive with a working product. The Scale requirement is **clearly new work during the event**. That new work is:
+New projects enter Genesis (Scale applications are closed). The Genesis requirement is **a working PoC/MVP + meaningful technical work during the event** — same bar we set for ourselves. New work during the event is:
 
 1. 🆕 **`/room` — Hackathon Floor Mode**: ledger-backed live counter (reads from Stellar, not just DB), guest trace (no sign-up), live feed with anchored-on-Stellar chips → stellar.expert links — **Dev A**
 2. 🆕 **Brand attestation stretch**: a second deterministic keypair `manageData`s a reference to the user's anchor hash — "estimate today, attested claim when the brand co-signs" — **Dev A stretch**
@@ -21,9 +21,15 @@ We arrive with a working product. The Scale requirement is **clearly new work du
 4. 🆕 **Performance + visual polish pass**: page transitions, colour system, font consistency — **both (context below)**
 5. 🆕 **Provenance legitimacy pass**: UN Comtrade trade data behind the "made in" stop, honest source labels, label evidence applied to the correct stop, proof record v2 (label photo hash + trade citation). Full audit in [`legitimacy.md`](legitimacy.md) — **Dev B**
 6. 🆕 **Mobile harmonisation**: the old app's thumb-first interactions rebuilt in the journal style (shutter, status line, swipeable stops, guided tour, anchor thud). See `polish.md` — **Dev B**
+7. 🆕 **Staked provenance guesses ("the wager")** — NEW STELLAR FEATURE, verified on testnet 2026-10-26. The guess-the-maker-share beat becomes a staked pool: guess → SHA-256 commit anchored via `Memo.hash` (provably fair — no one can edit after reveal) → resolve ranks committed guesses → closest guess wins a **claimable balance** (pot on-ledger, not custodial). New: `base44/functions/guessPool` + `Guess` entity + MoneySplit commit/resolve/settle links. Verified txs: commit `3f90061a…` (ledger-confirmed, payment op + Memo.hash), settle `cfe9f2b9…` in **ledger 5393274** (memo `JEJAK-POOL:wager-te:WIN`, claimable balance).
+8. 🆕 **The agentic layer** — the product stops handing over answers and starts showing its work. **TraceSteps**: the identifying screen now shows the trace landing one step at a time (read photo → match product type → pull import data → build route → estimate split), each line read from the same helpers the rest of the app uses, closing with a first-person verdict whose reasoning actually follows from the data. **ConfidenceShift**: a care tag visibly moves the origin from *fairly sure* to *sure* — and says what did **not** change (a label doesn't price a factory). **DelegationCard** + `src/lib/delegation.js`: a brand letter becomes a task with a clock-derived state (drafted → sent → awaiting reply → flagged after 14 days → escalated) and a drafted follow-up; the user keeps the send button. **Observations** + `src/lib/observations.js`: the journal opens with what the app noticed, derived from the user's own records — never generated. **GiveBackNote**: the maker payout moved out of the drawer into the money flow, as a claimable balance. **PassportSign**: the passport co-signs an anchored record, so the ledger shows the trace is yours. Full spec in [`agentic.md`](agentic.md) — **Dev B**
 
 ### What "built today" answer for judges:
-> "Three things. `/room` — guest trace with no sign-up, plus a live counter and feed backed by the ledger, not the database. A provenance-legitimacy pass: the 'made in' stop is now checked against real UN Comtrade import data, label evidence lands on the correct stage, and the on-chain record (v2) includes the label photo's hash and the data source. And a mobile harmonisation pass — a stamp shutter, swipeable stops and a guided tour in the journal style."
+> "Four things. `/room` — guest trace with no sign-up, plus a live counter and feed backed by the ledger, not the database. A provenance-legitimacy pass: the 'made in' stop is now checked against real UN Comtrade import data, label evidence lands on the correct stage, and the on-chain record (v2) includes the label photo's hash and the data source. A mobile harmonisation pass — a stamp shutter, swipeable stops and a guided tour in the journal style. And an agentic layer: the trace now shows its work step by step, a care tag visibly moves the estimate, a brand letter becomes a task the app follows up on, and the journal opens with what the app noticed on its own."
+
+### Prior-work disclosure
+
+`base44/functions/stellarFeeRelayer` and `stellarMakerPayout` predate this event (marked `@ts-nocheck — pre-existing Stellar code`). The journal/product shell, automations, `/room`, legitimacy pass, mobile harmonisation, **guessPool wager**, **agentic layer**, and video are new work during HackMeridian.
 
 ### Delta commits during the event (25 Oct, `17d9fa5` is pre-event baseline)
 | Commit | What |
@@ -39,7 +45,7 @@ We arrive with a working product. The Scale requirement is **clearly new work du
 | `24ed670` | Labour shares re-anchored to CCC + Deloitte/Oxfam; living-wage note |
 | `5ae1785` + `0f02527` | Hotfixes: rebuild-era runtime crashes (landing blank, MoneySplit `basePrice`) |
 
-On-chain evidence: fresh anchor tx timestamped today — **[fill in after anchoring: hash + stellar.expert link]**.
+On-chain evidence: wager-pool commits + settlement anchored during the event — commit `3f90061a…` (Memo.hash anchor) and settle `cfe9f2b9…` (claimable balance, ledger 5393274): https://stellar.expert/explorer/testnet/tx/cfe9f2b9dc2ee67f99c622bb861cd42957f3738bac78a16bd8222a2b64b4765f
 
 ---
 
@@ -122,3 +128,37 @@ See `docs/polish.md` for the full list. Short version:
 | Guest trace breaks | Curated fallback (no backend, no auth) ships first |
 | Nobody scans QR | Walk the room — opening line does the work |
 | `/room` runs long | Ship counter + feed first (2h), add guest trace second |
+
+---
+
+## Stellar architecture overview
+
+**Network:** Stellar **Testnet** only (`STELLAR_NETWORK = "TESTNET"`, never mainnet in demo). Endpoints: Horizon `https://horizon-testnet.stellar.org`, Soroban RPC `https://soroban-testnet.stellar.org`, Friendbot for testnet funding. Price oracle: mainnet XLM/USDC orderbook midpoint via Horizon (read-only).
+
+**How Stellar is used (the Composed pitch):**
+
+| Primitive | Where | What it does |
+|---|---|---|
+| OpenZeppelin **Smart Account Kit** (passkey/WebAuthn) | `src/lib/stellarConfig.js`, `JejakPassportSheet`, `stellarFeeRelayer` | "Your Jejak passport" — a smart wallet secured by a passkey, no seed phrase. The relayer sponsors fees so users never hold XLM. |
+| **Fee-sponsored relayer** | `base44/functions/stellarFeeRelayer` | Sponsors gas for allowlisted smart-account actions (deploy, recovery signer, spending policy, session challenge). Rate-limited (10 ops/60s per caller), isolated sponsor keypair. |
+| **Provenance memo-anchoring** | `base44/functions/stellarMakerPayout` (`anchor_provenance`, `anchor_estimate`) | SHA-256 of canonical `jejak.provenance.v1` JSON written as `Memo.hash` — an *anchored record of an estimate*, disclosed as such. Explorer links via stellar.expert. |
+| **Claimable balances (CAP-23)** | `base44/functions/guessPool` | Wager-pool stakes + pot settlement: winner claims directly on-ledger — Jejak never holds funds. |
+| **Commit-reveal fairness** | `guessPool` (`commit`/`resolve`) | Guess hash anchored at guess-time → provably un-edited before reveal. |
+| Demo payment flows | `stellarMakerPayout` (cause wallets, maker payouts) | Deterministic testnet keypairs; all payouts labelled "Demo wallet (testnet)". |
+
+**OpenZeppelin Protocol-27 testnet contract IDs** (`src/lib/stellarConfig.js`, upstream commit `1e513890`):
+
+- Account WASM hash: `1b5f4534a76322da2ad7c745f6900857a6802b0ca79850c35a03561df997785a` (upload tx `889f0e23…`)
+- WebAuthn verifier: `CC7EKIHQP3TN4CARQDND6CEOY2UXLWWC2X5GHTD5NLAT7BG5GPZIOM3F`
+- Ed25519 verifier: `CAAVTMCBXEIBPR64EAASKFXERVPYFZA2JYP5A3BG6PESWEFUJX5IHKN4`
+- Threshold policy: `CB3FATQKCIRIQOCYRUPCQ2KREQ7T4RPKS7EAEOZWPEPUKWEDRVROBCEG`
+- Spending-limit policy: `CABXBYJNZ7IUW4G3D6BND5YCAQF3ASSDMDAOKQQ63UYFSO7WUU2TIP5G`
+
+**Provenance record schema:** `jejak.provenance.v1` — `record_type: "anchored_record_of_an_estimate"`, disclaimer *"Anchored record of a supply-chain estimate and any label-read evidence — not verified fact."* The honesty is the feature.
+
+**Verified onchain evidence (testnet, this event):**
+- Wager commit: `3f90061a…` — payment op + `Memo.hash`
+- Wager settle: `cfe9f2b9…` ledger 5393274 — claimable balance, memo `JEJAK-POOL:wager-te:WIN`
+- [Prior-event anchor example: tx hash in `stellarMakerPayout` CACHED_FALLBACK_TX, ledger 5180822]
+
+**Limits disclosed:** commit/resolve signatures use the backend pool keypair (user-signed anchors are future work); winner resolution is server-side in v1; testnet stakes are demo value; maker/cause wallets are derived demo addresses, not verified humans.

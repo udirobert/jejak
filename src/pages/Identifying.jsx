@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { useApp } from "@/lib/AppContext";
 import { base44 } from "@/api/base44Client";
@@ -8,16 +8,30 @@ import ProductPicker from "@/components/ProductPicker";
 import Stamp from "@/components/journal/Stamp";
 import Specimen from "@/components/journal/Specimen";
 import MarginNote from "@/components/journal/MarginNote";
+import TraceSteps from "@/components/journal/TraceSteps";
 import { vibrate } from "@/lib/haptics";
 
 // The vision-at-work reveal: the photo/specimen stays put while
 // attributes type in one by one in Plex Mono, then a postmark stamps IDENTIFIED.
-const SCAN_MSGS = [
-  "Uploading your photo privately…",
-  "Asking a vision model what this is…",
-  "Matching it to a product type…",
-  "Looking up trade data…",
-];
+const SCAN_MSGS = {
+  photo: [
+    "Uploading your photo privately…",
+    "Asking a vision model what this is…",
+    "Matching it to a product type…",
+    "Looking up trade data…",
+  ],
+  describe: [
+    "Reading what you wrote…",
+    "Matching it to a product type…",
+    "Looking up trade data…",
+    "Building the route…",
+  ],
+  specimen: [
+    "Pulling trade data…",
+    "Building the route…",
+    "Estimating the split…",
+  ],
+};
 
 const ATTR_LABELS = {
   colour: "Colour",
@@ -47,17 +61,25 @@ export default function Identifying() {
   const reduce = useReducedMotion();
   const [scanDone, setScanDone] = useState(false);
   const [msgIdx, setMsgIdx] = useState(0);
-  const [phase, setPhase] = useState("scanning"); // scanning | attributes | matched | launching
+  const [phase, setPhase] = useState("scanning"); // scanning | attributes | tracing | matched | launching
   const [recognized, setRecognized] = useState(null); // data | "ok" | "fail" | null
   const [revealedAttrs, setRevealedAttrs] = useState(0);
   const [pickerOpen, setPickerOpen] = useState(false);
   const launchedRef = useRef(false);
+  // A photo or a description means real vision work to wait for. A specimen
+  // chip means the app already knows the item — the wait should be short.
+  const hasVision = useRef(Boolean(photo || pendingDescribe)).current;
+  const mode = useRef(pendingDescribe ? "describe" : photo ? "photo" : "specimen").current;
+  const scanMsgs = SCAN_MSGS[mode] || SCAN_MSGS.specimen;
 
   useEffect(() => {
-    const t = setTimeout(() => setScanDone(true), reduce ? 1200 : 2400);
-    const c = setInterval(() => setMsgIdx((i) => (i + 1) % SCAN_MSGS.length), 900);
+    const t = setTimeout(
+      () => setScanDone(true),
+      reduce ? (hasVision ? 1200 : 300) : hasVision ? 2400 : 650
+    );
+    const c = setInterval(() => setMsgIdx((i) => (i + 1) % scanMsgs.length), 900);
     return () => { clearTimeout(t); clearInterval(c); };
-  }, [reduce]);
+  }, [reduce, hasVision, scanMsgs]);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +99,6 @@ export default function Identifying() {
           if (data.ok && data.product) {
             setProduct(data.product);
             setRecognized({ description: pendingDescribe.description, confidence: data.product.confidence });
-            setPhase("attributes");
           } else {
             setRecognized("fail");
           }
@@ -95,8 +116,13 @@ export default function Identifying() {
         const data = res.data || {};
         const confident = data.product_id && data.product_id !== "unknown" &&
           (data.confidence === "high" || data.confidence === "medium");
-        if (confident) setRecognized(data);
-        else if (data.description) {
+        if (confident) {
+          // Settle on the product now, so the trace below has something real
+          // to reason about instead of waiting for the handoff.
+          const p = getProduct(data.product_id);
+          if (p) { setProduct(p); setLowConfidence(data.confidence === "low"); }
+          setRecognized(data);
+        } else if (data.description) {
           // AI trace fallback: trace the described item directly.
           base44.functions
             .invoke("traceAnything", {
@@ -128,11 +154,13 @@ export default function Identifying() {
     return () => clearTimeout(t);
   }, [photo, photoUrl, recognized]);
 
+  // Scanning ends when both the minimum beat and the real recognition have
+  // landed. A specimen chip goes straight to the trace — there was nothing
+  // to read.
   useEffect(() => {
     if (!scanDone || recognized === null) return;
     if (recognized === "fail") { setPickerOpen(true); return; }
-    if (recognized === "ok") { setPhase("matched"); return; }
-    setPhase("attributes");
+    setPhase(recognized === "ok" ? "tracing" : "attributes");
   }, [scanDone, recognized]);
 
   useEffect(() => {
@@ -140,12 +168,12 @@ export default function Identifying() {
     const entries = recognized.attributes
       ? Object.entries(recognized.attributes).filter(([, v]) => v && String(v).trim())
       : [];
-    if (entries.length === 0) { setPhase("matched"); return; }
+    if (entries.length === 0) { setPhase("tracing"); return; }
     const timers = [];
     entries.forEach((_, i) => {
       timers.push(setTimeout(() => { vibrate(8); setRevealedAttrs(i + 1); }, reduce ? 100 : 420 * i + 220));
     });
-    timers.push(setTimeout(() => setPhase("matched"), reduce ? 350 : 420 * entries.length + 220 + 650));
+    timers.push(setTimeout(() => setPhase("tracing"), reduce ? 350 : 420 * entries.length + 220 + 650));
     return () => timers.forEach(clearTimeout);
   }, [phase, recognized, reduce]);
 
@@ -174,11 +202,16 @@ export default function Identifying() {
     setScreen("journey");
   };
 
-  const attrs = recognized && recognized.attributes
-    ? Object.entries(recognized.attributes).filter(([, v]) => v && String(v).trim())
-    : [];
+  const attrs = useMemo(
+    () =>
+      recognized && recognized.attributes
+        ? Object.entries(recognized.attributes).filter(([, v]) => v && String(v).trim())
+        : [],
+    [recognized]
+  );
+  const attrMap = useMemo(() => Object.fromEntries(attrs), [attrs]);
   const confidenceLevel = recognized?.confidence || (lowConfidence ? "low" : "medium");
-  const sketchOn = phase === "matched" || phase === "launching";
+  const sketchOn = phase === "tracing" || phase === "matched" || phase === "launching";
 
   return (
     <ScreenShell section="Trace · identifying">
@@ -253,7 +286,7 @@ export default function Identifying() {
           <AnimatePresence mode="wait">
             {phase === "scanning" && (
               <motion.div key="scan" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="text-center">
-                <p className="font-grotesk text-lg font-medium text-journal-ink">{SCAN_MSGS[msgIdx]}</p>
+                <p className="font-grotesk text-lg font-medium text-journal-ink">{scanMsgs[msgIdx]}</p>
                 <p className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-ink-soft">
                   Estimating, not certain
                 </p>
@@ -289,6 +322,27 @@ export default function Identifying() {
               </motion.div>
             )}
 
+            {phase === "tracing" && (
+              <motion.div
+                key="trace"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.3 }}
+                className="w-full"
+              >
+                <TraceSteps
+                  product={product}
+                  market={market}
+                  attributes={attrMap}
+                  skip={1}
+                  title="What I did next"
+                  reduce={reduce}
+                  onComplete={() => setPhase("matched")}
+                />
+              </motion.div>
+            )}
+
             {(phase === "matched" || phase === "launching") && (
               <motion.div
                 key="card"
@@ -304,9 +358,12 @@ export default function Identifying() {
                   {product?.name || "Your item"}
                 </p>
                 <p className="mt-1 font-plexmono text-[11px] uppercase tracking-[0.14em] text-journal-ink-soft">
-                  estimated match · {CONFIDENCE_WORD[confidenceLevel] || "fairly sure"}
+                  estimated match · I'm {CONFIDENCE_WORD[confidenceLevel] || "fairly sure"}
                 </p>
                 <p className="mt-3 font-grotesk text-sm text-journal-ink-soft">Tracing the journey…</p>
+                <div className="mt-3">
+                  <MarginNote tone="stamp">one fact at a time</MarginNote>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

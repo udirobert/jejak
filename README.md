@@ -5,7 +5,7 @@
 
 Snap anything you own and Jejak traces where it likely came from, who made it, and where your money went. It also tells you how sure it is. Every entry is a page in your field journal: a hand-drawn route, postmarks for each country, and a torn receipt showing how your £120 was split between materials, the people who made it, freight, the brand and the shop.
 
-Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridian** (Scale · Stellar Composed). The frontend, data, auth, AI, automations and hosting all run on Base44; the Stellar proof layer is documented below and pitched in `docs/hackmeridian.md`.
+Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridian** (Genesis · Stellar Composed). The frontend, data, auth, AI, automations and hosting all run on Base44; the Stellar proof layer is documented below and pitched in `docs/hackmeridian.md`.
 
 ## Why
 
@@ -16,11 +16,15 @@ Most of us have no idea that a £120 hoodie probably crossed six countries and 2
 | | |
 |---|---|
 | **Trace anything** | Take a photo, upload one, or just describe the item ("grey merino jumper from Uniqlo"). Base44 AI vision identifies it and sketches its likely supply chain: 2–5 stages, the countries, and a five-way cost split with low/mid/high ranges. |
+| **Watch it work** | The trace doesn't arrive finished. It shows its steps one at a time — *I read your photo · I matched it to a product type · I pulled import data for the UK · I built the route · I estimated the split* — each with the real figures attached, then a one-line verdict in the margin. |
 | **Read the label** | Snap the care tag and the "made in" country becomes a fact. That stage is stamped *read from the label*; everything else stays *estimated*. |
+| **Change its mind** | A care tag moves the origin from *fairly sure* to *sure* — and the app shows the shift: what it was, what it is now, and what did **not** change. |
 | **Follow the money** | Guess first, then reveal. A torn receipt shows where the money went, with the labour line circled in red pen. |
+| **Hand things off** | Ask a brand a transparency question and it becomes a task on your desk — *drafted → sent → awaiting reply → flagged after 14 days*. Jejak drafts the follow-up; you press send. |
+| **Notice things on its own** | The journal opens with what the app noticed — two of your items from the same country, a letter nobody answered, a whole set of traces with no label in them. |
 | **Your journal** | Every trace is saved to your private journal. You can choose to publish any entry to the shared **Atlas** map. |
 | **Live Floor Mode (`/room`)** | Guest trace station for live event attendees: instant curated or AI trace without login, real-time count of today's traces, and verified Stellar-anchored transaction feed. |
-| **Proof, if you want it** | Any entry can be fingerprinted on a public ledger (Stellar), so no one can quietly change it later. |
+| **Proof, if you want it** | Any entry can be fingerprinted on a public ledger (Stellar), so no one can quietly change it later — and signed with your passport, so the ledger shows the record is yours. |
 
 ## Automations: Jejak does the legwork
 
@@ -31,6 +35,38 @@ All three run as Base44 backend functions with **automations**. Nothing needs a 
 3. **Ask the brand, without the awkwardness.** `draftBrandLetter` writes a polite, specific transparency request built around the stages Jejak could only estimate. You send it from your own email app; Jejak never emails brands on your behalf. A **scheduled automation** (`brandFollowUps`, daily 09:00 UTC) emails you a nudge if the brand hasn't replied after 14 days.
 
 What this saves: researching one product's supply chain by hand takes hours of reading trade data and brand reports. Jejak gives a first answer in seconds, turns a whole shopping receipt into a journal in about a minute, and does the follow-up for you.
+
+## Showing its work
+
+A traceability tool that hands you a finished answer reads like a lookup table. Jejak is built so you can watch it reason, argue with it, and leave with it doing something.
+
+Full spec in [`docs/agentic.md`](./docs/agentic.md).
+
+**1 · The trace, in steps.** `src/components/journal/TraceSteps.jsx` renders the labour of a trace as a list that fills in one line at a time. Every line is work the app actually did, read from the same helpers the rest of the app uses (`getTradeEvidence`, `getRoute`, `routeDistance`, `computeSplit`), so the trace can't drift from the numbers shown later:
+
+```
+✓ I read your photo          navy · cotton · hoodie
+✓ I matched it to a product type
+                            Everyday Hoodie · HS 6110 — jumpers, sweatshirts & hoodies (knitted)
+✓ I pulled import data for the UK
+                            8 supplying countries · 2024 · UN Comtrade · China alone is 27.7%
+✓ I built the route         6 stops · 29,038 km to the UK
+✓ I estimated the split     makers get 0.5–4% of what you paid · I'm fairly sure
+```
+
+It closes with a first-person verdict that has to actually follow from the data — the share quoted is the origin's own share of the market, not the biggest supplier's: *"I'm fairly sure. Bangladesh supplies 20.9% of the UK's jumpers, sweatshirts & hoodies (knitted), so I routed the final stage there — that's the category though, not your item."*
+
+**2 · A voice instead of a chip.** Where the app used to say *fairly sure*, it now says *"I'm fairly sure about Bangladesh — that's the category's usual supplier, not your item."* Reasoning lives in `MarginNote` — handwritten, in the margin, where a person would scribble the thought. Plain copy stays plain; it just has a subject now.
+
+**3 · Evidence that changes the estimate.** Scan a care tag and `ConfidenceShift` shows the move: `fairly sure → sure · where it was made`. It also states what did *not* change — *the money split is unchanged, one label doesn't price a factory* — because a label pins down where something was made, not what it cost. A **sample** label is a demo and is deliberately excluded from this.
+
+**4 · Things you handed off.** `src/lib/delegation.js` turns a brand letter into a task with a state. Stored status is coarse (`drafted` / `sent` / `replied` / `escalated` / `closed`); everything else — *awaiting reply*, *no reply in 14 days* — is derived from the clock, so it ages on its own without a cron writing to the database. `DelegationCard` shows the letter on a three-stage rail and drafts the follow-up. Jejak still never emails a brand; the send button stays with you.
+
+**5 · What it noticed.** `src/lib/observations.js` derives observations from the journal's own records on every render, so an observation can never claim something the app doesn't know — two of your items from the same country, a letter nobody answered, a set of traces with no label in them, a brand you've never asked anything. The journal opens with these instead of a catalogue.
+
+**6 · Empty states that promise work.** The journal's empty state is now a promise rather than a shop window: *"Give me one label. I'll trace the route, price the labour share, tell you how sure I am, and anchor the whole thing to a public ledger you can check without me."* The specimen shelf stays, but as the second option.
+
+**7 · Consequence, up front.** The money card in the story now states the wager plainly: your guess is hashed and written to a public ledger *before* the split is shown, so nobody — including the app — can change it afterwards. The maker payout moved out of the drawer into the money flow (`GiveBackNote`), and the passport can co-sign an anchored record so the ledger shows the trace is yours, not just that Jejak wrote it down.
 
 ## Design
 
@@ -46,7 +82,7 @@ The art direction is *a field journal of things*: warm paper with grain, ink, ve
 
 | Piece | Where |
 |---|---|
-| Entities: `Scan` (journal entries; private by default, `visibility` controls the Atlas), `Receipt`, `BrandRequest` | `base44/entities/` |
+| Entities: `Scan` (journal entries; private by default, `visibility` controls the Atlas), `Receipt`, `BrandRequest`, `Guess` | `base44/entities/` |
 | AI prompts and JSON schemas (honesty rules live here) | `base44/shared/prompts.ts` |
 | Trace engine and output normalisation (ranges fixed, mids always sum to 100, label rule enforced) | `base44/shared/trace.ts` (+ `trace.test.ts`) |
 | Vision: product + care label | `base44/functions/identifyProduct` |
@@ -54,6 +90,10 @@ The art direction is *a field journal of things*: warm paper with grain, ink, ve
 | Automations | `writeJourneyStory`, `processReceipt`, `brandFollowUps` (see each `function.jsonc`) |
 | Brand letters | `base44/functions/draftBrandLetter` |
 | Proof layer (Stellar) | `stellarMakerPayout`, `stellarFeeRelayer` |
+| Staked guess pool (commit → resolve → claimable balance) | `base44/functions/guessPool` (+ `Guess` entity) |
+| Delegated-letter lifecycle (pure, clock injected) | `src/lib/delegation.js` (+ `src/lib/agentic.test.ts`) |
+| Unprompted observations (pure, derived from the journal's own records) | `src/lib/observations.js` |
+| Agentic UI primitives | `src/components/journal/TraceSteps.jsx`, `ConfidenceShift.jsx`, `DelegationCard.jsx`, `Observations.jsx`, `PassportSign.jsx`, `GiveBackNote.jsx` |
 
 Row-level security: entries, receipts and letters are owner-only. An entry is readable by everyone only once its owner publishes it to the Atlas.
 
@@ -166,6 +206,13 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
   - Destination wallets (`Bangladesh`, `Vietnam`, `Ethiopia`, `China`) are **Demo cause wallets (testnet)**, not real partner cooperatives, and funds do not reach individual workers. Local-currency anchor off-ramps (SEP-24) are described strictly as a **future integration**.
 - **Embedded Bank Screen (`/embedded`):**
   - An illustrative concept preview showing how provenance and cost splits could appear inside a consumer bank feed.
+- **The agentic layer:**
+  - **Observations are derived, not generated.** Everything in "What I noticed" comes from the user's own scans and letters via `src/lib/observations.js` — there is no model in the loop, so an observation can only ever say something the journal already knows. The wording is deliberately plain (country-level, not "the same mill") because the data is country-level.
+  - **The delegated follow-up is a template.** The *first* letter is AI-written by `draftBrandLetter`. The follow-up nudge drafted by `nudgeDraft` is a fixed template with the brand, item and date filled in — it does not read the original letter back.
+  - **"Awaiting reply" and "no reply in 14 days" are derived from the clock**, not written by a job. The daily `brandFollowUps` automation only emails the user; it does not change the stored status.
+  - **A care tag changes provenance confidence, not the money split.** `ConfidenceShift` says so explicitly in the UI. The split percentages are a category-level estimate and a label does not reprice them.
+  - **A sample label is a demo and is excluded from the confidence shift.** Only a label read from a real photo counts as evidence.
+  - **The passport co-sign journals the signature on the fee-sponsoring account**, the same honest limitation as the other passport admin actions (see the proof layer above) — it proves the record was signed by your key; it does not yet execute as a smart-account authorisation on-chain.
 
 ---
 
@@ -182,6 +229,7 @@ npm run build                # Production build check
 npm run lint                 # ESLint
 node scripts/validate-data.mjs   # Asserts every product split sums to 100%
 deno test base44/shared/         # Tests for the AI trace engine's normalisation rules
+deno test src/lib/               # Tests for the delegation lifecycle + observations
 ```
 
 ### Environment Variables (`.env.example`)

@@ -12,7 +12,9 @@ import JournalButton from "@/components/journal/JournalButton";
 import TradeEvidence from "@/components/journal/TradeEvidence";
 import TourCallout from "@/components/journal/TourCallout";
 import LabelScanCard, { sampleLabelFor } from "@/components/LabelScanCard";
+import ConfidenceShift from "@/components/journal/ConfidenceShift";
 import ProofDrawer from "@/components/journal/ProofDrawer";
+import JourneyStory from "@/components/journal/JourneyStory";
 import { useTour, setTourStep, endTour } from "@/lib/tour";
 import { vibrate } from "@/lib/haptics";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -47,6 +49,17 @@ export default function Journey() {
   const [proofOpen, setProofOpen] = useState(false);
   const route = rawRoute;
   const nLegs = Math.max(route.length - 1, 1);
+
+  // Mobile gets the full-screen story; desktop keeps the two-column document.
+  const [isMobileStory, setIsMobileStory] = useState(
+    () => typeof window !== "undefined" && window.matchMedia("(max-width: 1023px)").matches
+  );
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023px)");
+    const onChange = (e) => setIsMobileStory(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
 
   const [activeIdx, setActiveIdx] = useState(0);
   const [mapMode, setMapMode] = useState("ink"); // "ink" field map | "globe" planet view
@@ -200,10 +213,56 @@ export default function Journey() {
       {stop.isEvidenceStop && (
         <TradeEvidence evidence={evidence} highlightCountry={stop.country} market={market} />
       )}
+      {stop.isEvidenceStop && shift && (
+        <ConfidenceShift before={shift.before} after={shift.after} reduce={reduce} />
+      )}
+      {stop.isEvidenceStop && !labelEvidence?.readable && (
+        <div className="mt-2">
+          <MarginNote tone="ink">
+            {`I'm ${
+              CONFIDENCE_WORD[stop.provenanceConfidence] || "fairly sure"
+            } about ${stop.country} — that's the category's usual supplier, not your item.`}
+          </MarginNote>
+        </div>
+      )}
     </>
   );
 
   const marketName = MARKET_NAME[market] || market;
+
+  // What the estimate looked like before the user's label arrived. Shown so
+  // the shift is visible rather than asserted. A sample label is a demo, not
+  // a new fact, so it doesn't count as evidence here.
+  const shift = (() => {
+    if (!product || !labelEvidence?.readable || labelEvidence?.isSampleLabel || evIdx < 0) return null;
+    const before = annotateRoute(product, market, null)[evIdx];
+    const after = rawRoute[evIdx];
+    if (!before || !after) return null;
+    return { before, after };
+  })();
+
+  if (isMobileStory) {
+    return (
+      <>
+        <JourneyStory
+          product={product}
+          market={market}
+          currency={currency}
+          price={price}
+          route={route}
+          totalKm={totalKm}
+          labelEvidence={labelEvidence}
+          setLabelEvidence={setLabelEvidence}
+          evidence={evidence}
+          evIdx={evIdx}
+          tourStep={tourStep}
+          onOpenProof={() => setProofOpen(true)}
+          setScreen={setScreen}
+        />
+        <ProofDrawer open={proofOpen} onOpenChange={setProofOpen} />
+      </>
+    );
+  }
 
   return (
     <ScreenShell section="Trace · the journey">
@@ -224,7 +283,7 @@ export default function Journey() {
             {product.name}
           </h1>
           <p className="mt-1 font-plexmono text-[11px] uppercase tracking-[0.14em] text-journal-ink-soft">
-            {route.length} stops · {totalKm.toLocaleString()} km · {product.markets[market].retailer}
+            {route.length} stops · {totalKm.toLocaleString()} km · {product?.markets?.[market]?.retailer}
           </p>
         </div>
         <button
@@ -397,6 +456,15 @@ export default function Journey() {
             <JournalButton onClick={() => { vibrate(8); setScreen("split"); }}>
               Where did the {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })} go? →
             </JournalButton>
+          </div>
+          <div className="mt-3 max-w-md border-l-2 border-journal-stamp pl-3">
+            <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-stamp">
+              Guess first, and it's on the record
+            </p>
+            <p className="mt-1 font-grotesk text-[14px] leading-relaxed text-journal-ink-soft">
+              Your guess is hashed and written to a public ledger before the split is shown. So is the
+              split. Open either one and check it without me.
+            </p>
           </div>
           <p className="mt-3 pb-8 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
             Route estimated · trade data shows who supplies {marketName} · only a label is a fact about your item
