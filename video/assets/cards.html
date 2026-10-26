@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { background: #F3EDE2; font-family: 'Schibsted Grotesk', sans-serif; color: #1E1B16; overflow: hidden; }
+  .grain { position: fixed; inset: 0; opacity: .5; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3CfeColorMatrix values='0 0 0 0 .12 0 0 0 0 .11 0 0 0 0 .09 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E"); }
+  .frame { position: fixed; inset: 28px; border: 1px solid rgba(30,27,22,.28); }
+  .card { position: fixed; inset: 0; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+  .card.on { display: flex; }
+  .kicker { font-family: 'IBM Plex Mono', monospace; font-size: 15px; letter-spacing: .34em; color: #C8442B; text-transform: uppercase; }
+  .word { font-family: 'Fraunces', serif; font-variation-settings: 'opsz' 144,'SOFT' 50,'WONK' 1; font-size: 150px; line-height: 1; margin: 26px 0 10px; }
+  .word em { color: #C8442B; }
+  .tag { font-family: 'Fraunces', serif; font-style: italic; font-size: 34px; color: #4a463d; }
+  .rule { width: 90px; height: 1px; background: rgba(30,27,22,.4); margin: 30px 0; }
+  .mono { font-family: 'IBM Plex Mono', monospace; font-size: 15px; letter-spacing: .22em; text-transform: uppercase; color: #4a463d; }
+  .stamp { display: inline-block; border: 3px solid #C8442B; color: #C8442B; border-radius: 6px;
+    padding: 8px 22px; font-family: 'IBM Plex Mono', monospace; font-weight: 500; font-size: 20px;
+    letter-spacing: .28em; transform: rotate(-3deg); text-transform: uppercase; }
+  .url { font-family: 'IBM Plex Mono', monospace; font-size: 26px; letter-spacing: .12em; margin-top: 34px; }
+  .hand { font-family: 'Caveat', cursive; font-size: 30px; color: #C8442B; transform: rotate(-2deg); margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="grain"></div>
+<div class="frame"></div>
+
+<div class="card" id="title">
+  <div class="kicker">A field journal · No. 001</div>
+  <div class="word">Jejak</div>
+  <div class="tag">a field journal for the things you own</div>
+  <div class="rule"></div>
+  <div class="mono">every thing has a journey</div>
+</div>
+
+<div class="card" id="bridge">
+  <div class="kicker">the wager</div>
+  <div class="tag" style="font-size:54px; margin-top:26px; line-height:1.3">your guess is <em style="color:#C8442B">hashed</em> before the reveal —<br>the pot goes to the <em style="color:#C8442B">closest</em> guess</div>
+  <div class="rule"></div>
+  <div class="mono">sha-256 on ledger · claimable by the winner, not held by us</div>
+</div>
+
+<div class="card" id="end-stellar">
+  <div class="kicker">hackmeridian · stellar composed</div>
+  <div class="word" style="font-size:110px">Jejak</div>
+  <div class="tag">every thing has a <em style="color:#C8442B">journey</em></div>
+  <div class="url">jejak.base44.app</div>
+  <div class="rule"></div>
+  <div class="mono">passkey accounts · sponsored fees · memo-hash commits · claimable balances</div>
+  <div class="stamp" style="margin-top:26px">Built on Stellar</div>
+  <div class="hand">snap it · trace it · prove it</div>
+</div>
+
+<div class="card" id="end">
+  <div class="word" style="font-size:110px">Jejak</div>
+  <div class="tag">every thing has a <em style="color:#C8442B">journey</em></div>
+  <div class="url">jejak.base44.app</div>
+  <div class="rule"></div>
+  <div class="mono">entities · functions · automations · auth · hosting</div>
+  <div class="stamp" style="margin-top:26px">Built with Base44</div>
+  <div class="hand">snap it · trace it · prove it</div>
+</div>
+
+<script>
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('on'));
+  const which = new URLSearchParams(location.search).get('card') || 'title';
+  document.getElementById(which).classList.add('on');
+</script>
+</body>
+</html>

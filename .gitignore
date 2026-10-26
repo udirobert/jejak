@@ -96,20 +96,27 @@ data/skills/
 .zcode/
 .zencoder/
 
-# Video production project — build output and media, not app source
-video/out/
+# Video production project.
+#
+# The RECIPE is tracked — the ego capture scripts, the card templates, the
+# fonts, the sound beds. Everything the recipe PRODUCES is not.
+# (Note: gitignore has no trailing comments — a pattern with " # " after it
+# is a literal pattern that matches nothing.)
+
+# raw screen captures — re-recordable
 video/raw/
-video/frames/
-video/media/
-video/cards_media/
-video/assets/
+# the finished cuts
+video/out/
+# TTS output
 video/audio/
-video/ego/
+# rendered card stills
+video/cards/
+video/frames/
 video/target/
 video/*/target/
 video/*/frames/
-video/*/media/
 video/*/cards_media/
-video/*/assets/
+# rendered segments
+video/*/assets/*.mp4
 video/*/*.mp4
 video/*/*.png

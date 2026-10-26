@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  * { margin: 0; box-sizing: border-box; }
+  body { background: #d8d2c4; display: flex; justify-content: center; padding: 24px; font-family: 'IBM Plex Mono', monospace; }
+  .receipt {
+    width: 380px; background: #f7f4ec; color: #1e1b16; padding: 26px 24px 40px;
+    box-shadow: 0 6px 24px rgba(0,0,0,.22);
+    clip-path: polygon(0 0,100% 0,100% calc(100% - 8px),96% 100%,92% calc(100% - 8px),88% 100%,84% calc(100% - 8px),80% 100%,76% calc(100% - 8px),72% 100%,68% calc(100% - 8px),64% 100%,60% calc(100% - 8px),56% 100%,52% calc(100% - 8px),48% 100%,44% calc(100% - 8px),40% 100%,36% calc(100% - 8px),32% 100%,28% calc(100% - 8px),24% 100%,20% calc(100% - 8px),16% 100%,12% calc(100% - 8px),8% 100%,4% calc(100% - 8px),0 100%);
+  }
+  h1 { font-size: 19px; font-weight: 600; text-align: center; letter-spacing: .12em; }
+  .sub { text-align: center; font-size: 10px; margin-top: 4px; color: #4a463d; }
+  hr { border: none; border-top: 1px dashed #8a8578; margin: 14px 0; }
+  .row { display: flex; justify-content: space-between; font-size: 13px; line-height: 2.0; }
+  .row span:first-child { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .total { font-weight: 600; font-size: 14px; }
+  .foot { text-align: center; font-size: 10px; margin-top: 14px; color: #4a463d; }
+  .bar { display: flex; gap: 3px; justify-content: center; margin-top: 12px; }
+  .bar i { display: block; background: #1e1b16; height: 34px; }
+</style>
+</head>
+<body>
+<div class="receipt">
+  <h1>THREADS &amp; CO</h1>
+  <div class="sub">14 BRICK LANE · LONDON E1<br>25 OCT 2026 · 14:32 · TILL 03</div>
+  <hr>
+  <div class="row"><span>MNS CTN TEE BLK M</span><span>24.99</span></div>
+  <div class="row"><span>HOODIE GREY MARL L</span><span>59.00</span></div>
+  <div class="row"><span>KIDS DNM JACKET 8Y</span><span>34.50</span></div>
+  <div class="row"><span>CERAMIC MUG 350ML</span><span>12.00</span></div>
+  <hr>
+  <div class="row total"><span>TOTAL GBP</span><span>130.49</span></div>
+  <div class="row"><span>CARD ****4821</span><span>130.49</span></div>
+  <div class="foot">THANK YOU FOR SHOPPING WITH US</div>
+  <div class="bar">
+    <i style="width:3px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:4px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:3px"></i><i style="width:1px"></i><i style="width:1px"></i><i style="width:5px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:3px"></i><i style="width:2px"></i><i style="width:1px"></i><i style="width:4px"></i><i style="width:1px"></i><i style="width:2px"></i><i style="width:3px"></i><i style="width:1px"></i>
+  </div>
+</div>
+</body>
+</html>
