@@ -15,10 +15,15 @@
 //    claim anything. Now the caller is resolved server-side.
 //
 // 2. THE POT IS SPONSORED. No XLM of the guesser's is locked, so the pot is
-//    funded by Jejak and `sponsored: true` says so in the data. A signed-out
-//    visitor may guess — their guess counts toward the field and the
-//    distribution — but is not eligible for the pot, because the pot has to be
-//    claimable by a real person.
+//    funded by Jejak and `sponsored: true` says so in the data.
+//
+// 3. NO SIGN-UP IS REQUIRED TO COMPETE. A signed-out visitor guesses with a
+//    browser-local anonymous id and counts toward the pot. They can claim it
+//    by presenting that same id, which is the secret their claim is bound
+//    to. A signed-in guesser is bound to their account id instead. On
+//    mainnet both would be the passport wallet.
+
+const ANON_PREFIX = "anon:";
 import {
   Keypair,
   Horizon,
@@ -34,6 +39,7 @@ import {
   median,
   latestPerUser,
   isFieldPublic,
+  canonicalLabourPct,
   MIN_PCT,
   MAX_PCT,
 } from "../../shared/guess.ts";
@@ -95,12 +101,14 @@ export default async function (req: Request) {
         return Response.json({ ok: false, reason: "bad_guess" }, { status: 400 });
       }
 
-      // Signed in -> a real person, eligible for the pot. Signed out -> a
-      // browser-local anonymous id, eligible for the field only.
-      const eligible = caller.authenticated;
-      const user_id = eligible
+      // Signed in -> bound to their account. Signed out -> bound to a
+      // browser-local anonymous id. Either way their guess counts toward the
+      // pot: requiring a sign-up to compete empties the field at a busy
+      // booth, which is exactly where you want it full.
+      const user_id = caller.authenticated
         ? caller.id
-        : `anon:${String(anon_id || "unknown").slice(0, 64)}`;
+        : `${ANON_PREFIX}${String(anon_id || "unknown").slice(0, 64)}`;
+      const eligible = true;
 
       const salt = crypto.randomUUID().replaceAll("-", "").slice(0, 16);
       const canonical = `jejak.guess.v1|${product_id}|${pct}|${salt}`;
@@ -124,9 +132,11 @@ export default async function (req: Request) {
         guess_pct: pct,
         user_id,
         // The record is owned by the person who made the guess, so RLS keeps
-        // it private to them. The shared pool is read through this function
-        // with the service role and surfaced only as an unattributed field.
-        owner_id: eligible ? caller.id : "",
+        // it private to them. An anonymous guess has no account to own it,
+        // so it is owned by nobody — its claim is bound to the anonymous id
+        // instead. The shared pool is read through this function with the
+        // service role and surfaced only as an unattributed field.
+        owner_id: caller.authenticated ? caller.id : "",
         eligible,
         salt,
         guess_hash: guessHash,
@@ -153,10 +163,14 @@ export default async function (req: Request) {
     // ---- resolve: reveal the field, rank the round, settle the pot ----
     if (action === "resolve") {
       const { product_id, labour_pct } = body;
-      const actual = Number(labour_pct);
-      if (!product_id || !isFinite(actual)) {
+      const supplied = Number(labour_pct);
+      if (!product_id || !isFinite(supplied)) {
         return Response.json({ ok: false, reason: "bad_input" }, { status: 400 });
       }
+      // The pool is keyed by category, so everyone in it is compared against
+      // the SAME truth — the category's estimate — rather than whichever
+      // person's trace happened to resolve it.
+      const actual = canonicalLabourPct(product_id, supplied);
 
       // Every guess ever made on this product is the field — it accumulates.
       const all = (await sr.entities.Guess.filter({ product_id }, "-created_date", 300)) || [];
@@ -179,7 +193,14 @@ export default async function (req: Request) {
 
       let settlement = null;
 
-      if (ranked.length) {
+      // A pool of one doesn't settle. The pot opens when a second person
+      // guesses — otherwise the first person through the door wins a
+      // contested-looking pot on their own, and the whole point of the
+      // wager is that there IS a field of people. Their guess stays
+      // committed, so the next reveal settles against both.
+      const waiting = eligible.length < 2;
+
+      if (ranked.length && !waiting) {
         const winner = ranked[0];
         // The winner's claim address is derived from their real account id,
         // so only they can claim it.
@@ -261,6 +282,8 @@ export default async function (req: Request) {
         pool_size: field.length,
         // How many of them can actually win the pot.
         eligible_count: eligible.length,
+        // True when the pot is still waiting for a second person.
+        waiting,
         // Individual beliefs, unattributed. The reveal guarantees the timing;
         // we choose never to say WHO held which belief.
         field_pcts: pcts,
@@ -276,13 +299,20 @@ export default async function (req: Request) {
 
     // ---- claim: the winner collects the pot, on-ledger ----
     if (action === "claim") {
-      const { product_id } = body;
-      if (!caller.authenticated) {
-        return Response.json({ ok: false, reason: "sign_in_required" }, { status: 401 });
+      const { product_id, anon_id } = body;
+      // A winner is bound to their account id, or — if they guessed without
+      // signing in — to the anonymous id their guess was made with. That id
+      // is the secret the claim is checked against.
+      const ids = [];
+      if (caller.authenticated) ids.push(caller.id);
+      if (anon_id) ids.push(`${ANON_PREFIX}${String(anon_id).slice(0, 64)}`);
+      if (!ids.length) {
+        return Response.json({ ok: false, reason: "nothing_to_claim" }, { status: 404 });
       }
+
       const won = (await sr.entities.Guess.filter({ product_id, status: "won" }, "-created_date", 50)) || [];
       const mine = won.find(
-        (g: any) => g.user_id === caller.id && g.claim_balance_id && !g.claim_tx
+        (g: any) => ids.includes(g.user_id) && g.claim_balance_id && !g.claim_tx
       );
       if (!mine) {
         return Response.json({ ok: false, reason: "nothing_to_claim" }, { status: 404 });

@@ -14,7 +14,6 @@ export default function ShareReceipt() {
   const { product, market, currency, compareMode, customPrice, lastStellarTx, savedScanId } = useApp();
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
-  const APP_URL = "https://jejak-trace-flow.base44.app";
 
   const basePrice = product.markets[market].price;
   const price = customPrice != null && customPrice > 0 ? customPrice : basePrice;

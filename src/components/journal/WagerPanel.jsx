@@ -1,6 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { ExternalLink, Loader2 } from "lucide-react";
+import { ExternalLink, Loader2, Share2 } from "lucide-react";
+import { useApp } from "@/lib/AppContext";
+import { traceUrl } from "@/lib/share";
+import { toast } from "sonner";
 import GuessField from "./GuessField";
 import JournalButton from "./JournalButton";
 import MarginNote from "./MarginNote";
@@ -28,19 +31,22 @@ export default function WagerPanel({
 }) {
   const reduceMotion = useReducedMotion();
   const reduce = reduceProp ?? reduceMotion;
+  const { savedScanId } = useApp();
+  const [shared, setShared] = useState(false);
 
   if (!guessProof && !poolResult) return null;
 
   const settlement = poolResult?.settlement || null;
   const field = Array.isArray(poolResult?.field_pcts) ? poolResult.field_pcts : [];
   const poolSize = poolResult?.pool_size ?? field.length;
-  const eligibleCount = poolResult?.eligible_count ?? 0;
   const yourPct = poolResult?.your_guess_pct ?? null;
   const actualPct = poolResult?.actual_labour_pct ?? null;
   const median = poolResult?.median_guess_pct ?? null;
   const guessedHigher = poolResult?.guessed_higher ?? null;
   const youWon = Boolean(settlement?.you_won);
   const contested = Boolean(settlement?.contested);
+  // The pot is still open: not enough people have guessed to settle it.
+  const waiting = Boolean(poolResult?.waiting);
 
   const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`;
 
@@ -54,7 +60,27 @@ export default function WagerPanel({
     standing = `The closest was ${settlement.guess_pct}% — you were ${settlement.error_pct} ${
       settlement.error_pct === 1 ? "point" : "points"
     } off.`;
+  } else if (waiting) {
+    standing = `You're the only one in the pool. The pot opens when somebody else guesses — and it settles against everyone who's in it.`;
   }
+
+  // The one thing that makes this a wager rather than a note to yourself.
+  const askForCompany = async () => {
+    const url = traceUrl(savedScanId);
+    const text = `I traced a hoodie and guessed what share of the price reached the makers. Beat me — your guess goes in the same pool: ${url}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: "Jejak — beat my guess", text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShared(true);
+        toast.success("Copied — send it to someone.");
+        setTimeout(() => setShared(false), 2200);
+      }
+    } catch {
+      // cancelled
+    }
+  };
 
   return (
     <div className="mt-4 max-w-md border border-journal-rule bg-journal-card p-4">
@@ -107,16 +133,24 @@ export default function WagerPanel({
             </p>
           )}
 
-          {poolSize === 1 && (
+          {poolSize === 1 && !waiting && (
             <p className="mt-1.5 font-grotesk text-[13px] leading-relaxed text-journal-ink-soft">
-              You're the first to guess this one. The field grows as people trace the same thing.
+              One guess in the pool so far — you're the first.
             </p>
           )}
 
-          {eligibleCount < poolSize && (
-            <p className="mt-1.5 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
-              signed-in guesses are the ones that can win the pot
-            </p>
+          {/* No sign-up is needed to compete — a guess without an account is bound
+            to a browser-local id instead, and stays unattributed to
+            everyone else. */}
+
+          {/* The one action that makes this a wager and not a note to
+              yourself: get somebody else into the pool. */}
+          {waiting && (
+            <div className="mt-3">
+              <JournalButton onClick={askForCompany}>
+                <Share2 size={13} /> {shared ? "Copied — send it on" : "Get someone to beat me"}
+              </JournalButton>
+            </div>
           )}
         </motion.div>
       )}

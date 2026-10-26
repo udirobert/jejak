@@ -60,18 +60,20 @@ Two accounts, because every interesting state needs a field of at least two peop
 
 ### 2.2 — A second person
 
-3. Account B: same flow, same product, guess **9%** → Reveal.
+3. Account B (or a private window with a **different** browser id): same flow, same product, guess **9%** → Reveal.
 
 **Expect:**
 - The field now has two marks.
 - *"1 of 2 guessed higher than you"* (A's guess, at 12%, is above B's 9%).
-- The pot settles to the closest guess. Actual labour mid is **2%**, so A (12%, 10 points off) loses to B (9%, 7 points off) — **B wins**.
+- The pot now settles, because a pool of one doesn't. The closest guess wins. Against the category's estimate for HS 6110 (**2%**), B at 9% is 7 points off and A at 12% is 10 points off — **B wins**.
 
-**Careful:** A's first guess was 12% and B's is 9%. Against an actual of 2%, **B is closer**. So after B reveals, the pot should move to B. That's the re-settlement path — watch it.
+**Careful:** A's first guess was 12% and B's is 9%. Against the category's actual of 2%, **B is closer**. So after B reveals, the pot should move to B. That's the re-settlement path — watch it.
+
+**Note:** a signed-out guesser competes too, bound to a browser-local id. You can test the whole thing in two private windows without signing in at all.
 
 ### 2.3 — Claim
 
-4. On the winning account: **Claim the 10 XLM**.
+4. On the winning window: **Claim the 10 XLM**.
 
 **Expect:**
 - A new transaction on stellar.expert: a `claimClaimableBalance` operation, sourced from the claimant address, with the memo `JEJAK-CLAIM:…`.
@@ -83,8 +85,9 @@ Two accounts, because every interesting state needs a field of at least two peop
 |---|---|
 | `RELAYER_FAILURE` / 502 | The relayer couldn't reach testnet. Retry. |
 | `nothing_to_claim` | `claim_balance_id` wasn't captured from the operation result, or the winner's row wasn't updated. Check the `Guess` record: `claim_balance_id` should be a 72-character hex string. |
-| `sign_in_required` | The caller isn't authenticated, or `owner_id`/`user_id` don't match the winner. |
-| "bad_guess" / a 400 | The request shape is wrong — check `product_id` matches the one used at commit time. |
+| "bad_guess" / a 400 | The request shape is wrong — check `product_id` matches the one used at commit time. **It's now the HS code** (`6110`, `6404`, `090111`, `392690`), not the product id. |
+| The pot never settles | Only one person has guessed. A pool of one doesn't settle — by design. Have a second person guess. |
+| "the first one" in the pool | Everyone's guesses are anonymous because they were made signed out. The *count* still works; only the pot's claim needs the matching browser id. |
 
 ### 2.4 — The published field
 

@@ -66,8 +66,11 @@ export default function PublicTrace() {
           })
           .catch(() => {});
         // How many people have put a belief on the record for this one.
+        // The pool is keyed by category, so this is the whole category's
+        // field, not just this one entry.
+        const poolKey = s.hs || (productFromScan(s)?.hs) || s.product_id;
         base44.functions
-          .invoke("guessPool", { action: "pool_state", product_id: s.product_id })
+          .invoke("guessPool", { action: "pool_state", product_id: poolKey })
           .then((r) => {
             const d = r?.data || r;
             if (alive && d?.ok) setPool(d);

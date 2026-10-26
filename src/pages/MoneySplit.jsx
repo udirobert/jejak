@@ -63,6 +63,7 @@ export default function MoneySplit() {
   const [guess, setGuess] = useState(15);
   const [guessProof, setGuessProof] = useState(null);
   const [poolResult, setPoolResult] = useState(null);
+  const [poolSize, setPoolSize] = useState(0); // how many people have guessed this one
   const [anchorState, setAnchorState] = useState("idle"); // idle | anchoring | anchored | failed
   const [claimState, setClaimState] = useState({ status: "idle" }); // idle | claiming | claimed | failed
   const [proofOpen, setProofOpen] = useState(false);
@@ -120,6 +121,28 @@ export default function MoneySplit() {
 
   const routeCodes = route.map((st) => st.code || st.country?.slice(0, 2).toUpperCase()).filter(Boolean).join(" → ");
 
+  // The pool is keyed by CATEGORY, not by the product instance — so two
+  // people who photograph the same jacket land in the same pool, and can
+  // see each other's guesses.
+  const poolKey = product?.hs || product?.id || "unknown";
+
+  // How many people have already guessed this item. The count is safe to
+  // show before the reveal — the distribution isn't — and it is the thing
+  // that makes a guess feel like it's going somewhere.
+  useEffect(() => {
+    const pid = poolKey;
+    if (!pid || pid === "unknown") return;
+    let alive = true;
+    base44.functions
+      .invoke("guessPool", { action: "pool_state", product_id: pid })
+      .then((r) => {
+        const d = r?.data || r;
+        if (alive && d?.ok) setPoolSize(d.pool_size || 0);
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, [poolKey]);
+
   if (!product) {
     setScreen("home");
     return null;
@@ -140,11 +163,13 @@ export default function MoneySplit() {
   // The wager: commit the guess hash onchain before the reveal, then settle
   // the pool to the closest guess via a claimable balance. Testnet.
   //
-  // The pool is scoped to the PRODUCT, so every trace of the same hoodie
-  // lands in the same field. Identity is resolved from auth on the server —
-  // the client never says who it is.
+  // The pool is scoped to the CATEGORY, so every trace of the same kind of
+  // thing lands in the same field — two people who photograph the same
+  // jacket can see each other's guesses. Identity is resolved from auth on
+  // the server (or from a browser-local id); the client never says who it
+  // is.
   const commitGuess = () => {
-    const productId = product?.id || product?.name || "unknown";
+    const productId = poolKey;
     setAnchorState("anchoring");
     base44.functions
       .invoke("guessPool", {
@@ -186,7 +211,11 @@ export default function MoneySplit() {
   const claimPot = () => {
     setClaimState({ status: "claiming" });
     base44.functions
-      .invoke("guessPool", { action: "claim", product_id: product?.id || product?.name })
+      .invoke("guessPool", {
+        action: "claim",
+        product_id: poolKey,
+        anon_id: getAnonId(),
+      })
       .then((r) => {
         const data = r?.data || r;
         if (!data?.ok) {
@@ -287,6 +316,31 @@ export default function MoneySplit() {
                   onClaim={claimPot}
                   reduce={reduce}
                 />
+
+                {/* Publishing is opt-in and stays opt-in — but it used to be a
+                    toggle in the far column, which is why the shared map
+                    stayed empty. Offer it here, at the moment the trace
+                    has just proved itself, with the reason attached. */}
+                {shareMode === "private" && (
+                  <div className="mt-4 max-w-md border border-dashed border-journal-rule bg-journal-card p-4">
+                    <p className="font-plexmono text-[10px] uppercase tracking-[0.14em] text-journal-stamp">
+                      Let others see this one
+                    </p>
+                    <p className="mt-1.5 font-grotesk text-[13px] leading-relaxed text-journal-ink-soft">
+                      Publish this trace to the Atlas — no photo, no account, just the route and the
+                      numbers. Then anyone who traces the same thing can see they weren't the only
+                      one.
+                    </p>
+                    <div className="mt-3">
+                      <JournalButton
+                        variant="secondary"
+                        onClick={() => { vibrate(6); setShareMode("count"); setVisibility(true); }}
+                      >
+                        Publish to the Atlas
+                      </JournalButton>
+                    </div>
+                  </div>
+                )}
                 <div className="mt-5 max-w-md">
                   <StoryCard
                     scanId={savedScanId}
@@ -317,6 +371,11 @@ export default function MoneySplit() {
                 <p className="mt-1 font-grotesk text-sm text-journal-ink-soft">
                   How much of your {formatMoney(price, currency, { minDigits: 0, maxDigits: 0 })} reached the people who made it?
                 </p>
+                {poolSize > 0 && (
+                  <p className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-stamp">
+                    {poolSize} {poolSize === 1 ? "person has" : "people have"} already guessed this one
+                  </p>
+                )}
                 <input
                   type="range"
                   min={1}
@@ -337,6 +396,9 @@ export default function MoneySplit() {
                     Reveal the split
                   </JournalButton>
                 </div>
+                <p className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+                  your guess is committed to the ledger before the split is shown
+                </p>
               </motion.div>
             )}
           </AnimatePresence>

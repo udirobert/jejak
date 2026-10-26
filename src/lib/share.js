@@ -5,12 +5,25 @@
 // landed on the landing page with nothing to beat. Every shared link now
 // points at the entry itself.
 
-export const APP_URL = "https://jejak-trace-flow.base44.app";
+export const APP_URL = "https://jejak.base44.app";
+
+// Where the app is actually served.
+//
+// Derived from the browser at runtime, with the deployed domain as the
+// fallback. Hardcoding it in two places is how the share links ended up
+// pointing at a dead host in the first place — there is now one constant,
+// and it is only used if there is no window to read.
+export function appOrigin() {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+  return APP_URL;
+}
 
 // The public route for one trace. Short, because it goes into a text message.
 export function traceUrl(scanId) {
-  if (!scanId) return APP_URL;
-  return `${APP_URL}/t/${scanId}`;
+  if (!scanId) return appOrigin();
+  return `${appOrigin()}/t/${scanId}`;
 }
 
 export function tracePath(scanId) {
@@ -66,6 +79,6 @@ export function resetPageMeta() {
     title: "Jejak — a field journal for the things you own",
     description:
       "Every thing has a journey. Jejak is a field journal for the things you own: snap anything to see where it came from, who made it, and where your money went.",
-    url: APP_URL,
+    url: appOrigin(),
   });
 }

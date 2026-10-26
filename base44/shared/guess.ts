@@ -8,6 +8,37 @@ export const MIN_PCT = 1;
 export const MAX_PCT = 40;
 export const BUCKET_PCT = 2;
 
+// The canonical maker-share estimate for each category we have a curated
+// product for, keyed by HS code.
+//
+// The pool is keyed by category, not by product instance: two people who
+// photograph the same jacket must land in the same pool, and they only do
+// if the key is the category. And because everyone in a pool is compared
+// against the SAME truth, the truth has to be the category's estimate rather
+// than whichever person's trace happened to resolve it.
+//
+// Kept here rather than imported from src/data so the deployed function
+// doesn't have to pull the whole catalogue in; `guess.test.ts` asserts this
+// table still matches src/data, so the two can't drift.
+export const CATEGORY_LABOUR_MID: Record<string, number> = {
+  "6110": 2,
+  "6404": 4,
+  "090111": 7,
+  "392690": 4,
+};
+
+// The pool a product belongs to.
+export function poolKeyFor(hs: string | null | undefined, productId: string | null | undefined) {
+  return hs || productId || "unknown";
+}
+
+// The truth a pool is settled against: the category's estimate when we have
+// one, otherwise whatever the resolver's own trace says.
+export function canonicalLabourPct(poolKey: string, fallback: number) {
+  const v = CATEGORY_LABOUR_MID[poolKey];
+  return typeof v === "number" ? v : fallback;
+}
+
 // A guess is bucketed so the distribution can be shown without attributing
 // any individual belief to a person. Two-percentage-point buckets over 1..40.
 export function histogram(values: number[], bucket: number = BUCKET_PCT) {

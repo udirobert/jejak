@@ -1,5 +1,39 @@
 import { assertEquals } from "jsr:@std/assert";
-import { histogram, median, latestPerUser, standing, isFieldPublic } from "./guess.ts";
+import {
+  histogram,
+  median,
+  latestPerUser,
+  standing,
+  isFieldPublic,
+  poolKeyFor,
+  canonicalLabourPct,
+  CATEGORY_LABOUR_MID,
+} from "./guess.ts";
+import { hoodie } from "../../src/data/hoodie.js";
+import { trainers } from "../../src/data/trainers.js";
+import { coffee } from "../../src/data/coffee.js";
+import { phoneCase } from "../../src/data/phoneCase.js";
+
+Deno.test("the canonical category table still matches the catalogue", () => {
+  // The deployed function can't import src/data, so the table is copied.
+  // This test is the guardrail that stops the copy drifting.
+  for (const p of [hoodie, trainers, coffee, phoneCase]) {
+    assertEquals(CATEGORY_LABOUR_MID[p.hs], p.split.labour.pct.mid, `${p.id} labour mid drifted`);
+  }
+});
+
+Deno.test("poolKeyFor — the category is the pool, not the product instance", () => {
+  assertEquals(poolKeyFor("6110", "ai-hoodie-abc123"), "6110");
+  assertEquals(poolKeyFor("6110", "hoodie"), "6110");
+  assertEquals(poolKeyFor(null, "ai-thing-xyz"), "ai-thing-xyz");
+  assertEquals(poolKeyFor(null, null), "unknown");
+});
+
+Deno.test("canonicalLabourPct — the category's truth, or the resolver's own", () => {
+  assertEquals(canonicalLabourPct("6110", 99), 2);
+  assertEquals(canonicalLabourPct("no-such-code", 7.5), 7.5);
+});
+
 
 Deno.test("histogram — guesses are bucketed into 2% bands", () => {
   // 7% rounds up into the 8% band.
