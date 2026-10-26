@@ -66,6 +66,46 @@ export function isSampleScan(scan) {
   return Boolean(scan && (scan.sample_entry || scan.is_sample));
 }
 
+// Corroboration — did anyone else reach the same conclusion?
+//
+// Not a rating and not a star count: agreement. If seven people traced the
+// same hoodie and five of them also got Bangladesh, that is worth more than
+// any opinion, because it is the same conclusion reached independently.
+//
+// Sample entries are excluded — seeded data is not a person.
+export function corroboration(items) {
+  const real = (items || []).filter((s) => !isSampleScan(s));
+  const withOrigin = real.filter((s) => (s.origin || "").trim());
+  if (!withOrigin.length) return null;
+
+  const counts = new Map();
+  for (const s of withOrigin) {
+    const o = s.origin.trim();
+    counts.set(o, (counts.get(o) || 0) + 1);
+  }
+  const ranked = Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  const [topOrigin, topCount] = ranked[0];
+
+  return {
+    people: withOrigin.length,
+    distinctOrigins: counts.size,
+    agreedOrigin: topCount >= 2 ? topOrigin : null,
+    agreedCount: topCount,
+  };
+}
+
+// One line of plain English about what the field agrees on.
+export function corroborationLine(c) {
+  if (!c || c.people < 2) return "";
+  if (c.agreedOrigin) {
+    return `${c.agreedCount} of ${c.people} got ${c.agreedOrigin}`;
+  }
+  if (c.distinctOrigins > 1) {
+    return `${c.people} traced this · ${c.distinctOrigins} different origins`;
+  }
+  return `${c.people} traced this`;
+}
+
 export function getMaterialName(scan) {
   if (!scan) return "Standard material";
   return (

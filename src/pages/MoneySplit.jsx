@@ -14,7 +14,9 @@ import JournalButton from "@/components/journal/JournalButton";
 import ProofDrawer from "@/components/journal/ProofDrawer";
 import StoryCard from "@/components/journal/StoryCard";
 import GiveBackNote from "@/components/journal/GiveBackNote";
+import WagerPanel from "@/components/journal/WagerPanel";
 import AskBrandSheet from "@/components/journal/AskBrandSheet";
+import { getAnonId } from "@/lib/anonId";
 import { useSaveTrace } from "@/lib/saveTrace";
 import { useAuth } from "@/lib/AuthContext";
 import { celebrate } from "@/lib/celebrate";
@@ -62,6 +64,7 @@ export default function MoneySplit() {
   const [guessProof, setGuessProof] = useState(null);
   const [poolResult, setPoolResult] = useState(null);
   const [anchorState, setAnchorState] = useState("idle"); // idle | anchoring | anchored | failed
+  const [claimState, setClaimState] = useState({ status: "idle" }); // idle | claiming | claimed | failed
   const [proofOpen, setProofOpen] = useState(false);
   const [editingPrice, setEditingPrice] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
@@ -134,18 +137,26 @@ export default function MoneySplit() {
     ? `you guessed ${formatMoney(guessedAmount, currency)}`
     : "have a guess first";
 
-  // Stake the guess: commit its hash onchain, then settle the pool to the
-  // closest guess via a claimable balance. Testnet. The anchor state is
-  // surfaced in the UI so a failed commit can never hide silently.
+  // The wager: commit the guess hash onchain before the reveal, then settle
+  // the pool to the closest guess via a claimable balance. Testnet.
+  //
+  // The pool is scoped to the PRODUCT, so every trace of the same hoodie
+  // lands in the same field. Identity is resolved from auth on the server —
+  // the client never says who it is.
   const commitGuess = () => {
-    const productId = savedScanId || product?.id || product?.name || "unknown";
-    const userId = savedScanId || "guest";
+    const productId = product?.id || product?.name || "unknown";
     setAnchorState("anchoring");
     base44.functions
-      .invoke("guessPool", { action: "commit", product_id: productId, guess_pct: guess, user_id: userId })
+      .invoke("guessPool", {
+        action: "commit",
+        product_id: productId,
+        product_name: product?.name || "",
+        guess_pct: guess,
+        anon_id: getAnonId(),
+      })
       .then((r) => {
         const data = r?.data || r;
-        if (!data?.ok) throw new Error(data?.error || "commit rejected");
+        if (!data?.ok) throw new Error(data?.error || data?.reason || "commit rejected");
         setGuessProof(data);
         setAnchorState("anchored");
         return base44.functions.invoke("guessPool", {
@@ -168,6 +179,33 @@ export default function MoneySplit() {
     vibrate(10);
     setGuessedLabourPct(guess);
     commitGuess();
+  };
+
+  // Collect the pot. The claim is signed by the winner's own derived key —
+  // the claimant address the pot was created for — so only they can take it.
+  const claimPot = () => {
+    setClaimState({ status: "claiming" });
+    base44.functions
+      .invoke("guessPool", { action: "claim", product_id: product?.id || product?.name })
+      .then((r) => {
+        const data = r?.data || r;
+        if (!data?.ok) {
+          const reason = data?.reason || data?.error || "claim rejected";
+          throw new Error(
+            reason === "sign_in_required"
+              ? "Sign in to claim the pot."
+              : reason === "nothing_to_claim"
+                ? "There's no pot waiting for you."
+                : "The claim didn't go through — try again."
+          );
+        }
+        setClaimState({ status: "claimed", ...data });
+        toast.success(`${data.amount || ""} XLM is yours — it's on the ledger.`);
+      })
+      .catch((err) => {
+        setClaimState({ status: "failed", error: err?.message });
+        toast.error(err?.message || "The claim didn't go through — try again.");
+      });
   };
 
   return (
@@ -227,40 +265,28 @@ export default function MoneySplit() {
                 <p className="mt-3 font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
                   tap a line for its basis
                 </p>
-                {(anchorState === "anchoring" || anchorState === "failed" || guessProof) && (
+                {(anchorState === "anchoring" || anchorState === "failed") && (
                   <div className="mt-1 max-w-md font-plexmono text-[10px] uppercase tracking-[0.12em] text-journal-ink-soft">
-                    {anchorState === "anchoring" && <span>anchoring guess onchain…</span>}
+                    {anchorState === "anchoring" && <span>committing your guess to the ledger…</span>}
                     {anchorState === "failed" && (
                       <span className="text-journal-stamp">
-                        anchor failed — your guess is still revealed locally.
+                        the ledger commit failed — your guess is still revealed locally.
                         <button type="button" onClick={commitGuess}
                           className="ml-2 underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-ink no-tap">
                           retry
                         </button>
                       </span>
                     )}
-                    {guessProof && (
-                      <>
-                        <a href={guessProof.explorer_url} target="_blank" rel="noreferrer"
-                          className="underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-stamp">
-                          guess anchored onchain · sha:{guessProof.guess_hash?.slice(0, 12)}…
-                        </a>
-                        {poolResult?.winner && (
-                          <span className="block mt-1">
-                            {poolResult.winner.user_id === (savedScanId || "guest")
-                              ? `pool won · ${poolResult.winner.pot_xlm} XLM claimable`
-                              : `pool settled · closest guess won`}
-                            {" · "}
-                            <a href={poolResult.winner.settle_explorer} target="_blank" rel="noreferrer"
-                              className="underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-stamp">
-                              settle tx
-                            </a>
-                          </span>
-                        )}
-                      </>
-                    )}
                   </div>
                 )}
+                <WagerPanel
+                  guessProof={guessProof}
+                  poolResult={poolResult}
+                  estimate={{ low: labour.pct?.low ?? 0, high: labour.pct?.high ?? 0 }}
+                  claimState={claimState}
+                  onClaim={claimPot}
+                  reduce={reduce}
+                />
                 <div className="mt-5 max-w-md">
                   <StoryCard
                     scanId={savedScanId}

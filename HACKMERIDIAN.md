@@ -77,7 +77,6 @@ Extends the existing guess-the-maker-share slider into a staked pool:
 - Optional new VO line about the wager layer, else mono labels carry it.
 
 ## The agentic layer — BUILT
-
 The product stops handing over answers and starts showing its work. Spec in
 [`docs/agentic.md`](docs/agentic.md).
 
@@ -103,6 +102,38 @@ The product stops handing over answers and starts showing its work. Spec in
   the fee-sponsoring account, same honest limitation as the other passport
   admin actions.
 
+## The social layer — BUILT
+
+Jejak stops being a broadcast app (you publish an anonymised trace to a shared
+map) and becomes an interaction app. Spec in [`docs/social.md`](docs/social.md).
+
+- **The wager, made correct.** Identity is resolved **server-side from auth** —
+  it used to be a client-supplied `"guest"` for everybody, which meant every
+  winner shared one demo claim address and nobody could ever claim the pot.
+  The win-detection no longer tells you you won when you lost. The pool is
+  scoped to the **product**, so the field accumulates instead of fragmenting
+  into private buckets. And `action: "claim"` submits a real
+  `claimClaimableBalance` operation, signed by the winner's own derived key —
+  so the pot is genuinely collectable, with an explorer link.
+- **GuessField** — the whole field on one hand-inked axis: a mark per person,
+  your guess as the vermilion diamond, the app's estimate as a faint band, the
+  truth as a solid rule. It shows **where you sat**, not a ranking, and never
+  says who held which belief. One belief per person (your latest counts), so
+  nobody can hedge the pot by guessing twice.
+- **Corroboration** — the Atlas reports what people agree on: *5 of 7 got
+  Bangladesh*. Agreement reached independently, not approval — so there is
+  nothing to moderate and nothing to game.
+- **Honest throughout**: the pot is **sponsored** (no XLM of the user's is
+  locked, and the UI never says "stake"); signed-out visitors count toward the
+  field but are not eligible for the pot; and a count of one is never shown.
+
+### Demo beats (the social layer)
+
+1. Guess on the split screen — the hash goes to the ledger first.
+2. Reveal — the truth *and* the whole field land together on the axis.
+3. Point at the marks: "9 of 14 guessed higher than you."
+4. Open the Atlas — "5 of 7 got Bangladesh."
+
 ## Repo/submission checklist
 
 - [ ] Repo public (`gh repo view`)
@@ -112,9 +143,10 @@ The product stops handing over answers and starts showing its work. Spec in
 - [ ] Onchain tx evidence: one confirmed testnet anchor + explorer link in README/demo.
 - [ ] Prior-work disclosure: `stellarFeeRelayer`/`stellarMakerPayout` predate
       HackMeridian (@ts-nocheck banner marks them). New this event: the wager pool
-      (guessPool fn + stake/commit/settle UX), the agentic layer (trace steps,
-      confidence shift, delegated letters, observations), the journal/product
-      shell, video. Say so explicitly.
+      (guessPool fn + stake/commit/settle/claim UX), the agentic layer (trace steps,
+      confidence shift, delegated letters, observations), the social layer (the
+      wager's field, the claim, corroboration), the journal/product shell, video.
+      Say so explicitly.
 - [ ] `JEJAK_APP_URL` env var check for payout/passport deep links.
 
 ## Future-work lines (pitch, not scope)

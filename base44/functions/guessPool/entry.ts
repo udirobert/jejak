@@ -1,7 +1,24 @@
 // @ts-nocheck
-// Staked provenance guesses. Commit a guess hash onchain (provably fair —
-// nobody can edit after reveal), settle the pool to the closest guess via a
-// claimable balance (the pot is on-ledger, not custodial). Testnet.
+// The wager — staked provenance guesses.
+//
+// A guess is committed to the public ledger as a SHA-256 hash BEFORE the
+// real maker-share is known, so nobody (including us) can change it
+// afterwards. When the pool settles, the pot goes to the closest guess as a
+// Stellar claimable balance (CAP-23): on-ledger, non-custodial, claimable by
+// the winner alone.
+//
+// Two rules this function exists to enforce:
+//
+// 1. IDENTITY IS DERIVED FROM AUTH, never from the request body. The client
+//    used to send `user_id`, which meant it could be "guest" for everybody —
+//    so every winner shared one demo claim address and nobody could ever
+//    claim anything. Now the caller is resolved server-side.
+//
+// 2. THE POT IS SPONSORED. No XLM of the guesser's is locked, so the pot is
+//    funded by Jejak and `sponsored: true` says so in the data. A signed-out
+//    visitor may guess — their guess counts toward the field and the
+//    distribution — but is not eligible for the pot, because the pot has to be
+//    claimable by a real person.
 import {
   Keypair,
   Horizon,
@@ -12,13 +29,20 @@ import {
   Claimant,
 } from "npm:@stellar/stellar-sdk@12.3.0";
 import { createClientFromRequest } from "npm:@base44/sdk@0.8.53";
+import {
+  histogram,
+  median,
+  latestPerUser,
+  MIN_PCT,
+  MAX_PCT,
+} from "../../shared/guess.ts";
 
 const HORIZON_URL = "https://horizon-testnet.stellar.org";
 const FRIENDBOT_URL = "https://friendbot.stellar.org";
 const EXPLORER_TX = (h: string) => `https://stellar.expert/explorer/testnet/tx/${h}`;
-const STAKE_XLM = "1";
-const POT_XLM = "10"; // sponsored demo pot per pool
+const POT_XLM = "10"; // sponsored demo pot per pool — the guesser stakes nothing
 const POOL_SEED = "jejak-guess-pool-signer-v1";
+const WINNER_SEED_PREFIX = "jejak-guess-winner-v2";
 
 async function deriveKp(seed: string): Promise<Keypair> {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed));
@@ -35,6 +59,22 @@ async function ensureFunded(server: Horizon.Server, pk: string) {
   }
 }
 
+// The caller's identity, resolved from the request's auth. Never from the body.
+async function callerId(base44: any) {
+  try {
+    const user = await base44.auth.me();
+    if (user?.id) return { id: String(user.id), authenticated: true };
+  } catch {
+    // signed out — fall through
+  }
+  return { id: "", authenticated: false };
+}
+
+// A guess is bucketed so the distribution can be shown without attributing any
+// individual guess to a person. Two-percentage-point buckets over 1..40.
+// (histogram / median / latestPerUser live in base44/shared/guess.ts so they
+// can be tested without a Stellar connection.)
+
 export default async function (req: Request) {
   const base44 = createClientFromRequest(req);
   const sr = base44.asServiceRole;
@@ -44,14 +84,23 @@ export default async function (req: Request) {
   try {
     const body = await req.json();
     const { action } = body || {};
+    const caller = await callerId(base44);
 
     // ---- commit: anchor the guess hash onchain before the reveal ----
     if (action === "commit") {
-      const { product_id, guess_pct, user_id } = body;
+      const { product_id, guess_pct, product_name, anon_id } = body;
       const pct = Number(guess_pct);
-      if (!product_id || !isFinite(pct) || pct < 1 || pct > 40) {
+      if (!product_id || !isFinite(pct) || pct < MIN_PCT || pct > MAX_PCT) {
         return Response.json({ ok: false, reason: "bad_guess" }, { status: 400 });
       }
+
+      // Signed in -> a real person, eligible for the pot. Signed out -> a
+      // browser-local anonymous id, eligible for the field only.
+      const eligible = caller.authenticated;
+      const user_id = eligible
+        ? caller.id
+        : `anon:${String(anon_id || "unknown").slice(0, 64)}`;
+
       const salt = crypto.randomUUID().replaceAll("-", "").slice(0, 16);
       const canonical = `jejak.guess.v1|${product_id}|${pct}|${salt}`;
       const guessHash = await sha256(canonical);
@@ -70,14 +119,17 @@ export default async function (req: Request) {
 
       const record = await sr.entities.Guess.create({
         product_id,
+        product_name: typeof product_name === "string" ? product_name : "",
         guess_pct: pct,
-        user_id: user_id || "anonymous",
+        user_id,
+        eligible,
         salt,
         guess_hash: guessHash,
         commit_tx: res.hash,
         explorer_url: EXPLORER_TX(res.hash),
         status: "committed",
-        stake_xlm: STAKE_XLM,
+        pot_xlm: POT_XLM,
+        sponsored: true,
       });
       return Response.json({
         ok: true,
@@ -87,86 +139,194 @@ export default async function (req: Request) {
         ledger: res.ledger,
         explorer_url: EXPLORER_TX(res.hash),
         canonical,
+        eligible,
+        pot_xlm: POT_XLM,
+        sponsored: true,
       });
     }
 
-    // ---- resolve: rank committed guesses, settle pot to the closest ----
+    // ---- resolve: reveal the field, rank the round, settle the pot ----
     if (action === "resolve") {
       const { product_id, labour_pct } = body;
       const actual = Number(labour_pct);
       if (!product_id || !isFinite(actual)) {
         return Response.json({ ok: false, reason: "bad_input" }, { status: 400 });
       }
-      const guesses = await sr.entities.Guess.filter({ product_id, status: "committed" }, "-created_date", 50);
-      if (!guesses?.length) return Response.json({ ok: true, pool_size: 0, settled: false });
 
-      const ranked = guesses
+      // Every guess ever made on this product is the field — it accumulates.
+      const all = (await sr.entities.Guess.filter({ product_id }, "-created_date", 300)) || [];
+      const field = latestPerUser(all);
+      const pcts = field.map((g: any) => Number(g.guess_pct));
+
+      // This round's eligible guesses compete for the pot.
+      const eligible = field.filter((g: any) => g.eligible);
+      const ranked = eligible
         .map((g: any) => ({ g, err: Math.abs(Number(g.guess_pct) - actual) }))
         .sort((a, b) => a.err - b.err);
-      const winner = ranked[0];
-      // Winner's demo claim wallet: deterministic per user_id (testnet only).
-      const winnerKp = await deriveKp(`jejak-guess-winner-${winner.g.user_id || "anon"}-v1`);
 
-      const { Asset } = await import("npm:@stellar/stellar-sdk@12.3.0");
-      const settle = await (async () => {
-        const acct = await ensureFunded(server, poolKp.publicKey());
-        const kp = await deriveKp(POOL_SEED);
-        const tx = new TransactionBuilder(acct, { fee: "200" })
-          .addOperation(
-            Operation.createClaimableBalance({
-              asset: Asset.native(),
-              amount: POT_XLM,
-              claimants: [new Claimant(winnerKp.publicKey(), Claimant.predicateUnconditional())],
+      const mine = caller.id ? field.find((g: any) => g.user_id === caller.id) || null : null;
+      const myRank = mine && mine.eligible
+        ? ranked.findIndex((r: any) => r.g.id === mine.id) + 1
+        : null;
+      const guessedHigher = mine
+        ? pcts.filter((p: number) => p > Number(mine.guess_pct)).length
+        : null;
+
+      let settlement = null;
+
+      if (ranked.length) {
+        const winner = ranked[0];
+        // The winner's claim address is derived from their real account id,
+        // so only they can claim it.
+        const winnerKp = await deriveKp(`${WINNER_SEED_PREFIX}:${winner.g.user_id}`);
+
+        // If a closer guess has come in since the last settle, the pot moves.
+        // The previous winner's claim is voided so only one pot is live.
+        const prevWinner = field.find((g: any) => g.status === "won" && g.claim_balance_id) || null;
+        const winnerChanged = !prevWinner || prevWinner.id !== winner.g.id;
+
+        let balanceId = prevWinner?.claim_balance_id || "";
+        let settleTx = prevWinner?.settle_tx || "";
+        let settleExplorer = prevWinner?.settle_explorer || "";
+        let claimAddress = prevWinner?.winner_claim_address || "";
+
+        if (winnerChanged) {
+          if (prevWinner) {
+            await sr.entities.Guess.update(prevWinner.id, { claim_balance_id: "", claim_tx: "" });
+          }
+          const { Asset } = await import("npm:@stellar/stellar-sdk@12.3.0");
+          const settle = await (async () => {
+            const acct = await ensureFunded(server, poolKp.publicKey());
+            const tx = new TransactionBuilder(acct, { fee: "200" })
+              .addOperation(
+                Operation.createClaimableBalance({
+                  asset: Asset.native(),
+                  amount: POT_XLM,
+                  claimants: [new Claimant(winnerKp.publicKey(), Claimant.predicateUnconditional())],
+                })
+              )
+              .addMemo(Memo.text(`JEJAK-POOL:${String(product_id).slice(0, 8)}:WIN`))
+              .setNetworkPassphrase(Networks.TESTNET)
+              .setTimeout(120)
+              .build();
+            tx.sign(poolKp);
+            return server.submitTransaction(tx);
+          })();
+
+          balanceId = settle?.result?.operations?.[0]?.createClaimableBalanceResult?.id || "";
+          settleTx = settle.hash;
+          settleExplorer = EXPLORER_TX(settle.hash);
+          claimAddress = winnerKp.publicKey();
+        }
+
+        await Promise.all(
+          eligible.map((g: any) =>
+            sr.entities.Guess.update(g.id, {
+              status: g.id === winner.g.id ? "won" : "lost",
+              reveal_error_pct: Math.abs(Number(g.guess_pct) - actual),
+              settle_tx: g.id === winner.g.id ? settleTx : "",
+              settle_explorer: g.id === winner.g.id ? settleExplorer : "",
+              winner_claim_address: g.id === winner.g.id ? claimAddress : "",
+              claim_balance_id: g.id === winner.g.id ? balanceId : "",
+              pot_xlm: POT_XLM,
             })
           )
-          .addMemo(Memo.text(`JEJAK-POOL:${String(product_id).slice(0, 8)}:WIN`))
-          .setNetworkPassphrase(Networks.TESTNET)
-          .setTimeout(120)
-          .build();
-        tx.sign(kp);
-        return server.submitTransaction(tx);
-      })();
+        );
 
-      const updates = await Promise.all(
-        guesses.map((g: any) =>
-          sr.entities.Guess.update(g.id, {
-            status: g.id === winner.g.id ? "won" : "lost",
-            reveal_error_pct: Math.abs(Number(g.guess_pct) - actual),
-            settle_tx: g.id === winner.g.id ? settle.hash : "",
-            settle_explorer: g.id === winner.g.id ? EXPLORER_TX(settle.hash) : "",
-            winner_claim_address: g.id === winner.g.id ? winnerKp.publicKey() : "",
-          })
-        )
-      );
+        // The winner's identity is never returned to a caller — only whether
+        // the caller IS the winner.
+        settlement = {
+          guess_pct: Number(winner.g.guess_pct),
+          error_pct: winner.err,
+          claim_address: claimAddress,
+          settle_tx: settleTx,
+          settle_explorer: settleExplorer,
+          pot_xlm: POT_XLM,
+          sponsored: true,
+          claim_balance_id: balanceId,
+          you_won: Boolean(mine && mine.id === winner.g.id),
+          // Was anyone actually competing, or was this a one-person pool?
+          contested: eligible.length > 1,
+        };
+      }
 
       return Response.json({
         ok: true,
-        pool_size: guesses.length,
+        // The whole field, across every round.
+        pool_size: field.length,
+        // How many of them can actually win the pot.
+        eligible_count: eligible.length,
+        // Individual beliefs, unattributed. The reveal guarantees the timing;
+        // we choose never to say WHO held which belief.
+        field_pcts: pcts,
+        distribution: histogram(pcts),
+        median_guess_pct: median(pcts),
         actual_labour_pct: actual,
-        winner: {
-          guess_id: winner.g.id,
-          user_id: winner.g.user_id,
-          guess_pct: winner.g.guess_pct,
-          error_pct: winner.err,
-          claim_address: winnerKp.publicKey(),
-          settle_tx: settle.hash,
-          settle_explorer: EXPLORER_TX(settle.hash),
-          pot_xlm: POT_XLM,
-        },
+        your_guess_pct: mine ? Number(mine.guess_pct) : null,
+        your_rank: myRank,
+        guessed_higher: guessedHigher,
+        settlement,
       });
     }
 
-    // ---- pool_state: committed guesses for a product ----
-    if (action === "pool_state") {
-      const guesses = await sr.entities.Guess.filter({ product_id: body.product_id }, "-created_date", 100);
+    // ---- claim: the winner collects the pot, on-ledger ----
+    if (action === "claim") {
+      const { product_id } = body;
+      if (!caller.authenticated) {
+        return Response.json({ ok: false, reason: "sign_in_required" }, { status: 401 });
+      }
+      const won = (await sr.entities.Guess.filter({ product_id, status: "won" }, "-created_date", 50)) || [];
+      const mine = won.find(
+        (g: any) => g.user_id === caller.id && g.claim_balance_id && !g.claim_tx
+      );
+      if (!mine) {
+        return Response.json({ ok: false, reason: "nothing_to_claim" }, { status: 404 });
+      }
+
+      // The claim is signed by the winner's own derived key — the claimant
+      // address the pot was created for.
+      const winnerKp = await deriveKp(`${WINNER_SEED_PREFIX}:${mine.user_id}`);
+      const acct = await ensureFunded(server, winnerKp.publicKey());
+      const tx = new TransactionBuilder(acct, { fee: "200" })
+        .addOperation(
+          Operation.claimClaimableBalance({
+            balanceId: mine.claim_balance_id,
+            claimant: new Claimant(winnerKp.publicKey(), Claimant.predicateUnconditional()),
+          })
+        )
+        .addMemo(Memo.text(`JEJAK-CLAIM:${String(product_id).slice(0, 8)}`))
+        .setNetworkPassphrase(Networks.TESTNET)
+        .setTimeout(120)
+        .build();
+      tx.sign(winnerKp);
+      const res = await server.submitTransaction(tx);
+
+      await sr.entities.Guess.update(mine.id, {
+        claim_tx: res.hash,
+        claim_explorer: EXPLORER_TX(res.hash),
+      });
+
       return Response.json({
         ok: true,
-        pool_size: guesses?.length || 0,
-        guesses: (guesses || []).map((g: any) => ({
-          id: g.id, guess_pct: g.guess_pct, status: g.status,
-          commit_tx: g.commit_tx, explorer_url: g.explorer_url,
-          settle_explorer: g.settle_explorer || "",
-        })),
+        claim_tx: res.hash,
+        claim_explorer: EXPLORER_TX(res.hash),
+        amount: mine.pot_xlm,
+        currency: "XLM",
+        network: "Stellar Testnet",
+      });
+    }
+
+    // ---- pool_state: the field for a product ----
+    if (action === "pool_state") {
+      const guesses = (await sr.entities.Guess.filter({ product_id: body.product_id }, "-created_date", 300)) || [];
+      const field = latestPerUser(guesses);
+      const pcts = field.map((g: any) => Number(g.guess_pct));
+      return Response.json({
+        ok: true,
+        pool_size: field.length,
+        eligible_count: field.filter((g: any) => g.eligible).length,
+        distribution: histogram(pcts),
+        median_guess_pct: median(pcts),
       });
     }
 

@@ -4,7 +4,7 @@ import { ChevronUp, ChevronDown, Sparkles, X } from "lucide-react";
 import { vibrate } from "@/lib/haptics";
 import Specimen from "@/components/journal/Specimen";
 
-import { isSampleScan, relativeTracedTime } from "./exploreUtils";
+import { isSampleScan, relativeTracedTime, corroboration, corroborationLine } from "./exploreUtils";
 
 export const SNAP_HEIGHTS = {
   peek: 58,
@@ -57,11 +57,15 @@ function CorridorTicker({ onTraceProduct, reduce }) {
   );
 }
 
-function CompactProductRow({ group, isHighlighted, onSelectScan }) {
+function CompactProductRow({ group, isHighlighted, onSelectScan, onTraceProduct, reduce }) {
   const { items } = group;
   const [activeIdx, setActiveIdx] = useState(0);
   const safeIdx = Math.min(activeIdx, items.length - 1);
   const scan = items[safeIdx] || items[0];
+
+  // What the field agrees on. Agreement, not popularity.
+  const corr = corroboration(items);
+  const corrLine = corroborationLine(corr);
 
   return (
     <div
@@ -90,11 +94,31 @@ function CompactProductRow({ group, isHighlighted, onSelectScan }) {
           <p className="font-plexmono text-[10px] uppercase tracking-[0.08em] text-journal-ink-soft truncate">
             {scan.story_title ? scan.story_title : relativeTracedTime(scan.created_date)}
           </p>
+          {corrLine && (
+            <p className="mt-0.5 truncate font-hand text-base leading-tight text-journal-ink-soft">
+              {corrLine}
+            </p>
+          )}
         </div>
       </div>
-      <span className="shrink-0 border border-journal-rule px-1.5 py-0.5 font-plexmono text-[9px] uppercase tracking-[0.1em] text-journal-ink-soft">
-        {scan.origin?.slice(0, 12)}
-      </span>
+      <div className="flex shrink-0 flex-col items-end gap-1.5">
+        <span className="border border-journal-rule px-1.5 py-0.5 font-plexmono text-[9px] uppercase tracking-[0.1em] text-journal-ink-soft">
+          {scan.origin?.slice(0, 12)}
+        </span>
+        {/* Join the field — the social move is tracing the same thing. */}
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            vibrate(5);
+            onTraceProduct?.(group.productId);
+          }}
+          aria-label={`Trace one like this ${scan.product_name}`}
+          className="min-h-[28px] whitespace-nowrap font-plexmono text-[9px] uppercase tracking-[0.1em] text-journal-stamp underline decoration-journal-stamp/40 underline-offset-2 no-tap hover:text-journal-ink"
+        >
+          trace one like this
+        </button>
+      </div>
     </div>
   );
 }
@@ -302,6 +326,8 @@ export default function ExploreBottomSheet({
                       (it) => it.id === newlyArrivedId
                     )}
                     onSelectScan={onSelectScan}
+                    onTraceProduct={onTraceProduct}
+                    reduce={reduce}
                   />
                 ))}
 

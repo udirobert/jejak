@@ -104,6 +104,17 @@ export default function GiveBackNote({ price, currency, labourAmount }) {
         </div>
       )}
 
+      {/* The tip is money you sent on top of the shelf price. It is kept out
+          of the split on purpose — the split estimates where the shelf price
+          went, and your extra £1 doesn't change that. So it gets its own
+          line, and it survives moving around the trace. */}
+      {makerTip > 0 && (
+        <p className="mt-3 border-t border-dotted border-journal-rule pt-2.5 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+          {formatMoney(makerTip, currency, { minDigits: 0, maxDigits: 0 })} sent to causes on this
+          trace · separate from the split above
+        </p>
+      )}
+
       {lastStellarTx?.cachedFallback && !sent && (
         <p className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
           testnet is slow — showing a recent verified transaction

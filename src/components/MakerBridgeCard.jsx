@@ -148,13 +148,18 @@ export default function MakerBridgeCard({
                   <div className="flex items-center justify-between text-[10px] font-extrabold uppercase tracking-wider text-jejak-navy/60">
                     <span>Recipient cause (all entries: Demo cause (testnet))</span>
                     {makerTip > 0 && (
-                      <button
-                        type="button"
-                        onClick={resetGive}
-                        className="flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/65 no-tap"
-                      >
-                        <RotateCcw size={10} /> Reset
-                      </button>
+                      <span className="flex items-center gap-2">
+                        <span className="text-jejak-labour">
+                          {formatMoney(makerTip, currency, { minDigits: 0, maxDigits: 0 })} sent
+                        </span>
+                        <button
+                          type="button"
+                          onClick={resetGive}
+                          className="flex items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-bold text-jejak-navy/65 no-tap"
+                        >
+                          <RotateCcw size={10} /> Reset
+                        </button>
+                      </span>
                     )}
                   </div>
                   <div className="relative mt-1">

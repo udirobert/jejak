@@ -20,6 +20,8 @@ Most of us have no idea that a £120 hoodie probably crossed six countries and 2
 | **Read the label** | Snap the care tag and the "made in" country becomes a fact. That stage is stamped *read from the label*; everything else stays *estimated*. |
 | **Change its mind** | A care tag moves the origin from *fairly sure* to *sure* — and the app shows the shift: what it was, what it is now, and what did **not** change. |
 | **Follow the money** | Guess first, then reveal. A torn receipt shows where the money went, with the labour line circled in red pen. |
+| **The wager** | Your guess is hashed onto a public ledger *before* the split is revealed, so nobody can move it afterwards. When the pool settles you see the whole field on one hand-inked axis — where everyone stood, where you stood, and where the trade data thought. The pot is a claimable balance you can actually collect. |
+| **Corroboration** | The Atlas says what people agree on: *5 of 7 got Bangladesh*. Agreement, not approval — same conclusion reached independently, which is worth more than any rating. |
 | **Hand things off** | Ask a brand a transparency question and it becomes a task on your desk — *drafted → sent → awaiting reply → flagged after 14 days*. Jejak drafts the follow-up; you press send. |
 | **Notice things on its own** | The journal opens with what the app noticed — two of your items from the same country, a letter nobody answered, a whole set of traces with no label in them. |
 | **Your journal** | Every trace is saved to your private journal. You can choose to publish any entry to the shared **Atlas** map. |
@@ -68,6 +70,18 @@ It closes with a first-person verdict that has to actually follow from the data 
 
 **7 · Consequence, up front.** The money card in the story now states the wager plainly: your guess is hashed and written to a public ledger *before* the split is shown, so nobody — including the app — can change it afterwards. The maker payout moved out of the drawer into the money flow (`GiveBackNote`), and the passport can co-sign an anchored record so the ledger shows the trace is yours, not just that Jejak wrote it down.
 
+## The social layer
+
+Full spec in [`docs/social.md`](./docs/social.md).
+
+Jejak was a **broadcast** app — you published an anonymised trace to a shared map — with no way to see anyone else. It is now an **interaction** app in two places, and only two:
+
+- **The wager** (`base44/functions/guessPool`). Your guess is committed to the ledger as a hash before the real maker-share is known, so nobody can move it afterwards. Identity is resolved server-side from auth, so the pool is genuinely shared and the winner can genuinely claim the pot: `action: "claim"` submits a real `claimClaimableBalance` operation signed by the winner's own key. When the pool settles, `GuessField` draws the whole field on one hand-inked axis — a mark per person, your guess as the vermilion diamond, the app's estimate as a faint band, the truth as a solid rule. It shows *where you sat*, not a ranking.
+- **Corroboration** (`corroboration()` in `src/components/explore/exploreUtils.js`). The Atlas reports what people agree on — *5 of 7 got Bangladesh*. Agreement reached independently, not approval, and with nothing to moderate.
+
+Three rules hold all of it together: we never say **who** held which belief, we never say you **staked** anything (the pot is sponsored), and a count of one is never shown as a count.
+
+
 ## Design
 
 The art direction is *a field journal of things*: warm paper with grain, ink, vermilion postmarks, hand-drawn routes and honest notes in the margins.
@@ -90,10 +104,13 @@ The art direction is *a field journal of things*: warm paper with grain, ink, ve
 | Automations | `writeJourneyStory`, `processReceipt`, `brandFollowUps` (see each `function.jsonc`) |
 | Brand letters | `base44/functions/draftBrandLetter` |
 | Proof layer (Stellar) | `stellarMakerPayout`, `stellarFeeRelayer` |
-| Staked guess pool (commit → resolve → claimable balance) | `base44/functions/guessPool` (+ `Guess` entity) |
+| Staked guess pool (commit → resolve → claim → claimable balance) | `base44/functions/guessPool` (+ `Guess` entity) |
+| The wager's field maths (bucketing, median, one-belief-per-person) | `base44/shared/guess.ts` (+ `guess.test.ts`) |
 | Delegated-letter lifecycle (pure, clock injected) | `src/lib/delegation.js` (+ `src/lib/agentic.test.ts`) |
 | Unprompted observations (pure, derived from the journal's own records) | `src/lib/observations.js` |
+| Corroboration — what the field agrees on | `src/components/explore/exploreUtils.js` (+ `src/lib/corroboration.test.ts`) |
 | Agentic UI primitives | `src/components/journal/TraceSteps.jsx`, `ConfidenceShift.jsx`, `DelegationCard.jsx`, `Observations.jsx`, `PassportSign.jsx`, `GiveBackNote.jsx` |
+| Social UI primitives | `src/components/journal/GuessField.jsx`, `WagerPanel.jsx` |
 
 Row-level security: entries, receipts and letters are owner-only. An entry is readable by everyone only once its owner publishes it to the Atlas.
 
@@ -212,7 +229,13 @@ Stellar is a **first-class provenance and settlement primitive** in Jejak:
   - **"Awaiting reply" and "no reply in 14 days" are derived from the clock**, not written by a job. The daily `brandFollowUps` automation only emails the user; it does not change the stored status.
   - **A care tag changes provenance confidence, not the money split.** `ConfidenceShift` says so explicitly in the UI. The split percentages are a category-level estimate and a label does not reprice them.
   - **A sample label is a demo and is excluded from the confidence shift.** Only a label read from a real photo counts as evidence.
-  - **The passport co-sign journals the signature on the fee-sponsoring account**, the same honest limitation as the other passport admin actions (see the proof layer above) — it proves the record was signed by your key; it does not yet execute as a smart-account authorisation on-chain.
+  - **A passport co-sign journals the signature on the fee-sponsoring account**, the same honest limitation as the other passport admin actions (see the proof layer above) — it proves the record was signed by your key; it does not yet execute as a smart-account authorisation on-chain.
+- **The social layer:**
+  - **The wager's pot is sponsored.** No XLM of the guesser's is locked — the pot is funded by Jejak and `sponsored: true` says so in the data. The UI never uses the word "stake" about the user's own money. A signed-out visitor's guess counts toward the field but is **not eligible for the pot**, because the pot has to be claimable by a real person.
+  - **The winner's claim address is derived from their account id and the claim is signed by that key** — on testnet the backend holds the derived key and submits the claim on the caller's behalf after verifying their auth. On mainnet this would be the user's own wallet signing it.
+  - **The field shows beliefs, never people.** The distribution is unattributed: you see the shape of what people guessed, not who guessed what.
+  - **Corroboration is agreement, not approval.** *5 of 7 got Bangladesh* is the same conclusion reached independently — it needs no moderation and can't be gamed by spamming.
+  - **The maker payout is not a tip to a person.** The recipient is always one of four demo cause wallets; a Jejak user can never receive. The tip is kept out of the split on purpose (`SupplyFlowPipe` gets `makerTip={0}`), so the estimate isn't quietly inflated — it gets its own line instead.
 
 ---
 
@@ -230,6 +253,7 @@ npm run lint                 # ESLint
 node scripts/validate-data.mjs   # Asserts every product split sums to 100%
 deno test base44/shared/         # Tests for the AI trace engine's normalisation rules
 deno test src/lib/               # Tests for the delegation lifecycle + observations
+deno test base44/shared/ src/lib/  # Both suites
 ```
 
 ### Environment Variables (`.env.example`)

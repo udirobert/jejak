@@ -877,7 +877,10 @@ export default function ExploreFullBleedMap({
               </span>
               {liveCount > 0 && (
                 <span className="font-plexmono text-[9px] uppercase text-journal-stamp tabular-nums">
-                  · {liveCount} live
+                  {/* A count of one would point at the only person on the
+                      map. Say "the first one" instead — same information,
+                      nobody singled out. */}
+                  · {liveCount === 1 ? "the first one" : `${liveCount} live`}
                 </span>
               )}
             </div>

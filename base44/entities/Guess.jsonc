@@ -5,11 +5,18 @@
     "product_id": {
       "type": "string"
     },
+    "product_name": {
+      "type": "string"
+    },
     "guess_pct": {
       "type": "number"
     },
     "user_id": {
       "type": "string"
+    },
+    "eligible": {
+      "type": "boolean",
+      "default": false
     },
     "salt": {
       "type": "string"
@@ -32,8 +39,12 @@
       ],
       "default": "committed"
     },
-    "stake_xlm": {
+    "pot_xlm": {
       "type": "string"
+    },
+    "sponsored": {
+      "type": "boolean",
+      "default": true
     },
     "reveal_error_pct": {
       "type": "number"
@@ -45,6 +56,15 @@
       "type": "string"
     },
     "winner_claim_address": {
+      "type": "string"
+    },
+    "claim_balance_id": {
+      "type": "string"
+    },
+    "claim_tx": {
+      "type": "string"
+    },
+    "claim_explorer": {
       "type": "string"
     }
   }
