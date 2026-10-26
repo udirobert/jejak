@@ -122,6 +122,10 @@ export default async function (req: Request) {
         product_name: typeof product_name === "string" ? product_name : "",
         guess_pct: pct,
         user_id,
+        // The record is owned by the person who made the guess, so RLS keeps
+        // it private to them. The shared pool is read through this function
+        // with the service role and surfaced only as an unattributed field.
+        owner_id: eligible ? caller.id : "",
         eligible,
         salt,
         guess_hash: guessHash,
