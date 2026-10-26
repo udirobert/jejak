@@ -64,10 +64,14 @@ export default function TraceDetailSheet({
     setGiveTx(null);
   }, [scan?.id, scan?.product_id, scan?.origin, scan?.stellar_tx_hash]);
 
+  const prod = useMemo(
+    () => (scan ? productFromScan(scan) || getProduct("hoodie") : null),
+    [scan]
+  );
+
   // Build route stops for the thin animated route strip below the hero
   const routeStops = useMemo(() => {
-    if (!scan) return [];
-    const prod = productFromScan(scan) || getProduct("hoodie");
+    if (!scan || !prod) return [];
     const mkt = scan.market === "SG" ? "SG" : "GB";
     const baseRoute = getRoute(prod, mkt);
     return baseRoute.map((stop, idx) =>
@@ -75,7 +79,7 @@ export default function TraceDetailSheet({
         ? { ...stop, country: scan.origin }
         : stop
     );
-  }, [scan]);
+  }, [scan, prod]);
 
   if (!scan) return null;
 
@@ -562,7 +566,6 @@ export default function TraceDetailSheet({
                 type="button"
                 whileTap={reduce ? undefined : TAP}
                 onClick={() => {
-                  const pid = scan.product_id;
                   onClose();
                   onTraceProduct(scan);
                 }}

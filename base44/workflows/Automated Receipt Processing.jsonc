@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "automated_receipt_processing",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "process_receipt": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "processReceipt",
+            "args": {
+              "event": {
+                "entity_name": "${ .trigger.entity_name }",
+                "entity_id": "${ .trigger.entity_id }",
+                "type": "${ .trigger.event_type }"
+              },
+              "data": "${ .trigger.data }"
+            }
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Process receipt",
+            "description": "Extract line items and trace origins"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Reads uploaded receipt photos on creation and traces each physical line item into Scan records.",
+  "name": "Automated Receipt Processing",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "entity",
+      "events": [
+        "create"
+      ],
+      "entity_name": "Receipt"
+    }
+  }
+}

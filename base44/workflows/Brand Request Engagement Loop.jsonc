@@ -1,0 +1,45 @@
+{
+  "definition": {
+    "document": {
+      "dsl": "1.0.0",
+      "name": "brand_request_engagement_loop",
+      "version": "1.0",
+      "namespace": "base44"
+    },
+    "do": [
+      {
+        "send_brand_follow_ups": {
+          "call": "invoke_backend_function",
+          "with": {
+            "function_name": "brandFollowUps",
+            "args": {}
+          },
+          "then": "end",
+          "x-base44": {
+            "title": "Send brand follow-ups",
+            "description": "Remind users of unanswered brand letters"
+          }
+        }
+      }
+    ]
+  },
+  "description": "Checks sent brand letters every 12 hours and emails a reminder when a two-week follow-up is due.",
+  "name": "Brand Request Engagement Loop",
+  "trigger": {
+    "condition": null,
+    "config": {
+      "trigger_type": "scheduled",
+      "events": [],
+      "schedule_mode": "recurring",
+      "cron_expression": "0 */12 * * *",
+      "one_time_date": null,
+      "timezone": "Europe/Lisbon",
+      "interval_value": null,
+      "interval_unit": null,
+      "interval_anchor": null,
+      "ends_type": "never",
+      "ends_on_date": null,
+      "ends_after_count": null
+    }
+  }
+}
