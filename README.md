@@ -81,6 +81,8 @@ Jejak was a **broadcast** app — you published an anonymised trace to a shared 
 
 Three rules hold all of it together: we never say **who** held which belief, we never say you **staked** anything (the pot is sponsored), and a count of one is never shown as a count.
 
+**And a shared link is the trace itself.** `/t/:scanId` renders a published entry without a sign-in — route, split, story, proof, what people agreed on, and the field's beliefs — and the share button points there instead of at the app's front page.
+
 
 ## Design
 
@@ -109,6 +111,7 @@ The art direction is *a field journal of things*: warm paper with grain, ink, ve
 | Delegated-letter lifecycle (pure, clock injected) | `src/lib/delegation.js` (+ `src/lib/agentic.test.ts`) |
 | Unprompted observations (pure, derived from the journal's own records) | `src/lib/observations.js` |
 | Corroboration — what the field agrees on | `src/components/explore/exploreUtils.js` (+ `src/lib/corroboration.test.ts`) |
+| Shared-trace links and page metadata | `src/lib/share.js` (+ `src/lib/share.test.ts`), `src/pages/PublicTrace.jsx` |
 | Agentic UI primitives | `src/components/journal/TraceSteps.jsx`, `ConfidenceShift.jsx`, `DelegationCard.jsx`, `Observations.jsx`, `PassportSign.jsx`, `GiveBackNote.jsx` |
 | Social UI primitives | `src/components/journal/GuessField.jsx`, `WagerPanel.jsx` |
 
@@ -328,6 +331,8 @@ Provenance stage basis badges (`src/pages/Journey.jsx`): `Read from label` (high
 ## Walkthrough video & social post
 
 See [`docs/submission.md`](./docs/submission.md) for the 30-second and 2-minute walkthrough scripts, the shot list, and post copy for X and LinkedIn.
+
+See [`docs/demo.md`](./docs/demo.md) for the four-beat live demo script, and [`docs/deploy.md`](./docs/deploy.md) for deploying and testnet-verifying the wager before you show it.
 
 ---
 
