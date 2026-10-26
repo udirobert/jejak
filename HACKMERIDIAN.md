@@ -134,6 +134,41 @@ map) and becomes an interaction app. Spec in [`docs/social.md`](docs/social.md).
 3. Point at the marks: "9 of 14 guessed higher than you."
 4. Open the Atlas — "5 of 7 got Bangladesh."
 
+### Engagement pass — the part that makes it fill up
+
+The social layer was correct but unusable: pools were keyed by product instance (so two
+people photographing the same jacket landed in different rooms), a solo pool settled
+instantly (so the first person through the door won a contested-looking pot alone),
+signed-out visitors could not compete (so a booth where nobody signs up had an empty
+field), and every shared link pointed at a dead domain.
+
+- **Pools are keyed by HS code**, so the same kind of product is the same room — and
+  everyone in a pool is compared against the same truth, the category's estimate.
+- **A pool of one doesn't settle.** The pot opens when somebody else guesses; the
+  guess stays committed so the next reveal settles against everyone in it.
+- **No sign-up to compete.** A signed-out guess is bound to a browser-local id; a
+  signed-in one to your account. On mainnet both would be the passport wallet.
+- **The guesser count shows before you guess**, so a guess feels like it's going
+  somewhere.
+- **Publishing to the Atlas is offered where the trace has just proved itself**,
+  not as a toggle in the far column — which is why the shared map had stayed empty.
+- **A shared link is the trace**: `/t/:scanId` renders a published entry without a
+  sign-in, and the share button points there rather than at the front page.
+
+### Verified against the deployed backend
+
+- Live app: **https://jejak.base44.app** (Base44 app id `6ace77fd3de4615d81326900`).
+- The deployed `guessPool` returns the new response shape; commit → real testnet tx
+  `61b78270e882612c2b3c7d9ebdc469a043bc867e5f06b1da59af0bbcb185ae36`, **ledger
+  5399535**, `memo_type: hash`.
+- `pool_state` returns the guesser *count* before the reveal but an empty
+  *distribution* — the crowd can't be copied before the answer is out.
+- **Not yet verified:** a successful `claim`. It is the one path in the app that
+  moves money and it has never executed. Test it before the demo —
+  [`docs/deploy.md`](docs/deploy.md) has the script and the symptom table.
+
+Full project status: [`docs/progress.md`](docs/progress.md).
+
 ## Repo/submission checklist
 
 - [ ] Repo public (`gh repo view`)

@@ -20,7 +20,10 @@ export const STELLAR_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
 export const SOROBAN_RPC_URL = "https://soroban-testnet.stellar.org";
 export const HORIZON_TESTNET_URL = "https://horizon-testnet.stellar.org";
 
-export const CANONICAL_PASSKEY_RP_ID = "jejak-trace-flow.base44.app";
+// The RP ID a passkey is registered to. The browser uses the live hostname
+// (see getEffectiveRpId) — this is only the fallback for a context with no
+// window, so it must still name the domain the app is actually served from.
+export const CANONICAL_PASSKEY_RP_ID = "jejak.base44.app";
 
 export function getEffectiveRpId() {
   if (typeof window === "undefined") return CANONICAL_PASSKEY_RP_ID;

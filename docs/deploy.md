@@ -1,6 +1,18 @@
 # Deploy and verify
 
-> **Read this before the demo.** Everything in the repo is live-code; nothing is deployed until you run the commands below. The wager in particular is currently *worse* in production than in the repo — the deployed `guessPool` still tells you "pool won" whenever anybody wins.
+> **Read this before the demo.** Everything in the repo is live-code; nothing is deployed until you run the commands below.
+
+**Live app:** https://jejak.base44.app
+**Base44 app id:** `6ace77fd3de4615d81326900`
+**Function endpoint:** `POST https://app.base44.app/api/apps/6ace77fd3de4615d81326900/functions/<name>`
+
+You can call a function directly with curl to check what is deployed — that's how the current state was verified:
+
+```bash
+curl -s -X POST "https://app.base44.app/api/apps/6ace77fd3de4615d81326900/functions/guessPool" \
+  -H "Content-Type: application/json" \
+  -d '{"action":"pool_state","product_id":"6110"}'
+```
 
 ---
 
@@ -16,11 +28,13 @@ base44 deploy         # entities + functions + site
 
 | Change | What to check after deploying |
 |---|---|
-| **`guessPool` rewritten** | The deployed function's code should now contain `isFieldPublic` and `callerId`. **It has no `function.jsonc`** — neither do `identifyProduct` or the two Stellar functions. All four were created through the dashboard, so deploy may skip them. If the wager behaves like the old one, this is why. Check the function's updated timestamp. |
+| **`guessPool` rewritten** | The deployed function's code should now contain `isFieldPublic`, `callerId` and `canonicalLabourPct`. **It has no `function.jsonc`** — neither do `identifyProduct` or the two Stellar functions. All four were created through the dashboard, so deploy may skip them. If the wager behaves like the old one, this is why. Check the function's updated timestamp, or curl `pool_state` and look for `revealed` in the response. |
+| **Pools are now keyed by HS code** | `product_id` is `6110` / `6404` / `090111` / `392690`, not `hoodie`. The old `hoodie` pool is orphaned; the new ones start empty. Anyone who traced before this deploy is in the old pool and won't see the new one. |
 | **`Guess` entity** | Gained `owner_id`, `eligible`, `pot_xlm`, `sponsored`, `product_name`, `claim_balance_id`, `claim_tx`, `claim_explorer`, and an **RLS block**. Existing guess rows have no `owner_id`, so they're now invisible to their owners. They're stale demo rows; the backend reads them with the service role, so they may still appear in the field. |
 | **`BrandRequest` entity** | Enum gained `escalated`. Widening an enum is safe. |
 | **`base44/shared/guess.ts`** | New, imported by `guessPool`. `draftBrandLetter` already imports `../../shared/prompts.ts` the same way, so relative imports outside the function directory do bundle — but confirm. |
 | **New route `/t/:scanId`** | Frontend only. No deploy concern beyond the site build. |
+| **The share host** | Now read from `window.location.origin` at runtime. If a shared link still points at `jejak-trace-flow.base44.app`, the site build didn't pick up the change. |
 
 ### If deploy skips `guessPool`
 
@@ -41,14 +55,16 @@ then re-deploy and check the timestamp again.
 
 **This is the least-tested path in the app.** The claim in particular has never executed.
 
-Two accounts, because every interesting state needs a field of at least two people:
+Two windows, because every interesting state needs a field of at least two people:
 
-- **Account A** — main browser.
-- **Account B** — private window or second profile.
+- **Window A** — main browser.
+- **Window B** — a private/incognito window (a different browser id).
+
+Competing needs no sign-up, so signed-out windows work fine. If you want to test the account-bound path too, sign in on one of them.
 
 ### 2.1 — Commit and reveal
 
-1. Account A: `/trace` → Hoodie → journey → money screen.
+1. Window A: `/trace` → Hoodie → journey → money screen.
 2. Slide the guess to **12%** → **Reveal the split**.
 
 **Expect:**
@@ -91,7 +107,7 @@ Two accounts, because every interesting state needs a field of at least two peop
 
 ### 2.4 — The published field
 
-5. Account A: `/atlas` → the Hoodie row.
+5. Window A: `/atlas` → the Hoodie row.
 
 **Expect:** *"2 of 2 got…"* or *"2 traced this · 2 different origins"*, and the pool count.
 

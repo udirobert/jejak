@@ -6,16 +6,18 @@
 
 ## Before you start
 
-### Two accounts, not one
+### Two windows, not two accounts
 
 Both social beats need a field of at least two people, and **seeded records don't count** — they're excluded from corroboration and from the live counts, because seeded data is not a person.
 
-So set this up first:
+Competing needs **no sign-up**: a guess made signed out is bound to a browser-local id, and two guesses in the same browser are one belief (your latest counts). So:
 
-1. **Account A** — the demo account, signed in, on the main browser.
-2. **Account B** — a second account, signed in, in a private/incognito window of the same browser (or a second browser profile).
+1. **Window A** — the demo, main browser.
+2. **Window B** — a **private/incognito window** of the same browser.
 
-If you can only manage one account for the live demo, the **Atlas** beat still works at the event: `/room` exists precisely so a room full of people can all trace the same jacket. The field fills itself.
+Both trace the same item and both guess. That's a field of two, with no sign-up and no second account.
+
+If you can only manage one window for the live demo, the **Atlas** beat still works at the event: `/room` exists precisely so a room full of people can all trace the same jacket. The field fills itself.
 
 ### What has to be live
 
@@ -55,7 +57,7 @@ Everything below needs the deployed backend — the wager's commit, resolve and 
 
 **Say:** *"My guess was committed to a public ledger as a hash before the split was shown. So nobody — including the app — can move it afterwards. And here's the other fourteen people who guessed."*
 
-**Watch for:** if you're the only one in the pool, the copy says *"You're the first to guess this one"* — that's fine, and it's the honest state. **Before the demo, have Account B guess the same hoodie** so the field is real.
+**Watch for:** if you're the only one in the pool, the copy says *"You're the only one in the pool. The pot opens when somebody else guesses"* — with a **Get someone to beat me** button right there. That's not a dead end; it's the mechanic. **Have window B guess the same item before you present**, so the pool settles and the pot is real.
 
 **If the claim works:** when you're closest, the panel offers **Claim the 10 XLM**. Press it and open the transaction. That's the moment the pot becomes real — a claimable balance on the public ledger, claimable by you and nobody else.
 
@@ -84,7 +86,6 @@ Everything below needs the deployed backend — the wager's commit, resolve and 
 **What it does now:** shares a link to *your actual trace* — `/t/<scanId>` — not the app's front page. The recipient lands on a page showing your route, your split, and what other people agreed on, with a **Trace one like this** button.
 
 **Say:** *"A shared link has to BE the thing. This used to point at the app's home page, which is the same as sharing nothing."*
-
 ---
 
 ## The fallback

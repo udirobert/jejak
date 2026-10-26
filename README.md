@@ -7,6 +7,8 @@ Snap anything you own and Jejak traces where it likely came from, who made it, a
 
 Built with **Base44** for the **#Base44Challenge**, and entered in **HackMeridian** (Genesis · Stellar Composed). The frontend, data, auth, AI, automations and hosting all run on Base44; the Stellar proof layer is documented below and pitched in `docs/hackmeridian.md`.
 
+**Live app:** https://jejak.base44.app · **Project status:** [`docs/progress.md`](./docs/progress.md)
+
 ## Why
 
 Most of us have no idea that a £120 hoodie probably crossed six countries and 21,000 km, or that published breakdowns put the sewers' wages at under 1% of the price. Jejak makes that visible without preaching. It gives a starting point, not a verdict: every figure is a range with a confidence level, and the app always says which facts were read from a label, which rest on trade data, and which are estimates.
@@ -82,6 +84,8 @@ Jejak was a **broadcast** app — you published an anonymised trace to a shared 
 Three rules hold all of it together: we never say **who** held which belief, we never say you **staked** anything (the pot is sponsored), and a count of one is never shown as a count.
 
 **And a shared link is the trace itself.** `/t/:scanId` renders a published entry without a sign-in — route, split, story, proof, what people agreed on, and the field's beliefs — and the share button points there instead of at the app's front page.
+
+**And the field fills up.** A pool is keyed by **category** (HS code), not by product instance — so two people who photograph the same jacket land in the same room. Competing needs **no sign-up**: a signed-out guess is bound to a browser-local id, a signed-in one to your account. And a pool of one doesn't settle: the pot opens when somebody else guesses, which is what makes it a wager rather than a note to yourself.
 
 
 ## Design

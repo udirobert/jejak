@@ -147,6 +147,23 @@ The tip is also deliberately kept **out of the split**. `SupplyFlowPipe` is hand
 
 ---
 
+## 6 · What has been verified, and what hasn't
+
+Checked against the deployed backend, not against the repo.
+
+| | |
+|---|---|
+| **The deployed `guessPool` is the current one** | `POST /api/apps/6ace77fd3de4615d81326900/functions/guessPool` returns the new response shape. |
+| **A guess reaches the ledger before the reveal** | Tx `61b78270e882612c2b3c7d9ebdc469a043bc867e5f06b1da59af0bbcb185ae36`, **ledger 5399535**, `memo_type: hash`. |
+| **The reveal lock holds** | `pool_state` returns the guesser *count* at any time, but an empty *distribution* until a guess has settled. |
+| **The win is computed server-side** | `resolve` returns `you_won`; the client never works out its own position. |
+| **The claim has never executed** | It refuses correctly, but a successful claim is unproven. It is the only path in the app that moves money. |
+
+The claim is the thing to test first. [`deploy.md`](./deploy.md) has the script and a table of what each failure symptom means.
+
+
+---
+
 ## Tests
 
 - `base44/shared/guess.test.ts` — the field maths: bucketing, median, one-belief-per-person, and where-you-stand. Pure, so it runs without a Stellar connection.

@@ -39,6 +39,19 @@ npx skills add base44/skills
 - `deno test base44/shared/` (trace normalisation tests)
 - `deno check base44/functions/*/entry.ts base44/shared/*.ts`. The two Stellar functions fail locally on `npm:@stellar/stellar-sdk` resolution only; that's expected, because Base44 resolves `npm:` specifiers at deploy. Never vendor node_modules into a function dir (deploy uploads every file in it).
 
+## Docs
+
+Read before changing behaviour — these are the specs, not suggestions.
+
+| | |
+|---|---|
+| `docs/progress.md` | Where the project is: what's live, what's verified against production, what isn't |
+| `docs/agentic.md` | The agentic layer — trace steps, first-person voice, confidence shift, delegated letters, observations |
+| `docs/social.md` | The social layer — the wager, the field, corroboration, and where it deliberately stops |
+| `docs/demo.md` | The four-beat demo script |
+| `docs/deploy.md` | Deploy + testnet runbook, with the symptom table for each failure |
+| `docs/hackmeridian.md` · `HACKMERIDIAN.md` | Hackathon submission and prior-work disclosure |
+
 ## Design system ("field journal")
 
 - Primitives: `src/components/journal/` (PaperGrain, Stamp, MarginNote, RouteMap, Receipt, JournalButton, Specimen, ProofDrawer, StoryCard, AskBrandSheet).
