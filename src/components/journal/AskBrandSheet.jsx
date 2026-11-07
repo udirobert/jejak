@@ -28,9 +28,12 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
   const [subject, setSubject] = useState(record?.subject || "");
   const [body, setBody] = useState(record?.body || "");
   const [questions, setQuestions] = useState(record?.questions || []);
+  // The brand's public, verified account — from Oriane's indexed profiles.
+  // State stays one of null (not found yet), "looking", an object, or
+  // "absent". Absence renders as absence: the mailto just has no recipient,
+  // exactly as before.
+  const [mailbox, setMailbox] = useState(null);
 
-  // Re-sync whenever the sheet is opened, so a re-opened letter shows its
-  // saved state rather than a stale draft.
   useEffect(() => {
     if (!open) return;
     setRec(record);
@@ -39,6 +42,33 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
     setBody(record?.body || "");
     setQuestions(record?.questions || []);
   }, [open, record, scan, product]);
+
+  useEffect(() => {
+    if (!open) return;
+    const brandName = (rec?.brand || brand || "").trim();
+    if (!brandName) return;
+    setMailbox("looking");
+    let alive = true;
+    base44.functions
+      .invoke("orianeEvidence", { action: "brand_profile", brand: brandName })
+      .then((r) => {
+        const d = r?.data || r;
+        if (
+          alive &&
+          d?.available &&
+          d.found &&
+          d.profile?.isVerified &&
+          d.profile?.publicEmail
+        ) {
+          setMailbox(d.profile);
+        } else {
+          setMailbox("absent");
+        }
+      })
+      .catch(() => { if (alive) setMailbox("absent"); });
+    return () => { alive = false; };
+    // one lookup per open — a paid API is not a render-loop caller.
+  }, [open, rec?.brand]);
 
   if (!open) return null;
 
@@ -160,7 +190,11 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
                 </div>
               )}
               <div className="flex flex-wrap gap-4 border-t border-journal-rule pt-4">
-                <JournalButton href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}>
+                <JournalButton
+                  href={`mailto:${
+                    mailbox && mailbox !== "looking" && mailbox !== "absent" ? mailbox.publicEmail : ""
+                  }?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`}
+                >
                   <Mail size={14} /> Open in email app
                 </JournalButton>
                 <JournalButton variant="secondary" onClick={() => { navigator.clipboard?.writeText(`${subject}\n\n${body}`); toast.success("Copied"); }}>
@@ -172,6 +206,31 @@ export default function AskBrandSheet({ open, onClose, scan = null, product = nu
                   </JournalButton>
                 )}
               </div>
+
+              {/* The verified mailbox, when the brand publishes a public
+                  contact on its verified account. The source says what it is
+                  and links to it; absence says nothing. Jejak still never
+                  emails anyone — this just fills the To: field. */}
+              {mailbox === "looking" && (
+                <p className="font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+                  looking for the brand's public contact…
+                </p>
+              )}
+              {mailbox && mailbox !== "looking" && mailbox !== "absent" && (
+                <p className="font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+                  draft addressed to{" "}
+                  <a
+                    href={mailbox.profileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="underline decoration-journal-materials/40 underline-offset-2 hover:text-journal-ink"
+                  >
+                    @{mailbox.handle}'s verified account
+                  </a>{" "}
+                  · public contact line
+                </p>
+              )}
+
               <p className="font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
                 Jejak never emails brands for you — you stay in control.
               </p>

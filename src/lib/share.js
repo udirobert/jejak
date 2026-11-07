@@ -26,6 +26,18 @@ export function traceUrl(scanId) {
   return `${appOrigin()}/t/${scanId}`;
 }
 
+// A guess-first pool room. Shared like a trace's /t link: the recipient
+// opens one category's field (a pool), guesses with no account, and either
+// way stands against the same answer. Falsy → the app root.
+export function poolPath(categoryId) {
+  return categoryId ? `/pool/${encodeURIComponent(categoryId)}` : "/trace";
+}
+
+export function poolUrl(categoryId) {
+  if (!categoryId) return appOrigin();
+  return `${appOrigin()}/pool/${encodeURIComponent(categoryId)}`;
+}
+
 export function tracePath(scanId) {
   return scanId ? `/t/${scanId}` : "/trace";
 }

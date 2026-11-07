@@ -17,6 +17,7 @@ const Explore = React.lazy(() => import('@/pages/Explore'));
 const Landing = React.lazy(() => import('@/pages/Landing'));
 const Journal = React.lazy(() => import('@/pages/Journal'));
 const PublicTrace = React.lazy(() => import('@/pages/PublicTrace'));
+const PublicPool = React.lazy(() => import('@/pages/PublicPool'));
 const Room = React.lazy(() => import('@/pages/Room'));
 const Login = React.lazy(() => import('@/pages/Login'));
 const Register = React.lazy(() => import('@/pages/Register'));
@@ -67,6 +68,7 @@ const AuthenticatedApp = () => {
           <Route path="/journal" element={<Journal />} />
           {/* A shared trace — what a link actually points at. */}
           <Route path="/t/:scanId" element={<PublicTrace />} />
+    <Route path="/pool/:category" element={<PublicPool />} />
           <Route path="/room" element={<Room />} />
           <Route path="/floor" element={<Navigate to="/room" replace />} />
           <Route path="/impact" element={<Impact />} />

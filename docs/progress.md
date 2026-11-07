@@ -38,15 +38,19 @@ Checked against production, not against the repo.
 | Guess commit | **Verified on testnet** | Tx `61b78270e882612c2b3c7d9ebdc469a043bc867e5f06b1da59af0bbcb185ae36`, **ledger 5399535**, `memo_type: hash` — the guess hash is on the public ledger before the reveal. |
 | Pool resolve | **Verified** | Returns the field, the distribution, the median, your rank, and `you_won` computed server-side. |
 | Reveal lock | **Verified** | `pool_state` returns the *count* of guessers before the reveal but an empty `distribution` — the crowd can't be copied before the answer is out. |
-| Claim path | **NOT verified** | The `claim` action exists and is wired (it refuses correctly with `nothing_to_claim`), but a successful claim has never executed. See §4. |
+| Claim path | **Executed on testnet** | 2026-11-07, tx `9065eaadc46ccb724160c72d871e767e3c0fbd3eda8de53d5bc9f18e57e8fa13` — 10 XLM, `JEJAK-CLAIM:6110`. First successful claim in the app's history. **Done outside the app path**: the in-app path refused (`nothing_to_claim`) because the settle step saved an empty `claim_balance_id` — a capture bug, rooted out in §3 below. The repo fix is in, **deploy pending**; re-run `node scripts/test-wager-claim.mjs` after deploy to prove the app path. |
 | Sign-up-free competing | **Pending deploy** | The change that lets a signed-out visitor compete landed after the last deploy. |
 | Category-wide pools | **Pending deploy** | Same. |
+| Reveal bridge + guess-first pool page | **In repo, pending deploy** | `WagerPanel` now offers "Trace something of your own" at the reveal; `/pool/:category` is a guess-first public room served from `PublicPool.jsx`, shareable via `poolUrl()`. |
+| Oriane evidence layer | **In repo, pending deploy + secret** | `orianeEvidence` function (3 actions) + the honesty layer in `base44/shared/oriane.ts`. Needs `ORIANE_API_KEY` set as an app secret before deploy; everything degrades to `available:false` without it. Card in the journey: "Seen in the brand's own posts". |
 
-**Checks:** lint clean · build clean · 62 deno tests pass · data validation OK · `deno check` OK on every non-Stellar function.
+**Checks:** lint clean · build clean · 73 deno tests pass (42 shared + 31 src/lib) · data validation OK · `deno check` OK on every non-Stellar function.
 
 ---
 
 ## 3 · What changed most recently
+
+**The first on-chain claim happened — and caught the bug that had been blocking every claim.** During a scripted end-to-end run (two commits, one resolve), the settle transaction landed fine and Horizon showed 10 XLM claimable by the winner, but the function saved the settlement row with an **empty `claim_balance_id`**, so every claim refused with `nothing_to_claim`. Root cause: the capture read `settle.result.operations[0].createClaimableBalanceResult.id` — a field the Horizon transaction response has never exposed (reading the raw XDR result by union arm was tried empirically and abandoned as too fiddly; `parsed.result().txresult()` is not the API this SDK version ships). The fix reads the balance back from Horizon instead: `GET /claimable_balances?claimant=<winner>&sponsor=<pool>` — the pool account is the only sponsor of any pot, so the newest native balance is unambiguously this settle's pot. `node scripts/test-wager-claim.mjs` is the repeatable check; §2.3 of [`deploy.md`](./deploy.md) tells you when to run it. The stranded balance itself was claimed legitimately on testnet by re-deriving the winner's key from its anonymous id (deterministic sha256, documented in the function header).
 
 **The social layer was correct but unusable.** Four things stopped people meeting each other in it, all now fixed:
 
@@ -65,7 +69,7 @@ Plus two discoverability fixes: the count of guessers shows **before** you guess
 
 | | |
 |---|---|
-| **The claim has never run** | The one thing in the app that moves money. Run §2.3 of [`deploy.md`](./deploy.md) before you demo it. The symptom table says what each failure means. |
+| **The claim fix is not deployed yet** | The capture fix and all the flywheel work below are in the repo; production still runs the old code and still refuses claims. Deploy, set `ORIANE_API_KEY`, then run `node scripts/test-wager-claim.mjs` — it must print `claim ok`. |
 | **The pot needs two people** | By design. Two private windows are enough — no sign-up needed. |
 | **Kudos tips to another person** | The pot is claimable by a demo cause wallet, never by a Jejak user. Making a user claimable needs the passport to be a *claimant* on a claimable balance, which the fee relayer can't do — it journals on the sponsor account. The Stellar primitives are right; the plumbing isn't. |
 | **No profiles, comments, followers, ratings** | Deliberate. They need moderation, moderation needs a team, and a traceability app has no reason to become a network. Corroboration gets the value without the cost. |
@@ -73,11 +77,12 @@ Plus two discoverability fixes: the count of guessers shows **before** you guess
 
 ---
 
-## 5 · The next three things
+## 5 · The next things
 
 1. **Deploy** and run the testnet script in [`deploy.md`](./deploy.md) — especially the claim.
 2. **Run the demo** — [`demo.md`](./demo.md) has the four beats, what to say, and the failure mode for each.
 3. **Capture the video** — the `video/jejak-vid` project is in the repo; the `StellarCut` impl is the shot list to extend.
+4. **The flywheel, in priority order** (the reasoning is [`social.md`](./social.md) §7) — **built in this round**: the reveal bridge (wager → trace hand-off), the guess-first public pool (`/pool/:category`), the canonical pool share link, the verified-brand mailbox on letter + nudge, and the "Seen in the brand's own posts" evidence card. What remains is deployment and real traffic. The posture stays as written there: a calibration game about the world, not a game about each other — no leaderboards, no streaks, pot stays sponsored.
 
 The one-line version for judges:
 

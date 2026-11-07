@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import JournalButton from "./JournalButton";
 import MarginNote from "./MarginNote";
 import { delegationState, nudgeDraft, DELEGATION_STAGES } from "@/lib/delegation";
+import { base44 } from "@/api/base44Client";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
 
@@ -46,13 +47,41 @@ export default function DelegationCard({ record, onUpdate, onOpen, autoNudge = f
   const [nudgeOpen, setNudgeOpen] = useState(false);
   const [now] = useState(() => Date.now());
   const nudgedRef = useRef(false);
+  // The brand's verified public contact — fetched once, on nudge open. A
+  // paid API is not a render-loop caller, so the card doesn't look anything
+  // up until the user actually drafts the follow-up. Absent → no recipient,
+  // exactly as before.
+  const [mailbox, setMailbox] = useState(null);
+
+  const openNudge = () => {
+    setNudgeOpen(true);
+    if (mailbox) return;
+    let alive = true;
+    base44.functions
+      .invoke("orianeEvidence", { action: "brand_profile", brand: String(record.brand || "") })
+      .then((r) => {
+        const d = r?.data || r;
+        if (
+          alive &&
+          d?.available &&
+          d.found &&
+          d.profile?.isVerified &&
+          d.profile?.publicEmail
+        ) {
+          setMailbox(d.profile);
+        } else {
+          setMailbox("absent");
+        }
+      })
+      .catch(() => { if (alive) setMailbox("absent"); });
+  };
 
   // An observation elsewhere on the page can ask for this letter's nudge to
   // be opened directly.
   useEffect(() => {
     if (!autoNudge || nudgedRef.current) return;
     nudgedRef.current = true;
-    setNudgeOpen(true);
+    openNudge();
   }, [autoNudge]);
 
   const state = delegationState(record, now);
@@ -132,7 +161,9 @@ export default function DelegationCard({ record, onUpdate, onOpen, autoNudge = f
               </pre>
               <div className="mt-3 flex flex-wrap gap-4">
                 <JournalButton
-                  href={`mailto:?subject=${encodeURIComponent(nudge.subject)}&body=${encodeURIComponent(nudge.body)}`}
+                  href={`mailto:${
+                    mailbox && mailbox !== "absent" ? mailbox.publicEmail : ""
+                  }?subject=${encodeURIComponent(nudge.subject)}&body=${encodeURIComponent(nudge.body)}`}
                 >
                   <Mail size={13} /> Open in email app
                 </JournalButton>
@@ -146,6 +177,11 @@ export default function DelegationCard({ record, onUpdate, onOpen, autoNudge = f
                   <Send size={13} /> I've sent the nudge
                 </JournalButton>
               </div>
+              {mailbox === "absent" && (
+                <p className="mt-2 font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-ink-soft">
+                  no public contact line for this brand — send it however you did the first
+                </p>
+              )}
             </div>
           </motion.div>
         )}
@@ -156,7 +192,7 @@ export default function DelegationCard({ record, onUpdate, onOpen, autoNudge = f
           {state.canNudge && !nudgeOpen && (
             <button
               type="button"
-              onClick={() => setNudgeOpen(true)}
+              onClick={openNudge}
               className="min-h-[44px] font-grotesk text-sm font-medium text-journal-stamp underline decoration-journal-stamp/40 underline-offset-4 no-tap hover:text-journal-ink"
             >
               Draft a nudge

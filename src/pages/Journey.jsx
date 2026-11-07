@@ -10,6 +10,7 @@ import Globe from "@/components/Globe";
 import MarginNote from "@/components/journal/MarginNote";
 import JournalButton from "@/components/journal/JournalButton";
 import TradeEvidence from "@/components/journal/TradeEvidence";
+import BrandEvidenceCard from "@/components/journal/BrandEvidenceCard";
 import TourCallout from "@/components/journal/TourCallout";
 import LabelScanCard, { sampleLabelFor } from "@/components/LabelScanCard";
 import ConfidenceShift from "@/components/journal/ConfidenceShift";
@@ -451,6 +452,11 @@ export default function Journey() {
           />
 
           <LabelScanCard />
+
+          {/* The brand's own posts as a fourth basis — only the words, only
+              from the brand itself, links out so the claim is checkable.
+              Brand name from the product; absent brand → absent card. */}
+          <BrandEvidenceCard brand={product?.brand || ""} reduce={reduce} />
 
           <div className="mt-6 flex items-center gap-4" ref={moneyBtnRef}>
             <JournalButton onClick={() => { vibrate(8); setScreen("split"); }}>

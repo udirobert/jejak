@@ -38,6 +38,7 @@ export default function PublicTrace() {
   const [state, setState] = useState("loading"); // loading | ready | missing | private
   const [siblings, setSiblings] = useState([]);
   const [pool, setPool] = useState(null);
+  const [poolKey, setPoolKey] = useState(null);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -68,9 +69,10 @@ export default function PublicTrace() {
         // How many people have put a belief on the record for this one.
         // The pool is keyed by category, so this is the whole category's
         // field, not just this one entry.
-        const poolKey = s.hs || (productFromScan(s)?.hs) || s.product_id;
+        const keyForPool = s.hs || (productFromScan(s)?.hs) || s.product_id;
+        setPoolKey(keyForPool);
         base44.functions
-          .invoke("guessPool", { action: "pool_state", product_id: poolKey })
+          .invoke("guessPool", { action: "pool_state", product_id: keyForPool })
           .then((r) => {
             const d = r?.data || r;
             if (alive && d?.ok) setPool(d);
@@ -299,6 +301,16 @@ export default function PublicTrace() {
                     {pool.pool_size} {pool.pool_size === 1 ? "person has" : "people have"} guessed
                     the maker share for this one.
                   </p>
+                )}
+                {/* The pool room for this category — a vistor who hasn't
+                    traced can still guess, no account needed. */}
+                {poolKey && (
+                  <a
+                    href={`/pool/${encodeURIComponent(poolKey)}`}
+                    className="mt-2 inline-block font-plexmono text-[10px] uppercase tracking-[0.1em] text-journal-stamp underline decoration-journal-stamp/40 underline-offset-2 hover:text-journal-ink"
+                  >
+                    guess in this category's room
+                  </a>
                 )}
               </div>
             )}

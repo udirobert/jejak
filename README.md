@@ -109,6 +109,7 @@ The art direction is *a field journal of things*: warm paper with grain, ink, ve
 | Trace any described item | `base44/functions/traceAnything` |
 | Automations | `writeJourneyStory`, `processReceipt`, `brandFollowUps` (see each `function.jsonc`) |
 | Brand letters | `base44/functions/draftBrandLetter` |
+| Evidence layer ("Seen in the brand's own posts" · brand-letter mailbox · guess-first category pulse, Oriane paid API) | `base44/functions/orianeEvidence` (+ `base44/shared/oriane.ts` · `oriane.test.ts`) |
 | Proof layer (Stellar) | `stellarMakerPayout`, `stellarFeeRelayer` |
 | Staked guess pool (commit → resolve → claim → claimable balance) | `base44/functions/guessPool` (+ `Guess` entity) |
 | The wager's field maths (bucketing, median, one-belief-per-person) | `base44/shared/guess.ts` (+ `guess.test.ts`) |
@@ -129,7 +130,9 @@ base44 link           # choose "Link an existing project"
 base44 deploy         # entities, functions + automations, site
 ```
 
-Optional function env var: `JEJAK_APP_URL` (e.g. `https://your-app.base44.app`) adds an "Open your journal" link to the reminder emails. Set it as an environment variable or secret for the app in the Base44 dashboard.
+Optional function env vars:
+- `JEJAK_APP_URL` (e.g. `https://your-app.base44.app`) adds an "Open your journal" link to the reminder emails.
+- `ORIANE_API_KEY` (a `beta_…` key from Oriane) unlocks `base44/functions/orianeEvidence` — the "Seen in the brand's own posts" evidence basis, the verified-brand mailbox for brand letters, and the category pulse for guess-first pools. Without it the function replies `available: false` and the UI treats evidence as *absent* — never as disagreement. Its honesty ceilings are enforced in `base44/shared/oriane.ts`: fixed phrase sets (term-level matching means an improvised query is noise), confidence capped at `low` unless the brand's **verified** account posted making-of language in ≥3 matching posts, no user photo ever sent to Oriane, and links so a claim can be checked without Jejak. It is a metered, paid API — cache per category before making it a per-trace call.
 
 Note: Base44 rejects `function.jsonc` automations (HTTP 409) on apps that have **Workflows** enabled. If that happens, recreate the three triggers as Workflows (`Scan` created → `writeJourneyStory`, `Receipt` created → `processReceipt`, daily 09:00 → `brandFollowUps`) and deploy the functions without their `automations` blocks.
 
@@ -263,6 +266,7 @@ node scripts/validate-data.mjs   # Asserts every product split sums to 100%
 deno test base44/shared/         # Tests for the AI trace engine's normalisation rules
 deno test src/lib/               # Tests for the delegation lifecycle + observations
 deno test base44/shared/ src/lib/  # Both suites
+node scripts/test-wager-claim.mjs  # End-to-end claim check against the DEPLOYED pool function (testnet; run after every deploy)
 ```
 
 ### Environment Variables (`.env.example`)

@@ -22,6 +22,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { celebrate } from "@/lib/celebrate";
 import { vibrate, coinClink } from "@/lib/haptics";
 import { ChevronLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const displayFont = { fontVariationSettings: '"opsz" 144, "SOFT" 50, "WONK" 1' };
 const RECEIPT_LABELS = {
@@ -71,6 +72,7 @@ export default function MoneySplit() {
   const [askOpen, setAskOpen] = useState(false);
   const { isAuthenticated, savedScanId, ensureSaved, setVisibility } = useSaveTrace();
   const { navigateToLogin } = useAuth();
+  const navigate = useNavigate();
 
   const reduce = useReducedMotion();
   const basePrice = product?.markets?.[market]?.price ?? 0;
@@ -314,7 +316,14 @@ export default function MoneySplit() {
                   estimate={{ low: labour.pct?.low ?? 0, high: labour.pct?.high ?? 0 }}
                   claimState={claimState}
                   onClaim={claimPot}
+                  poolKey={poolKey}
                   reduce={reduce}
+                  // The reveal bridge — the wager resolves into the next trace.
+                  // The bottom "Trace another thing" action stays a utility
+                  // line; the bridge speaks the point, at the moment it's
+                  // true. reset() clears the flow so the next entry starts
+                  // clean, and the trace route opens the scan home.
+                  onTraceYours={() => { vibrate(10); reset(); navigate("/trace"); }}
                 />
 
                 {/* Publishing is opt-in and stays opt-in — but it used to be a

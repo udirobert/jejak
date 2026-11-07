@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { ExternalLink, Loader2, Share2 } from "lucide-react";
 import { useApp } from "@/lib/AppContext";
-import { traceUrl } from "@/lib/share";
+import { poolUrl, traceUrl } from "@/lib/share";
 import { toast } from "sonner";
 import GuessField from "./GuessField";
 import JournalButton from "./JournalButton";
@@ -27,6 +27,12 @@ export default function WagerPanel({
   estimate,
   claimState,
   onClaim,
+  // The category pool key (HS code) — so a pool without a saved trace can
+  // still be shared as its own room (guess-first pools).
+  poolKey = null,
+  // An explicit share target beats the derived one.
+  shareUrl = null,
+  onTraceYours = null,
   reduce: reduceProp,
 }) {
   const reduceMotion = useReducedMotion();
@@ -65,8 +71,10 @@ export default function WagerPanel({
   }
 
   // The one thing that makes this a wager rather than a note to yourself.
+  // A saved trace shares the trace; a guess-first pool shares the room —
+  // the recipient lands in the same field, no account needed.
   const askForCompany = async () => {
-    const url = traceUrl(savedScanId);
+    const url = shareUrl || (savedScanId ? traceUrl(savedScanId) : poolUrl(poolKey));
     const text = `I traced a hoodie and guessed what share of the price reached the makers. Beat me — your guess goes in the same pool: ${url}`;
     try {
       if (navigator.share) {
@@ -218,6 +226,24 @@ export default function WagerPanel({
 
           <div className="mt-2.5">
             <MarginNote tone="ink">sponsored pot · no XLM of yours was staked</MarginNote>
+          </div>
+        </div>
+      )}
+
+      {/* The reveal bridge. The wager resolves into this — the moment a
+          person is most likely to trace something of their own, because
+          they've just seen what the truth does to a guess. It offers
+          tracing, never "guess more to win points": a calibration game
+          about the world, not a game about each other. */}
+      {settlement && onTraceYours && (
+        <div className="mt-4 border-t border-dotted border-journal-rule pt-3">
+          <p className="font-grotesk text-[14px] leading-relaxed text-journal-ink">
+            Think you'd have caught that? Give me one label from your own closet. I'll trace the
+            route, price the labour share, tell you how sure I am — and put a hash on a public
+            ledger you can check without me.
+          </p>
+          <div className="mt-3">
+            <JournalButton onClick={onTraceYours}>Trace something of your own</JournalButton>
           </div>
         </div>
       )}

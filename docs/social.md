@@ -164,6 +164,59 @@ The claim is the thing to test first. [`deploy.md`](./deploy.md) has the script 
 
 ---
 
+## 7 · The game is the flywheel
+
+> Written down Nov 2026, so the next person (including us, in three months) doesn't quietly undo it: **the wager is not a feature — for a product like this, it is the retention layer.**
+
+### Why a utility app needed an engine
+
+Traceability is a one-visit behaviour. You scan a hoodie, read the receipt, and you're done — a journal does not bring you back in March. Everything with a return mechanic lives in the wager: commit (tension) → reveal (payoff) → the field (social proof) → the next category (loop). It is the only organic reason to reopen this app, which is why the game-shaped parts get leaned into, not parked after the demo.
+
+### The two halves feed each other
+
+- **The utility feeds the game.** Guessing about abstract percentages is trivia. Guessing *after* you've seen the route map and the torn receipt is an informed bet — insight you can't look up. The trace is the wager's tutorial.
+- **The game feeds the utility.** The reveal is the moment somebody learns the sewers got less than 1% — the exact moment the product was built to create. A guesser arriving through a pool is a person at maximum openness to scanning their own label.
+
+### The loop as it stands
+
+The funnel, drawn as stages, with status:
+
+| Stage | What happens | Status |
+|---|---|---|
+| **Attract** | A settled field is the shareable object: your mark on the axis, the truth, *"5 of 7 got Bangladesh"*. | exists — `/t/:scanId` |
+| **Enter** | No sign-up; pools keyed by category; the pot is sponsored. | exists · verified |
+| **Hook** | Hash committed before the reveal; the crowd can't be copied. | exists · verified |
+| **Convert** | The reveal turns a guesser into a tracer. | **leak — nothing there yet** |
+| **Repeat** | More guessers land in your category room. | exists |
+
+The last iteration fixed the *sharing* three ways (shared pools, the solo-pool dead-end, the sign-up wall). The next two are one layer earlier in the funnel.
+
+### Two leaks, in the order we'll close them
+
+1. **The reveal does not bridge to anything.** The wager resolves, shows the field, and stops — at the moment the person is most likely to scan something of their own. The fix is one screen: a plain sentence of consequence and *"give me one label from your own closet"*, handing into the trace flow.
+2. **Entry currently requires having traced something.** You can only guess in a pool you arrived at through a trace, so the wager can't acquire anyone who hasn't scanned. A guess-first public link — a category pool, reached straight from the Atlas, using the same signed-out anonymous id Floor Mode already proved — makes the wager an acquisition surface instead of a retention pocket.
+
+The third is free: a *settled* field is the most social-media-able object this app produces — where everyone stood, against the truth. The share card for a settled pool should become the canonical share, ahead of the app's front page.
+
+### The constitution, in one line
+
+**This layer is a calibration game about the world, not a game about each other.** Which means, forever and in every new idea that follows:
+
+- No leaderboards. The field already shows a distribution instead — *"9 of 14 guessed higher than you, the trade data said 2%"* — and that is the only comparison worth making.
+- No streak rewards, no point-maximising language, nothing that makes an *inaccurate-but-agreeable* guess rational. Corrupted guesses corrupt the field, and the field is the human-priors dataset the whole submission talks about.
+- Nothing here changes the voice. The app that says *"I'm fairly sure about Bangladesh — that's the category's usual supplier, not your item"* must not start talking in game-rules language.
+- Pot stays sponsored, beliefs stay unattributed, a count of one is never shown as a count.
+
+### Why the legal posture rides on the same rules
+
+The wager is defensible exactly because no user funds are locked, nobody "stakes", and the pot is claimable only through a mechanism that isn't consideration. That is what keeps this a party game rather than a betting operation — and it is *not* a formality to quietly drop as traffic grows. Every growth feature gets checked against it.
+
+### Sequencing note
+
+The guess-first front door does not go public until the claim has actually executed once on testnet (Section 6). Making the game the entry point before the money-moment is proven means the first viral moment is a claim that fails.
+
+---
+
 ## Tests
 
 - `base44/shared/guess.test.ts` — the field maths: bucketing, median, one-belief-per-person, and where-you-stand. Pure, so it runs without a Stellar connection.

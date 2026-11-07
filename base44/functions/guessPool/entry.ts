@@ -51,6 +51,28 @@ const POT_XLM = "10"; // sponsored demo pot per pool — the guesser stakes noth
 const POOL_SEED = "jejak-guess-pool-signer-v1";
 const WINNER_SEED_PREFIX = "jejak-guess-winner-v2";
 
+// The claimable balance a settle just created. The Horizon transaction
+// response does not expose a parsed operation result (reading
+// `settle.result.operations[...]` returned nothing, so the record was saved
+// with an empty `claim_balance_id` and every claim refused with
+// `nothing_to_claim`). The balance is looked up instead: the pool account is
+// the only sponsor of any pot, and the winner's newest claimable balance is
+// this settle's pot. Missing ⇒ the claim refuses honestly.
+async function findSettledBalanceId(winnerPk: string, poolPk: string): Promise<string> {
+  try {
+    const res = await fetch(
+      `${HORIZON_URL}/claimable_balances?claimant=${encodeURIComponent(winnerPk)}&sponsor=${encodeURIComponent(poolPk)}`,
+    );
+    const data = await res.json();
+    const recs = (data?._embedded?.records || []).filter((r: any) => r.asset === "native");
+    if (!recs.length) return "";
+    const sorted = recs.sort((a: any, b: any) => (a.id > b.id ? 1 : -1));
+    return String(sorted[sorted.length - 1]?.id || "");
+  } catch {
+    return "";
+  }
+}
+
 async function deriveKp(seed: string): Promise<Keypair> {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(seed));
   return Keypair.fromRawEd25519Seed(new Uint8Array(d));
@@ -239,7 +261,7 @@ export default async function (req: Request) {
             return server.submitTransaction(tx);
           })();
 
-          balanceId = settle?.result?.operations?.[0]?.createClaimableBalanceResult?.id || "";
+          balanceId = await findSettledBalanceId(winnerKp.publicKey(), poolKp.publicKey());
           settleTx = settle.hash;
           settleExplorer = EXPLORER_TX(settle.hash);
           claimAddress = winnerKp.publicKey();

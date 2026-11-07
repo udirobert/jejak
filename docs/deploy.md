@@ -53,7 +53,15 @@ then re-deploy and check the timestamp again.
 
 ## 2 · Test the wager on testnet
 
-**This is the least-tested path in the app.** The claim in particular has never executed.
+**The claim has now executed on testnet once** — via a scripted run, not a browser (2026-11-07, tx `9065eaad…c8fa13`, `JEJAK-CLAIM:6110`). That run **found and fixed a real bug** in the settle path: the function read `settle.result.operations[0].createClaimableBalanceResult.id`, a field the Horizon response has never exposed, so the settlement saved an empty `claim_balance_id` and every claim refused with `nothing_to_claim`. The fix looks the balance up on Horizon (`claimant=<winner>&sponsor=<pool>`); it is in the repo and **deploys with the rest of this round**.
+
+Until that deploy is live, the production endpoint still has the bug. **After deploying, run the repeatable script** — it does the whole lifecycle through the app's own function path, prints a verdict per step, and is the §2.3 check:
+
+```bash
+node scripts/test-wager-claim.mjs        # or: deno run -A scripts/test-wager-claim.mjs
+```
+
+`claim ok` is the pass. Note it creates a *new* settlement each run (each run commits two fresh guesses) — that's intentional; rows marked `claim-verify` count in the field, which is worth more than a clean-looking empty one.
 
 Two windows, because every interesting state needs a field of at least two people:
 
@@ -100,7 +108,7 @@ Competing needs no sign-up, so signed-out windows work fine. If you want to test
 | Symptom | Likely cause |
 |---|---|
 | `RELAYER_FAILURE` / 502 | The relayer couldn't reach testnet. Retry. |
-| `nothing_to_claim` | `claim_balance_id` wasn't captured from the operation result, or the winner's row wasn't updated. Check the `Guess` record: `claim_balance_id` should be a 72-character hex string. |
+| `nothing_to_claim` | **The known failure, now fixed in-repo (deploy pending).** It was a capture bug: Horizon never exposes `settle.result.operations[…].createClaimableBalanceResult`; the fix looks the balance up via `GET /claimable_balances?claimant=…&sponsor=…`. If it still fires after deploying the fix, check the `Guess` record: `claim_balance_id` should be a 72-character hex string. |
 | "bad_guess" / a 400 | The request shape is wrong — check `product_id` matches the one used at commit time. **It's now the HS code** (`6110`, `6404`, `090111`, `392690`), not the product id. |
 | The pot never settles | Only one person has guessed. A pool of one doesn't settle — by design. Have a second person guess. |
 | "the first one" in the pool | Everyone's guesses are anonymous because they were made signed out. The *count* still works; only the pot's claim needs the matching browser id. |
