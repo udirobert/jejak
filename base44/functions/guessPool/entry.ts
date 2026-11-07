@@ -81,9 +81,29 @@ const hex = (b: Uint8Array) => Array.from(b).map((x) => x.toString(16).padStart(
 async function sha256(s: string) {
   return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))));
 }
+async function fundViaFriendbot(pk: string) {
+  // Friendbot both funds and rate-limits; a single 8s window loses to a 429
+  // retry queue easily. Retry with growing patience.
+  for (const ms of [8000, 15000, 25000]) {
+    try {
+      const res = await fetch(`${FRIENDBOT_URL}?addr=${pk}`, { signal: AbortSignal.timeout(ms) });
+      if (res.ok) return true;
+      // 429 = rate limited — wait and try again rather than aborting the claim.
+      await new Promise((r) => setTimeout(r, 2500));
+    } catch {
+      // timeout / network — try again
+    }
+  }
+  return false;
+}
+
 async function ensureFunded(server: Horizon.Server, pk: string) {
-  try { return await server.loadAccount(pk); } catch {
-    await fetch(`${FRIENDBOT_URL}?addr=${pk}`, { signal: AbortSignal.timeout(8000) });
+  try {
+    return await server.loadAccount(pk);
+  } catch {
+    await fundViaFriendbot(pk);
+    // Funded-or-not, load once more; an unfunded account makes the submit
+    // fail loudly and the claim tells the truth about why.
     return await server.loadAccount(pk);
   }
 }
