@@ -42,7 +42,7 @@ Checked against production, not against the repo.
 | Sign-up-free competing | **Live** | Deployed 2026-11-07 with the flywheel commit. |
 | Category-wide pools | **Live** | Same deploy. |
 | Reveal bridge + guess-first pool page | **Live** | `WagerPanel` offers "Trace something of your own" at the reveal; `/pool/:category` is a guess-first public room served from `PublicPool.jsx`, shareable via `poolUrl()`. |
-| Oriane evidence layer | **Live, awaiting `ORIANE_API_KEY`** | `orianeEvidence` function (3 actions) + the honesty layer in `base44/shared/oriane.ts` deployed 2026-11-07. The app secret is **not yet set** — every action degrades to `available:false` until a `beta_` key is added under Secrets, and the "Seen in the brand's own posts" card stays absent by design. |
+| Oriane evidence layer | **Live and verified** | `orianeEvidence` deployed 2026-11-07 with `ORIANE_API_KEY` set as an app secret. Verified against production: anonymous `category_pulse` returns `available:true` with real posts; auth'd actions correctly 401 for signed-out callers (fixed post-deploy — `auth.me()` throws rather than returning null). The "Seen in the brand's own posts" card renders on a traced brand when posts exist, absent otherwise. |
 
 **Checks:** lint clean · build clean · 73 deno tests pass (42 shared + 31 src/lib) · data validation OK · `deno check` OK on every non-Stellar function.
 
@@ -69,7 +69,7 @@ Plus two discoverability fixes: the count of guessers shows **before** you guess
 
 | | |
 |---|---|
-| **`ORIANE_API_KEY` is not set** | The function is deployed but has no key — every action returns `available:false` and the evidence card never renders. Add a `beta_` key under app Secrets, then trace a known brand (e.g. Asket) and look for "Seen in the brand's own posts". |
+| ~~`ORIANE_API_KEY`~~ | **Done 2026-11-07** — key set as an app secret; `category_pulse` verified live. To see the evidence card, trace a brand with an active social presence (e.g. Asket). |
 | **The pot needs two people** | By design. Two private windows are enough — no sign-up needed. |
 | **Kudos tips to another person** | The pot is claimable by a demo cause wallet, never by a Jejak user. Making a user claimable needs the passport to be a *claimant* on a claimable balance, which the fee relayer can't do — it journals on the sponsor account. The Stellar primitives are right; the plumbing isn't. |
 | **No profiles, comments, followers, ratings** | Deliberate. They need moderation, moderation needs a team, and a traceability app has no reason to become a network. Corroboration gets the value without the cost. |
@@ -82,7 +82,7 @@ Plus two discoverability fixes: the count of guessers shows **before** you guess
 1. ~~Deploy~~ **Done 2026-11-07** — published via the editor; `node scripts/test-wager-claim.mjs` printed `claim ok` through the app path.
 2. **Run the demo** — [`demo.md`](./demo.md) has the four beats, what to say, and the failure mode for each.
 3. **Capture the video** — the `video/jejak-vid` project is in the repo; the `StellarCut` impl is the shot list to extend.
-4. **The flywheel** — **deployed 2026-11-07**: the reveal bridge (wager → trace hand-off), the guess-first public pool (`/pool/:category`), the canonical pool share link, the verified-brand mailbox on letter + nudge, and the "Seen in the brand's own posts" evidence card. What remains is `ORIANE_API_KEY` and real traffic. The posture stays as written in [`social.md`](./social.md) §7: a calibration game about the world, not a game about each other — no leaderboards, no streaks, pot stays sponsored.
+4. **The flywheel** — **deployed 2026-11-07**: the reveal bridge (wager → trace hand-off), the guess-first public pool (`/pool/:category`), the canonical pool share link, the verified-brand mailbox on letter + nudge, and the "Seen in the brand's own posts" evidence card. What remains is real traffic. The posture stays as written in [`social.md`](./social.md) §7: a calibration game about the world, not a game about each other — no leaderboards, no streaks, pot stays sponsored.
 
 The one-line version for judges:
 
