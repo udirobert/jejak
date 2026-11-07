@@ -98,7 +98,12 @@ export default async function (req: Request) {
     }
 
     const base44 = createClientFromRequest(req);
-    const user = await base44.auth.me();
+    let user: any = null;
+    try {
+      user = await base44.auth.me();
+    } catch {
+      // auth.me() throws "Authentication required" when signed out.
+    }
     if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     if (action === "brand_profile") return await runBrandProfile(body);
